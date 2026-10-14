@@ -174,3 +174,8 @@ The script compares only the declared field intersection in
 `samples/reference_intersection.json`; it is not a MoonBit dependency. See
 `samples/COMPATIBILITY.md` for actual reference version/results and intentional
 normalization differences, including RSS link fallback for a missing guid.
+
+GitHub-hosted Linux CI uses the latest official MoonBit toolchain. The local
+toolchain remains `0.1.20260920`, but its versioned Linux download returned
+HTTP 403 during CI preparation; pinning CI to that unavailable artifact would
+make the workflow permanently fail.

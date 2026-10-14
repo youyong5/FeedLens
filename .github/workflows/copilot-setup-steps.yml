@@ -32,7 +32,8 @@ jobs:
       - name: Set up MoonBit
         uses: hustcer/setup-moonbit@v1
         with:
-          version: "0.1.20260920"
+          # See ci.yml: the locally verified version has no Linux artifact.
+          version: latest
 
       - name: Report MoonBit version
         run: |

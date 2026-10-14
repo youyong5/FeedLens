@@ -67,6 +67,11 @@ The optional Python command is an independent, local-only comparison against
 feedparser 6.0.11; its defined field intersection and observed results are in
 [samples/COMPATIBILITY.md](samples/COMPATIBILITY.md).
 
+The GitHub-hosted Linux CI uses the latest official MoonBit toolchain. The
+locally verified `0.1.20260920` is retained for local validation, but its
+versioned Linux download returned HTTP 403 when the CI was prepared; the
+workflow therefore cannot honestly pin that unavailable Linux artifact.
+
 ## License
 
 [Apache License 2.0](LICENSE).
