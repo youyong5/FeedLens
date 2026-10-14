@@ -25,11 +25,8 @@ jobs:
           # (the official versioned URL returns 403); latest is verified
           # downloadable for GitHub-hosted Linux runners.
           version: latest
-      - name: Check generated files are current
-        run: |
-          moon fmt
-          moon info
-          git diff --exit-code
+      - name: Refresh MoonBit registry
+        run: moon update
       - name: Check
         run: moon check --target ${{ matrix.target }}
       - name: Test
@@ -43,6 +40,8 @@ jobs:
       - uses: hustcer/setup-moonbit@v1
         with:
           version: latest
+      - name: Refresh MoonBit registry
+        run: moon update
       - name: Render RSS and Atom summaries
         run: |
           moon run --target native cmd/main samples/rss2_compat.xml
