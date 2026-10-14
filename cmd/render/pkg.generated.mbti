@@ -1,0 +1,31 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "youyong5/feedlens/cmd/render"
+
+import {
+  "youyong5/feedlens",
+}
+
+// Values
+pub fn format_name(@feedlens.FeedFormat) -> String
+
+pub fn help_text() -> String
+
+pub fn parse_args(Array[String]) -> Result[Command, String]
+
+pub fn parse_error_text(@feedlens.ParseError) -> String
+
+pub fn render_human(@feedlens.Feed) -> String
+
+pub fn render_json(@feedlens.Feed) -> String
+
+// Errors
+
+// Types and methods
+pub enum Command {
+  Help
+  Parse(String, Bool)
+}
+
+// Type aliases
+
+// Traits

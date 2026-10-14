@@ -1,0 +1,52 @@
+name: FeedLens CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  library:
+    name: ${{ matrix.target }} library checks
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [wasm, js, native]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: "0.1.20260920"
+      - name: Check generated files are current
+        run: |
+          moon fmt
+          moon info
+          git diff --exit-code
+      - name: Check
+        run: moon check --target ${{ matrix.target }}
+      - name: Test
+        run: moon test --target ${{ matrix.target }}
+
+  native-cli:
+    name: native CLI smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: "0.1.20260920"
+      - name: Render RSS and Atom summaries
+        run: |
+          moon run --target native cmd/main samples/rss2_compat.xml
+          moon run --target native cmd/main samples/atom1_compat.xml
+      - name: Emit JSON Feed normalized JSON
+        run: |
+          moon run --target native cmd/main --json samples/jsonfeed11_compat.json > feedlens.json
+          python3 -c "import json; result=json.load(open('feedlens.json', encoding='utf-8')); assert result['format'] == 'jsonfeed1'; assert len(result['entries']) == 2"
+      - name: Show CLI help
+        run: moon run --target native cmd/main -- --help

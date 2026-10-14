@@ -1,0 +1,51 @@
+{
+  "rss2_compat.xml": {
+    "feed": {
+      "title": "RSS & Compatibility",
+      "link": "https://feeds.example.test/rss",
+      "description": "RSS sample description"
+    },
+    "entries": [
+      {
+        "id": "rss-item-1",
+        "title": "First & Main",
+        "link": "https://example.test/posts/1",
+        "description": "First summary",
+        "published": "Mon, 01 Jan 2024 00:00:00 GMT"
+      },
+      {
+        "title": "Second & Reordered",
+        "link": "https://example.test/posts/2",
+        "description": "Second summary",
+        "published": null
+      }
+    ]
+  },
+  "atom1_compat.xml": {
+    "feed": {
+      "id": "https://feeds.example.test/atom",
+      "title": "Atom & Compatibility",
+      "link": "https://feeds.example.test/atom/home",
+      "subtitle": "Atom sample description",
+      "updated": "2024-01-02T00:00:00Z"
+    },
+    "entries": [
+      {
+        "id": "https://example.test/posts/1",
+        "title": "Atom First",
+        "link": "https://example.test/posts/1",
+        "summary": "Atom first summary",
+        "published": "2024-01-01T00:00:00Z",
+        "updated": "2024-01-02T00:00:00Z"
+      },
+      {
+        "id": "https://example.test/posts/2",
+        "title": "Atom Second",
+        "link": "https://example.test/posts/2",
+        "summary": "Atom second summary",
+        "published": null,
+        "updated": "2024-01-02T01:00:00Z"
+      }
+    ]
+  }
+}

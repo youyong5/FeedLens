@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<a:feed xmlns:a="http://www.w3.org/2005/Atom"
+        xmlns:x="urn:extension">
+  <a:id>https://feeds.example.test/atom</a:id>
+  <a:title>Atom &amp; Compatibility</a:title>
+  <a:subtitle>Atom sample description</a:subtitle>
+  <a:updated>2024-01-02T00:00:00Z</a:updated>
+  <a:link rel="self" href="https://feeds.example.test/atom"/>
+  <a:link href="https://feeds.example.test/atom/home"/>
+  <a:author><a:name>Feed Author</a:name><a:email>feed@example.test</a:email></a:author>
+  <a:category term="technology" scheme="https://example.test/topics" label="Technology"/>
+  <a:entry>
+    <a:id>https://example.test/posts/1</a:id>
+    <a:title>Atom First</a:title>
+    <a:published>2024-01-01T00:00:00Z</a:published>
+    <a:updated>2024-01-02T00:00:00Z</a:updated>
+    <a:summary>Atom first summary</a:summary>
+    <a:link rel="alternate" href="https://example.test/posts/1"/>
+    <a:content type="html">&lt;p&gt;Atom body&lt;/p&gt;</a:content>
+    <a:author><a:name>Entry Author</a:name><a:uri>https://example.test/people/entry</a:uri></a:author>
+    <a:category term="moonbit" scheme="urn:example:topic" label="MoonBit"/>
+  </a:entry>
+  <a:entry>
+    <a:id>https://example.test/posts/2</a:id>
+    <a:title>Atom Second</a:title>
+    <a:updated>2024-01-02T01:00:00Z</a:updated>
+    <a:summary><![CDATA[Atom second summary]]></a:summary>
+    <a:link href="https://example.test/posts/2"/>
+    <a:content>Second Atom body</a:content>
+    <a:source><a:author><a:name>Source Author</a:name></a:author></a:source>
+    <x:category term="ignored"/>
+  </a:entry>
+</a:feed>

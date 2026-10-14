@@ -1,0 +1,7 @@
+<rss version="2.0" xmlns:c="http://purl.org/rss/1.0/modules/content/" xmlns:x="urn:not-content">
+  <channel>
+    <title>Boundary RSS</title><link>https://feeds.example.test/boundary</link><description>Boundary description</description>
+    <x:category>ignored</x:category><category>   </category>
+    <item><guid>boundary</guid><x:author>ignored</x:author><author> </author><x:encoded>ignored</x:encoded><c:encoded>before <b>nested</b></c:encoded></item>
+  </channel>
+</rss>

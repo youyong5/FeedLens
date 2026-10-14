@@ -1,0 +1,25 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "JSON Feed \u2603 Compatibility",
+  "description": "A compact JSON Feed sample",
+  "home_page_url": "https://feeds.example.test/json",
+  "feed_url": "https://feeds.example.test/json/feed.json",
+  "authors": [
+    { "name": "Feed Author", "url": "https://example.test/people/feed" }
+  ],
+  "items": [
+    {
+      "id": "json-item-1",
+      "url": "https://example.test/posts/json-1",
+      "title": "First JSON entry",
+      "summary": "First JSON summary",
+      "content_text": "Plain fallback body",
+      "content_html": "<p>JSON HTML body</p>",
+      "tags": ["moonbit", "feeds"]
+    },
+    {
+      "id": 2,
+      "content_text": "Second JSON body"
+    }
+  ]
+}

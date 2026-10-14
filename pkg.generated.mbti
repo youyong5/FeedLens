@@ -1,0 +1,142 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "youyong5/feedlens"
+
+import {
+  "moonbitlang/core/debug",
+}
+
+// Values
+pub fn parse(String) -> Result[Feed, ParseError]
+
+// Errors
+
+// Types and methods
+pub struct Author {
+  source : AuthorSource
+  name : String?
+  uri : String?
+  email : String?
+} derive(Eq, @debug.Debug)
+pub fn Author::equal(Self, Self) -> Bool
+pub fn Author::not_equal(Self, Self) -> Bool
+pub fn Author::to_repr(Self) -> @debug.Repr
+
+pub enum AuthorSource {
+  Rss2
+  Atom1
+  JsonFeed
+} derive(Eq, @debug.Debug)
+pub fn AuthorSource::equal(Self, Self) -> Bool
+pub fn AuthorSource::not_equal(Self, Self) -> Bool
+pub fn AuthorSource::to_repr(Self) -> @debug.Repr
+
+pub struct Category {
+  source : FeedFormat
+  term : String
+  domain : String?
+  scheme : String?
+  label : String?
+} derive(Eq, @debug.Debug)
+pub fn Category::equal(Self, Self) -> Bool
+pub fn Category::not_equal(Self, Self) -> Bool
+pub fn Category::to_repr(Self) -> @debug.Repr
+
+pub struct Diagnostic {
+  kind : DiagnosticKind
+  line : Int
+  column : Int
+} derive(Eq, @debug.Debug)
+pub fn Diagnostic::equal(Self, Self) -> Bool
+pub fn Diagnostic::not_equal(Self, Self) -> Bool
+pub fn Diagnostic::to_repr(Self) -> @debug.Repr
+
+pub enum DiagnosticKind {
+  MissingChannelField(String)
+  MissingItemIdentifier(Int)
+  MissingFeedField(String)
+  MissingEntryField(Int, String)
+  UnsupportedNestedMarkup(String)
+  UnsupportedTextConstruct(String)
+  UnsupportedAtomContent(String)
+  MissingAlternateLink(Int)
+  MissingSummaryForExternalContent(Int)
+  InvalidAuthor(String)
+  InvalidCategory(String)
+  InvalidJsonFeedField(String)
+  InvalidJsonFeedItem(Int, String)
+} derive(Eq, @debug.Debug)
+pub fn DiagnosticKind::equal(Self, Self) -> Bool
+pub fn DiagnosticKind::not_equal(Self, Self) -> Bool
+pub fn DiagnosticKind::to_repr(Self) -> @debug.Repr
+
+pub struct Entry {
+  identifier : String?
+  title : String?
+  title_kind : TextKind
+  link : String?
+  description : String?
+  description_kind : TextKind
+  content : String?
+  content_kind : TextKind
+  authors : Array[Author]
+  categories : Array[Category]
+  published_at : String?
+  updated_at : String?
+} derive(Eq, @debug.Debug)
+pub fn Entry::equal(Self, Self) -> Bool
+pub fn Entry::not_equal(Self, Self) -> Bool
+pub fn Entry::to_repr(Self) -> @debug.Repr
+
+pub struct Feed {
+  format : FeedFormat
+  identifier : String?
+  title : String?
+  title_kind : TextKind
+  link : String?
+  description : String?
+  description_kind : TextKind
+  updated_at : String?
+  authors : Array[Author]
+  categories : Array[Category]
+  entries : Array[Entry]
+  diagnostics : Array[Diagnostic]
+} derive(Eq, @debug.Debug)
+pub fn Feed::equal(Self, Self) -> Bool
+pub fn Feed::not_equal(Self, Self) -> Bool
+pub fn Feed::to_repr(Self) -> @debug.Repr
+
+pub enum FeedFormat {
+  Rss2
+  Atom1
+  JsonFeed1
+} derive(Eq, @debug.Debug)
+pub fn FeedFormat::equal(Self, Self) -> Bool
+pub fn FeedFormat::not_equal(Self, Self) -> Bool
+pub fn FeedFormat::to_repr(Self) -> @debug.Repr
+
+pub enum ParseError {
+  InvalidXml(String, Int, Int)
+  UnsupportedRoot(String, String?)
+  UnsupportedRssVersion(String?)
+  MissingChannel
+  InvalidRssStructure(String)
+  InvalidJson(String, Int, Int)
+  InvalidJsonFeed(String)
+  UnsupportedJsonFeedVersion(String?)
+} derive(Eq, @debug.Debug)
+pub fn ParseError::equal(Self, Self) -> Bool
+pub fn ParseError::not_equal(Self, Self) -> Bool
+pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+pub enum TextKind {
+  Unspecified
+  Text
+  Html
+} derive(Eq, @debug.Debug)
+pub fn TextKind::equal(Self, Self) -> Bool
+pub fn TextKind::not_equal(Self, Self) -> Bool
+pub fn TextKind::to_repr(Self) -> @debug.Repr
+
+// Type aliases
+
+// Traits

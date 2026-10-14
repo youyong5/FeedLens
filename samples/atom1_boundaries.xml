@@ -1,0 +1,5 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:extension">
+  <id>urn:boundary</id><title>Boundary Atom</title><updated>2024-01-02T00:00:00Z</updated>
+  <x:author><x:name>ignored</x:name></x:author><category/>
+  <entry><id>urn:entry</id><title>Entry</title><updated>2024-01-02T00:00:00Z</updated><link href="https://example.test/entry"/><author><email>missing-name@example.test</email></author><x:category term="ignored"/></entry>
+</feed>
