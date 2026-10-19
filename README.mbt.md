@@ -30,6 +30,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
 | `Entry.authors` | direct item authors | effective entry authors | item `authors`/`author`, otherwise feed authors |
 | `Feed.categories` | direct channel categories | direct feed categories | none in supported subset |
+| `Feed.images` | direct channel image | direct feed icon/logo | feed icon/favicon |
 | `Entry.categories` | direct item categories | direct entry categories | `tags` |
 | `Entry.attachments` | direct item `enclosure` | direct entry `link rel="enclosure"` | item `attachments` |
 
@@ -52,6 +53,15 @@ its own; malformed or blank declarations are diagnosed and do not inherit.
 The 1.0 format does not declare a `language` field, so those keys are ignored.
 Language attributes on nested Atom text constructs are not projected into a
 single entry language.
+
+`Feed.images` is an ordered collection of `FeedImage` values with explicit
+`source` and `role`: `RssImage`, `AtomIcon`, `AtomLogo`, `JsonIcon`, or
+`JsonFavicon`. The RSS image retains its required URL/title/link and optional
+description/declared dimensions. Atom icon and logo are kept separate, as are
+JSON Feed timeline icon and source-list favicon. Missing required image data
+or invalid optional dimensions are diagnosed. No image is fetched, inspected,
+resized, or promoted to an attachment. `parse_with_source` resolves image URLs
+and the RSS image link; Atom icon/logo honor their own `xml:base` scopes.
 
 ### Dates without local-time guessing
 

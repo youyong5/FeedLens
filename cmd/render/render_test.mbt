@@ -123,6 +123,43 @@ test "render_json exposes declared and inherited language" {
 }
 
 ///|
+test "render_json keeps feed image roles and RSS metadata" {
+  guard @feedlens.parse(
+      "<rss version=\"2.0\"><channel><title>T</title><link>L</link><description>D</description><image><url>https://example.test/icon.png</url><title>Badge</title><link>https://example.test</link><width>32</width></image></channel></rss>",
+    )
+    is Ok(feed) else {
+    fail("expected RSS")
+  }
+  guard @json.parse(@render.render_json(feed))
+    is {
+      "images": Array(
+        [
+          {
+            "role": String(role),
+            "source": String(source),
+            "title": String(title),
+            "width": Number(width, ..),
+            "height": Null,
+            ..
+          },
+        ]
+      ),
+      ..
+    } else {
+    fail("expected RSS image metadata")
+  }
+  assert_eq(role, "rss_image")
+  assert_eq(source, "rss2")
+  assert_eq(title, "Badge")
+  assert_eq(width, 32)
+  assert_true(
+    @render.render_human(feed).contains(
+      "rss_image: https://example.test/icon.png",
+    ),
+  )
+}
+
+///|
 test "render_json includes ordered attachment metadata and nulls" {
   guard @feedlens.parse(
       "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Media\",\"items\":[{\"id\":\"item\",\"content_text\":\"Body\",\"attachments\":[{\"url\":\"https://example.test/one.mp3\",\"mime_type\":\"audio/mpeg\",\"title\":\"Quoted \\\"episode\\\"\",\"size_in_bytes\":9007199254740991,\"duration_in_seconds\":12.5},{\"url\":\"https://example.test/two.mp3\",\"mime_type\":\"audio/mpeg\"}]}]}",

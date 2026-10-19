@@ -923,6 +923,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             updated_at: feed_updated,
             authors: feed_authors,
             categories: feed_categories,
+            images: [],
             entries,
             diagnostics,
           })

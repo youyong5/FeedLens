@@ -24,6 +24,7 @@ pub enum DiagnosticKind {
   InvalidCategory(String)
   InvalidAttachment(String)
   InvalidLanguage(String)
+  InvalidFeedImage(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
@@ -90,6 +91,31 @@ pub struct Attachment {
 } derive(Debug, Eq)
 
 ///|
+/// A feed-level visual identity. Roles are source-specific; in particular an
+/// Atom logo and JSON favicon are not interchangeable.
+pub enum FeedImageRole {
+  RssImage
+  AtomIcon
+  AtomLogo
+  JsonIcon
+  JsonFavicon
+} derive(Debug, Eq)
+
+///|
+/// URL and optional RSS image metadata. Dimensions are declared pixel values,
+/// not inferred image dimensions; no image resource is downloaded.
+pub struct FeedImage {
+  source : FeedFormat
+  role : FeedImageRole
+  url : String
+  title : String?
+  link : String?
+  description : String?
+  width : Int32?
+  height : Int32?
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed entry. Fields retain decoded source text without HTML
 /// rendering or sanitization.
 pub struct Entry {
@@ -140,6 +166,7 @@ pub struct Feed {
   updated_at : String?
   authors : Array[Author]
   categories : Array[Category]
+  images : Array[FeedImage]
   entries : Array[Entry]
   diagnostics : Array[Diagnostic]
 } derive(Debug, Eq)
@@ -225,6 +252,18 @@ pub extend Attachment with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Attachment with Eq::{not_equal, equal}
+
+///|
+pub extend FeedImageRole with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FeedImageRole with Eq::{not_equal, equal}
+
+///|
+pub extend FeedImage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend FeedImage with Eq::{not_equal, equal}
 
 ///|
 pub extend Entry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -934,6 +973,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             updated_at: None,
             authors: [],
             categories: channel_categories,
+            images: [],
             entries,
             diagnostics,
           })
@@ -966,10 +1006,16 @@ pub fn parse(input : String) -> Result[Feed, ParseError] {
       match event.kind {
         @xml.Start(element) | @xml.Empty(element) => {
           if is_rss_name(element.name, "rss") {
-            return parse_rss(input)
+            return match parse_rss(input) {
+              Ok(feed) => add_xml_feed_images(input, feed, None, true)
+              Err(error) => Err(error)
+            }
           }
           if is_atom_name(element.name, "feed") {
-            return parse_atom(input)
+            return match parse_atom(input) {
+              Ok(feed) => add_xml_feed_images(input, feed, None, true)
+              Err(error) => Err(error)
+            }
           }
           return Err(
             UnsupportedRoot(

@@ -101,6 +101,7 @@ pub enum DiagnosticKind {
   InvalidCategory(String)
   InvalidAttachment(String)
   InvalidLanguage(String)
+  InvalidFeedImage(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int, String)
@@ -141,6 +142,7 @@ pub struct Feed {
   updated_at : String?
   authors : Array[Author]
   categories : Array[Category]
+  images : Array[FeedImage]
   entries : Array[Entry]
   diagnostics : Array[Diagnostic]
 } derive(Eq, @debug.Debug)
@@ -156,6 +158,31 @@ pub enum FeedFormat {
 pub fn FeedFormat::equal(Self, Self) -> Bool
 pub fn FeedFormat::not_equal(Self, Self) -> Bool
 pub fn FeedFormat::to_repr(Self) -> @debug.Repr
+
+pub struct FeedImage {
+  source : FeedFormat
+  role : FeedImageRole
+  url : String
+  title : String?
+  link : String?
+  description : String?
+  width : Int?
+  height : Int?
+} derive(Eq, @debug.Debug)
+pub fn FeedImage::equal(Self, Self) -> Bool
+pub fn FeedImage::not_equal(Self, Self) -> Bool
+pub fn FeedImage::to_repr(Self) -> @debug.Repr
+
+pub enum FeedImageRole {
+  RssImage
+  AtomIcon
+  AtomLogo
+  JsonIcon
+  JsonFavicon
+} derive(Eq, @debug.Debug)
+pub fn FeedImageRole::equal(Self, Self) -> Bool
+pub fn FeedImageRole::not_equal(Self, Self) -> Bool
+pub fn FeedImageRole::to_repr(Self) -> @debug.Repr
 
 pub struct NormalizedDate {
   utc : String

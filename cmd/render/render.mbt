@@ -98,6 +98,7 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     InvalidCategory(category) => "invalid category: " + category
     InvalidAttachment(message) => "invalid attachment: " + message
     InvalidLanguage(message) => "invalid language: " + message
+    InvalidFeedImage(message) => "invalid feed image: " + message
     UnresolvedUri(field) => "unresolved URI: " + field
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
@@ -118,6 +119,14 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
   output.write_string(option_or_none(feed.link))
   output.write_string("\nLanguage: ")
   output.write_string(option_or_none(feed.language))
+  output.write_string("\nFeed images: ")
+  output.write_string(feed.images.length().to_string())
+  for image in feed.images {
+    output.write_string("\n  - ")
+    output.write_string(feed_image_role_name(image.role))
+    output.write_string(": ")
+    output.write_string(image.url)
+  }
   output.write_string("\nEntries: ")
   output.write_string(feed.entries.length().to_string())
   for index = 0; index < feed.entries.length(); index = index + 1 {
@@ -255,6 +264,37 @@ fn attachment_json(attachment : @feedlens.Attachment) -> Json {
 }
 
 ///|
+fn feed_image_role_name(role : @feedlens.FeedImageRole) -> String {
+  match role {
+    RssImage => "rss_image"
+    AtomIcon => "atom_icon"
+    AtomLogo => "atom_logo"
+    JsonIcon => "json_icon"
+    JsonFavicon => "json_favicon"
+  }
+}
+
+///|
+fn feed_image_json(image : @feedlens.FeedImage) -> Json {
+  Json::object({
+    "source": format_json(image.source),
+    "role": Json::string(feed_image_role_name(image.role)),
+    "url": Json::string(image.url),
+    "title": optional_string_json(image.title),
+    "link": optional_string_json(image.link),
+    "description": optional_string_json(image.description),
+    "width": match image.width {
+      Some(width) => Json(width)
+      None => Json::null()
+    },
+    "height": match image.height {
+      Some(height) => Json(height)
+      None => Json::null()
+    },
+  })
+}
+
+///|
 fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
   match kind {
     MissingChannelField(field) =>
@@ -281,6 +321,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "InvalidAttachment", "message": message }
     InvalidLanguage(message) =>
       { "type": "InvalidLanguage", "message": message }
+    InvalidFeedImage(message) =>
+      { "type": "InvalidFeedImage", "message": message }
     UnresolvedUri(field) => { "type": "UnresolvedUri", "field": field }
     InvalidJsonFeedField(field) =>
       { "type": "InvalidJsonFeedField", "field": field }
@@ -333,6 +375,7 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
       "updated_at": optional_string_json(feed.updated_at),
       "authors": Json::array(feed.authors.map(author_json)),
       "categories": Json::array(feed.categories.map(category_json)),
+      "images": Json::array(feed.images.map(feed_image_json)),
       "entries": Json::array(feed.entries.map(entry_json)),
       "diagnostics": Json::array(feed.diagnostics.map(diagnostic_json)),
     }),

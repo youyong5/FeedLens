@@ -105,6 +105,7 @@ fn uri_with_feed_urls(
     updated_at: feed.updated_at,
     authors: feed.authors,
     categories: feed.categories,
+    images: feed.images,
     entries,
     diagnostics: feed.diagnostics,
   }
@@ -495,6 +496,26 @@ fn resolve_xml_feed(
 ///|
 fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
   let diagnostics = feed.diagnostics
+  let images : Array[FeedImage] = []
+  for image in feed.images {
+    images.push({
+      source: image.source,
+      role: image.role,
+      url: uri_at(
+        Some(source_url),
+        image.url,
+        "json feed image",
+        1,
+        1,
+        diagnostics,
+      ),
+      title: image.title,
+      link: image.link,
+      description: image.description,
+      width: image.width,
+      height: image.height,
+    })
+  }
   let link = match feed.link {
     Some(raw) =>
       Some(
@@ -546,7 +567,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
     }
     entries.push(uri_with_entry_urls(entry, entry_link, attachments))
   }
-  uri_with_feed_urls(feed, link, entries)
+  uri_with_feed_urls(with_feed_images(feed, images), link, entries)
 }
 
 ///|
@@ -566,7 +587,12 @@ pub fn parse_with_source(
     Ok(feed) =>
       match feed.format {
         JsonFeed1 => Ok(resolve_json_feed(feed, source_url))
-        Rss2 | Atom1 => resolve_xml_feed(input, feed, source_url)
+        Rss2 | Atom1 =>
+          match resolve_xml_feed(input, feed, source_url) {
+            Ok(resolved) =>
+              add_xml_feed_images(input, resolved, Some(source_url), false)
+            Err(error) => Err(error)
+          }
       }
   }
 }

@@ -92,6 +92,44 @@ fn json_language(
 }
 
 ///|
+fn json_feed_images(
+  object : Map[String, Json],
+  diagnostics : Array[Diagnostic],
+) -> Array[FeedImage] {
+  let images : Array[FeedImage] = []
+  for field in ["icon", "favicon"] {
+    match json_optional_string(object, field, diagnostics, None) {
+      Some(value) =>
+        match non_blank_text(value) {
+          Some(url) =>
+            images.push({
+              source: JsonFeed1,
+              role: if field == "icon" {
+                JsonIcon
+              } else {
+                JsonFavicon
+              },
+              url,
+              title: None,
+              link: None,
+              description: None,
+              width: None,
+              height: None,
+            })
+          None =>
+            diagnostics.push({
+              kind: InvalidFeedImage("json feed " + field + " missing URL"),
+              line: 1,
+              column: 1,
+            })
+        }
+      None => ()
+    }
+  }
+  images
+}
+
+///|
 fn json_author(
   value : Json,
   diagnostics : Array[Diagnostic],
@@ -384,6 +422,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     None
   }
   let (_, feed_authors) = json_authors(object, diagnostics, None)
+  let images = json_feed_images(object, diagnostics)
   let entries : Array[Entry] = []
 
   for index = 0; index < items.length(); index = index + 1 {
@@ -499,6 +538,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     updated_at: None,
     authors: feed_authors,
     categories: [],
+    images,
     entries,
     diagnostics,
   })
