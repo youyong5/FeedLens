@@ -23,6 +23,7 @@ pub enum DiagnosticKind {
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
+  UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
 } derive(Debug, Eq)
@@ -148,6 +149,7 @@ pub enum ParseError {
   InvalidJson(String, Int32, Int32)
   InvalidJsonFeed(String)
   UnsupportedJsonFeedVersion(String?)
+  InvalidSourceUrl(String)
 } derive(Debug, Eq)
 
 ///|

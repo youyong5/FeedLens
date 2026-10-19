@@ -180,3 +180,29 @@ test "real WP Tavern JSON projection preserves attachment metadata and offsets" 
   }
   assert_eq(date.utc, "2026-10-14T13:00:00Z")
 }
+
+///|
+test "explicit source resolution leaves real absolute article and media URLs intact" {
+  let sources = [
+    (real_rss_sample(), "https://wptavern.com/feed/"),
+    (real_atom_sample(), "https://wptavern.com/feed/atom"),
+    (real_json_sample(), "https://wptavern.com/feed/json"),
+  ]
+  for (input, source) in sources {
+    guard @feedlens.parse_with_source(input, source) is Ok(feed) else {
+      fail("expected resolved real projection")
+    }
+    assert_eq(feed.entries.length(), 2)
+    assert_eq(
+      feed.entries[0].link,
+      Some(
+        "https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/",
+      ),
+    )
+    assert_eq(
+      feed.entries[0].attachments[0].url,
+      "https://episodes.castos.com/601a97348e9993-63339407/2656179/c1e-89rgrh87qmqirmkrd-0vvdm9rvh1kp-56fstm.mp3",
+    )
+    assert_eq(feed.diagnostics, [])
+  }
+}

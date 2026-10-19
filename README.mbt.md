@@ -7,7 +7,7 @@ It gives callers one source-aware, cross-format model for the common feed
 fields while preserving document order and distinguishing fatal parse failures
 from recoverable feed-quality diagnostics. It is intentionally a parser and
 local inspection library: it does not fetch feeds, sanitize/render HTML, or
-guess missing dates and URLs. `README.md` is the GitHub landing page; this document
+guess missing dates or a document's source URL. `README.md` is the GitHub landing page; this document
 contains the full mapping and boundary specification.
 
 ## Public model
@@ -88,7 +88,8 @@ only: FeedLens never downloads or verifies the referenced resource. RSS
 require `href` but permit absent `type` and `length`; JSON Feed attachments
 require non-blank `url` and `mime_type`. Atom's optional link `title` and JSON
 Feed's optional attachment `title` are preserved; only JSON Feed supplies a
-duration. URL strings are not resolved or scheme-validated.
+duration. `parse` keeps URL references as written; `parse_with_source` can
+resolve supported URL fields without downloading them.
 
 `size_in_bytes` is an optional `Int64`, accepted only for non-negative decimal
 integers through `9007199254740991` (the largest integer exactly representable
@@ -99,6 +100,37 @@ is invalid; Atom/JSON Feed attachments retain their URL and receive
 Feed, `1.0` and `1e3` are deliberately not accepted as integer byte counts.
 JSON Feed durations are optional finite, non-negative `Double` seconds; invalid
 values become `None` with a diagnostic. They follow ordinary IEEE 754 rounding.
+
+### URI references and an explicit source URL
+
+`parse(input)` retains its existing raw-reference behavior. To resolve common
+links, use `parse_with_source(input, source_url)`, where `source_url` is the
+absolute HTTP(S) URL from which the document was obtained, without a fragment:
+
+```moonbit nocheck
+match @feedlens.parse_with_source(input, "https://example.org/feeds/news.atom") {
+  Ok(feed) => println(feed.entries[0].link.unwrap_or("(no link)"))
+  Err(_) => println("feed or source URL invalid")
+}
+```
+
+The new entry point resolves only `Feed.link`, `Entry.link`, and each
+`Entry.attachments[].url` using RFC 3986 path, root-path, query, fragment,
+and dot-segment rules. RSS and JSON Feed use the caller-supplied document URL;
+Atom additionally applies the inherited `xml:base` on the feed, entry, link,
+and any intervening XML elements, matching the XML namespace URI rather than
+an arbitrary `base` attribute. JSON Feed's declared `feed_url` and
+`home_page_url` are **not** substituted as a fetch-location base. Without a
+usable base, or for a malformed URI reference, the raw field is retained and
+`UnresolvedUri` is recorded; XML diagnostics point to the relevant element,
+whereas JSON semantic diagnostics are `(1, 1)`. An invalid explicit source URL
+is a fatal `InvalidSourceUrl` error. No URI is fetched.
+
+Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
+including the RSS link-fallback identifier. Author URIs, RSS category domains,
+Atom category schemes, external Atom content `src`, and URLs inside HTML are
+not resolved in this stage. Existing `parse` callers are unaffected; callers
+that need the original references can continue using it.
 
 ## RSS 2.0
 
@@ -119,7 +151,7 @@ values become `None` with a diagnostic. They follow ordinary IEEE 754 rounding.
 
 - Accepts only `<feed>` in the `http://www.w3.org/2005/Atom` namespace, whether declared as the default namespace or through a prefix.
 - Maps feed `id`, `title`, `subtitle`, `updated`, and alternate `link` to the normalized public model; maps direct `entry` children in document order from `id`, `title`, `published`, `updated`, `summary`, and alternate `link`.
-- A link with omitted `rel` or `rel="alternate"` is eligible; `rel="self"` is not. Relative `href` values are retained verbatim and are not resolved to absolute URLs.
+- A link with omitted `rel` or `rel="alternate"` is eligible; `rel="self"` is not. `parse` retains relative `href` values verbatim; `parse_with_source` resolves supported links with the applicable `xml:base` scope.
 - Required feed fields are `id`, `title`, and `updated`; required entry fields are `id`, `title`, and `updated`. Missing or blank values are recoverable diagnostics located at the field, or its feed/entry parent when absent.
 - Reads direct feed/entry `author` person constructs and their direct `name`, `uri`, and `email` children. Effective entry authors use the first available layer: entry authors, then direct `entry/source` authors, then feed authors. Layers are never combined. An author lacking a non-blank direct `name` gets `InvalidAuthor` at its element; if no valid layer exists, the entry gets `MissingEntryField(_, "author")`. A feed may omit authors when every entry has a valid own/source author.
 - Reads direct feed and entry `category` elements. Atom `term` is required; optional `scheme` and `label` stay distinct from RSS `domain`. Missing/blank terms receive an `InvalidCategory` at the category element.
@@ -142,9 +174,9 @@ values become `None` with a diagnostic. They follow ordinary IEEE 754 rounding.
 
 ## Not supported
 
-- Attachment retrieval or verification; JSON Feed pagination following, icons, favicons, author avatars, language, expired state, and extension fields; network retrieval and URI resolution.
+- Attachment retrieval or verification; JSON Feed pagination following, icons, favicons, author avatars, language, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
-- Atom XHTML serialization, external Atom-content retrieval, category hierarchy, and link URI resolution.
+- Atom XHTML serialization, external Atom-content retrieval, category hierarchy, and resolution inside HTML or unsupported constructs.
 
 ## Example
 

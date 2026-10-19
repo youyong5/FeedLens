@@ -57,6 +57,7 @@ pub fn parse_error_text(error : @feedlens.ParseError) -> String {
     InvalidJsonFeed(message) => "invalid JSON Feed: " + message
     UnsupportedJsonFeedVersion(version) =>
       "unsupported JSON Feed version " + version.unwrap_or("(missing)")
+    InvalidSourceUrl(source) => "invalid source URL: " + source
   }
 }
 
@@ -93,6 +94,7 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     InvalidAuthor(author) => "invalid author: " + author
     InvalidCategory(category) => "invalid category: " + category
     InvalidAttachment(message) => "invalid attachment: " + message
+    UnresolvedUri(field) => "unresolved URI: " + field
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
       "invalid JSON Feed item " + index.to_string() + ": " + field
@@ -267,6 +269,7 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "InvalidCategory", "message": category }
     InvalidAttachment(message) =>
       { "type": "InvalidAttachment", "message": message }
+    UnresolvedUri(field) => { "type": "UnresolvedUri", "field": field }
     InvalidJsonFeedField(field) =>
       { "type": "InvalidJsonFeedField", "field": field }
     InvalidJsonFeedItem(index, field) =>
