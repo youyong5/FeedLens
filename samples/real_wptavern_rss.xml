@@ -4,6 +4,14 @@
     <title>WP Tavern</title>
     <link>https://wptavern.com</link>
     <description>WordPress News — Free as in Beer.</description>
+    <language>en-US</language>
+    <image>
+      <url>https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon-32x32.png</url>
+      <title>WP Tavern</title>
+      <link>https://wptavern.com</link>
+      <width>32</width>
+      <height>32</height>
+    </image>
     <item>
       <title>#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats</title>
       <link>https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/</link>

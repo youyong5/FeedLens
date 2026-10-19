@@ -6,6 +6,9 @@ verbatim copies of the full feeds. The first two podcast entries, their IDs,
 dates, alternate URLs, category order, and enclosure/attachment URL, type,
 and byte size were retained. Long descriptions and transcripts were omitted;
 JSON Feed's required `content_text` was shortened to its opening words.
+The phase-11 projection revision restored source-present RSS language/image,
+Atom root `xml:lang`/icon, and JSON Feed language/icon/item featured images;
+these were omitted by the earlier reduction, not invented or fetched anew.
 XML whitespace and some equivalent entity spellings were compacted. No media
 files were fetched. The original live documents each contained 30 entries.
 

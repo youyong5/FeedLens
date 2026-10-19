@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<feed xmlns="http://www.w3.org/2005/Atom">
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en-US">
   <title type="text">WP Tavern</title>
   <subtitle type="text">WordPress News — Free as in Beer.</subtitle>
   <updated>2026-10-13T13:39:19Z</updated>
   <link rel="alternate" type="text/html" href="https://wptavern.com"/>
   <id>https://wptavern.com/feed/atom/</id>
+  <icon>https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon-32x32.png</icon>
   <entry>
     <author><name>Nathan Wrigley</name></author>
     <title type="html"><![CDATA[#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats]]></title>

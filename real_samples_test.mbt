@@ -8,6 +8,14 @@ fn real_rss_sample() -> String {
     #|    <title>WP Tavern</title>
     #|    <link>https://wptavern.com</link>
     #|    <description>WordPress News — Free as in Beer.</description>
+    #|    <language>en-US</language>
+    #|    <image>
+    #|      <url>https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon-32x32.png</url>
+    #|      <title>WP Tavern</title>
+    #|      <link>https://wptavern.com</link>
+    #|      <width>32</width>
+    #|      <height>32</height>
+    #|    </image>
     #|    <item>
     #|      <title>#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats</title>
     #|      <link>https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/</link>
@@ -36,12 +44,13 @@ fn real_rss_sample() -> String {
 fn real_atom_sample() -> String {
   (
     #|<?xml version="1.0" encoding="UTF-8"?>
-    #|<feed xmlns="http://www.w3.org/2005/Atom">
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en-US">
     #|  <title type="text">WP Tavern</title>
     #|  <subtitle type="text">WordPress News — Free as in Beer.</subtitle>
     #|  <updated>2026-10-13T13:39:19Z</updated>
     #|  <link rel="alternate" type="text/html" href="https://wptavern.com"/>
     #|  <id>https://wptavern.com/feed/atom/</id>
+    #|  <icon>https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon-32x32.png</icon>
     #|  <entry>
     #|    <author><name>Nathan Wrigley</name></author>
     #|    <title type="html"><![CDATA[#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats]]></title>
@@ -78,6 +87,8 @@ fn real_json_sample() -> String {
     #|  "home_page_url": "https://wptavern.com",
     #|  "feed_url": "https://wptavern.com/feed/json",
     #|  "description": "WordPress News — Free as in Beer.",
+    #|  "language": "en-US",
+    #|  "icon": "https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon.png",
     #|  "items": [
     #|    {
     #|      "id": "https://wptavern.com/?post_type=podcast&#038;p=209016",
@@ -86,6 +97,7 @@ fn real_json_sample() -> String {
     #|      "date_published": "2026-10-14T14:00:00+01:00",
     #|      "date_modified": "2026-10-13T14:39:19+01:00",
     #|      "content_text": "Transcript\n[00:00:19] Nathan Wrigley: Welcome to the Jukebox Podcast from WP Tavern. My name is Nathan Wrigley.",
+    #|      "image": "https://wptavern.com/wp-content/uploads/2026/10/237-Robert-Abela-on-WordPress-Security-and-the-Battle-Against-AI-Threats.jpg",
     #|      "authors": [{"name": "Nathan Wrigley", "url": "https://wptavern.com/author/nathanwrigley/"}],
     #|      "tags": ["podcast", "security"],
     #|      "attachments": [{"url": "https://episodes.castos.com/601a97348e9993-63339407/2656179/c1e-89rgrh87qmqirmkrd-0vvdm9rvh1kp-56fstm.mp3", "mime_type": "audio/mpeg", "size_in_bytes": 37878054}]
@@ -97,6 +109,7 @@ fn real_json_sample() -> String {
     #|      "date_published": "2026-10-07T14:00:00+01:00",
     #|      "date_modified": "2026-10-07T11:52:47+01:00",
     #|      "content_text": "Transcript",
+    #|      "image": "https://wptavern.com/wp-content/uploads/2026/10/236-Brian-Coords-on-WordPress-as-the-Source-of-Truth.jpg",
     #|      "authors": [{"name": "Nathan Wrigley", "url": "https://wptavern.com/author/nathanwrigley/"}],
     #|      "tags": ["ai", "podcast"],
     #|      "attachments": [{"url": "https://episodes.castos.com/601a97348e9993-63339407/2647523/c1e-x8ojou1j6v4ck8dwr-8dm6m923bz48-xfrmnx.mp3", "mime_type": "audio/mpeg", "size_in_bytes": 39694700}]
