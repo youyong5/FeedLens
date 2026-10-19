@@ -12,6 +12,9 @@ third-party feeds.
 | `atom1_boundaries.xml` | Wrong-namespace lookalikes, blank category, and invalid author. |
 | `invalid_rss.xml` | A fatal malformed-XML case. |
 | `jsonfeed11_compat.json` | JSON Feed 1.1 core fields, escaped Unicode, HTML/text body precedence, author inheritance, and tags. |
+| `rss2_attachments.xml` | RSS direct item enclosures, order, byte sizes, and MIME types; parser and CLI fixture only. |
+| `atom1_attachments.xml` | Atom alternate versus enclosure links, optional enclosure metadata, and order; parser and CLI fixture only. |
+| `jsonfeed11_attachments.json` | JSON Feed attachment title, size, fractional duration, and order; parser and CLI fixture only. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-

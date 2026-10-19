@@ -120,6 +120,30 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
     output.write_string(option_or_none(entry.title))
     output.write_string("\n   link: ")
     output.write_string(option_or_none(entry.link))
+    output.write_string("\n   attachments: ")
+    output.write_string(entry.attachments.length().to_string())
+    for attachment in entry.attachments {
+      output.write_string("\n     - url: ")
+      output.write_string(attachment.url)
+      output.write_string("; media type: ")
+      output.write_string(option_or_none(attachment.media_type))
+      output.write_string("; size (bytes): ")
+      output.write_string(
+        match attachment.size_in_bytes {
+          Some(value) => value.to_string()
+          None => "(none)"
+        },
+      )
+      output.write_string("; title: ")
+      output.write_string(option_or_none(attachment.title))
+      output.write_string("; duration (seconds): ")
+      output.write_string(
+        match attachment.duration_in_seconds {
+          Some(value) => value.to_string()
+          None => "(none)"
+        },
+      )
+    }
   }
   if feed.diagnostics.is_empty() {
     output.write_string("\n\nDiagnostics: none\n")
@@ -201,6 +225,24 @@ fn category_json(category : @feedlens.Category) -> Json {
 }
 
 ///|
+fn attachment_json(attachment : @feedlens.Attachment) -> Json {
+  Json::object({
+    "source": format_json(attachment.source),
+    "url": Json::string(attachment.url),
+    "media_type": optional_string_json(attachment.media_type),
+    "size_in_bytes": match attachment.size_in_bytes {
+      Some(size) => Json::number(size.to_double())
+      None => Json::null()
+    },
+    "title": optional_string_json(attachment.title),
+    "duration_in_seconds": match attachment.duration_in_seconds {
+      Some(duration) => Json::number(duration)
+      None => Json::null()
+    },
+  })
+}
+
+///|
 fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
   match kind {
     MissingChannelField(field) =>
@@ -254,6 +296,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "content_kind": text_kind_json(entry.content_kind),
     "authors": Json::array(entry.authors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
+    "attachments": Json::array(entry.attachments.map(attachment_json)),
     "published_at": optional_string_json(entry.published_at),
     "updated_at": optional_string_json(entry.updated_at),
   })

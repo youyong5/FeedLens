@@ -1,0 +1,14 @@
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>urn:feedlens:atom-media</id>
+  <title>Atom media sample</title>
+  <updated>2026-10-19T00:00:00Z</updated>
+  <author><name>Sample Author</name></author>
+  <entry>
+    <id>urn:feedlens:atom-media:1</id>
+    <title>Episode one</title>
+    <updated>2026-10-19T00:00:00Z</updated>
+    <link href="https://example.test/articles/one"/>
+    <link rel="enclosure" href="https://example.test/audio/one.mp3" type="audio/mpeg" length="42" title="Audio"/>
+    <link rel="enclosure" href="https://example.test/audio/two.ogg"/>
+  </entry>
+</feed>

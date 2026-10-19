@@ -41,6 +41,29 @@ if ($model.format -ne "jsonfeed1" -or $model.entries.Count -ne 2 -or $model.entr
   throw "JSON CLI output was not the expected normalized model"
 }
 
+$rssAttachments = Invoke-FeedLensCli @("samples/rss2_attachments.xml")
+if ($rssAttachments.ExitCode -ne 0 -or $rssAttachments.StandardError -or -not $rssAttachments.StandardOutput.Contains("attachments: 2") -or -not $rssAttachments.StandardOutput.Contains("https://example.test/audio/one.mp3")) {
+  throw "RSS attachment summary CLI scenario failed"
+}
+
+$atomAttachments = Invoke-FeedLensCli @("--json", "samples/atom1_attachments.xml")
+if ($atomAttachments.ExitCode -ne 0 -or $atomAttachments.StandardError) {
+  throw "Atom attachment JSON CLI scenario failed"
+}
+$atomModel = $atomAttachments.StandardOutput | ConvertFrom-Json
+if ($atomModel.format -ne "atom1" -or $atomModel.entries[0].link -ne "https://example.test/articles/one" -or $atomModel.entries[0].attachments.Count -ne 2 -or $atomModel.entries[0].attachments[0].source -ne "atom1" -or $atomModel.entries[0].attachments[0].size_in_bytes -ne 42 -or $null -ne $atomModel.entries[0].attachments[1].media_type) {
+  throw "Atom attachment JSON was not the expected normalized model"
+}
+
+$jsonAttachments = Invoke-FeedLensCli @("--json", "samples/jsonfeed11_attachments.json")
+if ($jsonAttachments.ExitCode -ne 0 -or $jsonAttachments.StandardError) {
+  throw "JSON Feed attachment CLI scenario failed"
+}
+$jsonAttachmentModel = $jsonAttachments.StandardOutput | ConvertFrom-Json
+if ($jsonAttachmentModel.format -ne "jsonfeed1" -or $jsonAttachmentModel.entries[0].attachments.Count -ne 2 -or $jsonAttachmentModel.entries[0].attachments[0].duration_in_seconds -ne 12.5 -or $jsonAttachmentModel.entries[0].attachments[1].url -ne "https://example.test/audio/two.ogg") {
+  throw "JSON Feed attachment JSON was not the expected normalized model"
+}
+
 $help = Invoke-FeedLensCli @("--", "--help")
 if ($help.ExitCode -ne 0 -or -not $help.StandardOutput.Contains("Usage: feedlens") -or $help.StandardError) {
   throw "Help CLI scenario failed"
@@ -64,5 +87,8 @@ if ($argumentError.ExitCode -eq 0 -or $argumentError.StandardOutput -or -not $ar
 Write-Output "PASS RSS exit=$($rss.ExitCode)"
 Write-Output "PASS Atom exit=$($atom.ExitCode)"
 Write-Output "PASS JSON exit=$($json.ExitCode), ConvertFrom-Json accepted output"
+Write-Output "PASS RSS attachment summary exit=$($rssAttachments.ExitCode)"
+Write-Output "PASS Atom attachment JSON exit=$($atomAttachments.ExitCode), ConvertFrom-Json accepted output"
+Write-Output "PASS JSON Feed attachment JSON exit=$($jsonAttachments.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS help exit=$($help.ExitCode)"
 Write-Output "PASS fatal parse/read/argument errors exit=$($parseError.ExitCode)/$($readError.ExitCode)/$($argumentError.ExitCode)"

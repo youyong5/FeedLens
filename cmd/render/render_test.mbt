@@ -91,3 +91,69 @@ test "render_json escapes normalized JSON Feed strings without changing them" {
   assert_eq(title, "Quoted: \"yes\"\nnext")
   assert_eq(content, "line one\nline two")
 }
+
+///|
+test "render_json includes ordered attachment metadata and nulls" {
+  guard @feedlens.parse(
+      "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Media\",\"items\":[{\"id\":\"item\",\"content_text\":\"Body\",\"attachments\":[{\"url\":\"https://example.test/one.mp3\",\"mime_type\":\"audio/mpeg\",\"title\":\"Quoted \\\"episode\\\"\",\"size_in_bytes\":9007199254740991,\"duration_in_seconds\":12.5},{\"url\":\"https://example.test/two.mp3\",\"mime_type\":\"audio/mpeg\"}]}]}",
+    )
+    is Ok(feed) else {
+    fail("expected JSON Feed")
+  }
+  guard @json.parse(@render.render_json(feed))
+    is { "entries": Array([{ "attachments": Array(attachments), .. }]), .. } else {
+    fail("expected attachment array")
+  }
+  assert_eq(attachments.length(), 2)
+  guard attachments[0]
+    is {
+      "source": String(source),
+      "url": String(url),
+      "media_type": String(media_type),
+      "title": String(title),
+      "size_in_bytes": Number(size, ..),
+      "duration_in_seconds": Number(duration, ..),
+      ..
+    } else {
+    fail("expected first attachment metadata")
+  }
+  assert_eq(source, "jsonfeed1")
+  assert_eq(url, "https://example.test/one.mp3")
+  assert_eq(media_type, "audio/mpeg")
+  assert_eq(title, "Quoted \"episode\"")
+  assert_eq(size, 9007199254740991.0)
+  assert_eq(duration, 12.5)
+  guard attachments[1]
+    is {
+      "url": String(second_url),
+      "title": Null,
+      "size_in_bytes": Null,
+      "duration_in_seconds": Null,
+      ..
+    } else {
+    fail("expected null optional metadata")
+  }
+  assert_eq(second_url, "https://example.test/two.mp3")
+}
+
+///|
+test "render_human lists attachment URLs in order" {
+  guard @feedlens.parse(
+      "<rss version=\"2.0\"><channel><title>Media</title><link>https://example.test/</link><description>Feed</description><item><guid>one</guid><enclosure url=\"https://example.test/one.mp3\" length=\"12\" type=\"audio/mpeg\"/><enclosure url=\"https://example.test/two.mp3\" length=\"24\" type=\"audio/mpeg\"/></item></channel></rss>",
+    )
+    is Ok(feed) else {
+    fail("expected RSS feed")
+  }
+  let rendered = @render.render_human(feed)
+  assert_true(rendered.contains("attachments: 2"))
+  assert_true(
+    rendered.contains(
+      "url: https://example.test/one.mp3; media type: audio/mpeg; size (bytes): 12",
+    ),
+  )
+  assert_true(
+    rendered.contains(
+      "url: https://example.test/two.mp3; media type: audio/mpeg; size (bytes): 24",
+    ),
+  )
+}

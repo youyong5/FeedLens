@@ -1,0 +1,13 @@
+<rss version="2.0">
+  <channel>
+    <title>RSS media sample</title>
+    <link>https://example.test/rss</link>
+    <description>Local attachment fixture</description>
+    <item>
+      <guid>rss-media-1</guid>
+      <title>Episode one</title>
+      <enclosure url="https://example.test/audio/one.mp3" length="42" type="audio/mpeg"/>
+      <enclosure url="https://example.test/audio/two.ogg" length="0" type="audio/ogg"/>
+    </item>
+  </channel>
+</rss>

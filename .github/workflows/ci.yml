@@ -50,5 +50,12 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/jsonfeed11_compat.json > feedlens.json
           python3 -c "import json; result=json.load(open('feedlens.json', encoding='utf-8')); assert result['format'] == 'jsonfeed1'; assert len(result['entries']) == 2"
+      - name: Inspect attachment samples
+        run: |
+          moon run --target native cmd/main samples/rss2_attachments.xml > rss-attachments.txt
+          grep -q 'attachments: 2' rss-attachments.txt
+          moon run --target native cmd/main --json samples/atom1_attachments.xml > atom-attachments.json
+          moon run --target native cmd/main --json samples/jsonfeed11_attachments.json > json-attachments.json
+          python3 -c "import json; atom=json.load(open('atom-attachments.json', encoding='utf-8')); jf=json.load(open('json-attachments.json', encoding='utf-8')); assert atom['entries'][0]['link'] == 'https://example.test/articles/one'; assert len(atom['entries'][0]['attachments']) == 2; assert jf['entries'][0]['attachments'][0]['duration_in_seconds'] == 12.5"
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help

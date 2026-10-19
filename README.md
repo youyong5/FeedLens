@@ -10,14 +10,15 @@ of the public API.
 
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
-| RSS 2.0 | Channel/item metadata, Content Module `content:encoded`, item authors and categories | RSS versions other than 2.0; network retrieval; date/URI parsing |
-| Atom 1.0 | Feed/entry metadata, alternate links, inline text/HTML content, author inheritance, categories | XHTML serialization, external-content retrieval, media metadata, URI resolution |
-| JSON Feed 1.0/1.1 | Feed/items, text/HTML body choice, authors, inherited authors, tags | Attachments, pagination, icons, avatars, extension mapping, date/URI parsing |
+| RSS 2.0 | Channel/item metadata, Content Module `content:encoded`, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; date/URI parsing |
+| Atom 1.0 | Feed/entry metadata, alternate/enclosure links, inline text/HTML content, author inheritance, categories | XHTML serialization, external-content retrieval, URI resolution |
+| JSON Feed 1.0/1.1 | Feed/items, text/HTML body choice, authors, inherited authors, tags, attachments | Pagination, icons, avatars, extension mapping, date/URI parsing |
 
 The normalized model keeps summary/description separate from article content,
-preserves author/category source semantics, retains document order, and reports
+preserves author/category/attachment source semantics, retains document order, and reports
 recoverable data-quality diagnostics with locations. Fatal malformed or
 unsupported documents return `ParseError`.
+Attachment URLs and metadata are parsed only; FeedLens never downloads them.
 
 For the complete field mapping, diagnostic rules, XML namespace boundaries, and
 content-handling policy, see [README.mbt.md](README.mbt.md). This file is the
@@ -43,6 +44,7 @@ normalized model. It never fetches URLs.
 moon run --target native cmd/main samples/rss2_compat.xml
 moon run --target native cmd/main samples/atom1_compat.xml
 moon run --target native cmd/main --json samples/jsonfeed11_compat.json
+moon run --target native cmd/main --json samples/jsonfeed11_attachments.json
 moon run --target native cmd/main -- --help
 ```
 
