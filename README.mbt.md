@@ -61,7 +61,11 @@ single entry language.
 `JsonFavicon`. The RSS image retains its required URL/title/link and optional
 description/declared dimensions. Atom icon and logo are kept separate, as are
 JSON Feed timeline icon and source-list favicon. Missing required image data
-or invalid optional dimensions are diagnosed. No image is fetched, inspected,
+or invalid optional dimensions are diagnosed. RSS dimensions are retained only
+when valid positive declared values (width at most 144, height at most 400);
+no specification defaults or actual pixel sizes are synthesized. XML images
+retain source order; JSON `icon` precedes `favicon` in the public array because
+JSON object member order is not semantically significant. No image is fetched, inspected,
 resized, or promoted to an attachment. `parse_with_source` resolves image URLs
 and the RSS image link; Atom icon/logo honor their own `xml:base` scopes.
 `Entry.external_url` is not a fallback permalink. JSON Feed item images are
@@ -169,6 +173,9 @@ that need the original references can continue using it.
 ## RSS 2.0
 
 - RSS 2.0 documents with an unnamespaced `<rss version="2.0">` root.
+- Reads direct channel `language` and direct `image` (required URL/title/link,
+  optional description and declared dimensions). RSS items inherit the
+  channel language; wrong-namespace lookalikes do not count.
 - A direct `<channel>` child of `<rss>`; channel metadata and `<item>` elements must be direct channel children.
 - Channel `title`, `link`, and `description`; item `guid`, `title`, `link`, `description`, and `pubDate`, retained in document order.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
@@ -184,6 +191,10 @@ that need the original references can continue using it.
 ## Atom 1.0
 
 - Accepts only `<feed>` in the `http://www.w3.org/2005/Atom` namespace, whether declared as the default namespace or through a prefix.
+- Reads feed/entry `xml:lang` in the XML namespace, with feed-to-entry
+  inheritance and explicit entry override/reset. Direct feed `icon` and
+  `logo` remain separate image roles; each honors its own `xml:base` scope
+  under `parse_with_source`.
 - Maps feed `id`, `title`, `subtitle`, `updated`, and alternate `link` to the normalized public model; maps direct `entry` children in document order from `id`, `title`, `published`, `updated`, `summary`, and alternate `link`.
 - A link with omitted `rel` or `rel="alternate"` is eligible; `rel="self"` is not. `parse` retains relative `href` values verbatim; `parse_with_source` resolves supported links with the applicable `xml:base` scope.
 - Required feed fields are `id`, `title`, and `updated`; required entry fields are `id`, `title`, and `updated`. Missing or blank values are recoverable diagnostics located at the field, or its feed/entry parent when absent.
@@ -199,7 +210,11 @@ that need the original references can continue using it.
 
 - Accepts only root objects whose `version` is exactly `https://jsonfeed.org/version/1` or `https://jsonfeed.org/version/1.1`. JSON is selected whenever the first non-whitespace input character is not `<`; XML dispatch remains unchanged.
 - `title` must be a string and `items` must be an array. Invalid JSON, a non-object root, absent/wrong-type `version`, absent/wrong-type `title`, absent/wrong-type `items`, and unsupported versions are fatal JSON-specific `ParseError` values, never `InvalidXml`.
-- Maps `title`, `description`, `home_page_url`, and `feed_url`; maps item `id`, `url`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. Raw date strings can be independently validated through `normalize_date`; no URI resolution occurs during `parse`.
+- Maps `title`, `description`, `home_page_url`, `feed_url`, `icon`, and `favicon`; maps item `id`, `url`, `external_url`, `image`, `banner_image`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Version 1.1 also maps feed/item `language`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. Raw date strings can be independently validated through `normalize_date`; no URI resolution occurs during `parse`.
+- `url` stays the item permalink, while `external_url` points to an outside
+  page; a missing permalink is not replaced by the external URL. Featured and
+  banner images are presentation hints, never attachments. JSON Feed 1.0
+  does not define `language`, so 1.0 keys of that name are ignored.
 - Both content fields are legal. When both are valid strings, `content_html` deliberately wins because it preserves the richer declared representation; the unified model exposes one `Entry.content`. An item must have one valid content field. A malformed/missing item `id` or content discards that item with `InvalidJsonFeedItem`; a JSON number id is retained as its JSON spelling. Optional malformed item fields are diagnosed and become `None`.
 - Supports `authors` arrays and deprecated `author` objects at feed/item level. If `authors` is present it wins, even over `author`; undeclared item authors inherit feed authors. A JSON Feed author needs a non-blank `name` or `url`, and its URL is exposed through `Author.uri`.
 - Maps item `tags` to ordered categories. Empty tags and malformed optional fields are diagnosed and skipped. Unknown extension keys are ignored.
@@ -208,7 +223,7 @@ that need the original references can continue using it.
 
 ## Not supported
 
-- Attachment retrieval or verification; JSON Feed pagination following, icons, favicons, author avatars, language, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
+- Attachment/image retrieval or verification; JSON Feed pagination following, author avatars, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
 - Atom XHTML serialization, external Atom-content retrieval, category hierarchy, and resolution inside HTML or unsupported constructs.
 
@@ -286,6 +301,11 @@ installed here. Matching uses resolved namespace URIs instead of tag prefixes.
 capture date, response hashes, reduction policy, and baseline findings.
 `compatibility_test.mbt` and `real_samples_test.mbt` embed checked-in XML/JSON
 samples so Wasm, JS, and Native tests need no filesystem or network access.
+`samples/DISPLAY_FIELD_INVENTORY.md` distinguishes display fields in the
+original captured feeds from specification-defined fields exercised only by
+synthetic fixtures. `examples/consumer` imports the public library without
+the CLI or XML implementation; run `moon run --target native examples/consumer`
+or `powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1`.
 
 For an end-to-end Native CLI check (including file IO, exit codes, stderr, and
 PowerShell's standard `ConvertFrom-Json`), run:

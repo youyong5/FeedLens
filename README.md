@@ -9,19 +9,21 @@ results; the library never fetches a feed or an attachment.
 
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
-| RSS 2.0 | Channel/item metadata, Content Module `content:encoded`, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; unsupported URI fields |
-| Atom 1.0 | Feed/entry metadata, alternate/enclosure links, inline text/HTML content, author inheritance, categories | XHTML serialization, external-content retrieval, HTML-contained URLs |
-| JSON Feed 1.0/1.1 | Feed/items, text/HTML body choice, authors, inherited authors, tags, attachments | Pagination, icons, avatars, extension mapping, unsupported URI fields |
+| RSS 2.0 | Channel/item metadata, language, channel image, Content Module body, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; unsupported extensions |
+| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML content, author inheritance, categories | XHTML serialization, external-content retrieval, HTML-contained URLs |
+| JSON Feed 1.0/1.1 | Feed/items, icon/favicon, item external URL and featured/banner images, text/HTML body choice, authors, tags, attachments; language in 1.1 | Pagination, author avatars, extension mapping, unsupported URI fields |
 
 The normalized model keeps summary/description separate from article content,
 preserves author/category/attachment source semantics, retains document order,
 and reports recoverable data-quality diagnostics with locations. Fatal malformed
 or unsupported documents return `ParseError`.
 Attachment URLs and metadata are parsed only; FeedLens never downloads them.
+Feed and item images retain source-specific display roles; they are not
+attachments. JSON Feed `external_url` stays separate from the item permalink.
 Raw publication/update dates remain available; a separate, cross-target API
 validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
-`parse_with_source(input, source_url)` optionally resolves feed/entry links and
-attachment URLs; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
+`parse_with_source(input, source_url)` optionally resolves documented links,
+image URLs, and attachment URLs; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.
 
 For the complete field mapping, diagnostic rules, XML namespace boundaries, and
@@ -45,9 +47,13 @@ match @feedlens.parse(input) {
 ```
 
 When the caller knows the document's actual HTTP(S) URL, it can use
-`parse_with_source(input, source_url)` to resolve article and attachment URLs,
+`parse_with_source(input, source_url)` to resolve article, image, and attachment URLs,
 including Atom `xml:base`; `parse(input)` continues to preserve raw references.
 The library package remains portable across Wasm, JavaScript, and Native.
+A separate [consumer example](examples/consumer/main.mbt) imports only the
+public parser package. Run `moon run --target native examples/consumer` or
+`powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1`; neither
+command requires a published Mooncakes package or a network request.
 
 ## Local-file CLI
 
@@ -68,6 +74,10 @@ The first RSS episode reports `Entries: 2` and an `audio/mpeg` enclosure of
 and byte count. Their differently formatted publication dates normalize to
 `2026-10-14T13:00:00Z` through the library date API. The snapshots are offline;
 the publisher's full live feeds are not bundled.
+The real projections also retain RSS channel language/image, Atom root
+language/icon, and JSON Feed language/icon and item featured images. Roles,
+missing-field policy, and synthetic cases for favicon, logo, external URL,
+and banner image are detailed in [the inventory](samples/DISPLAY_FIELD_INVENTORY.md).
 
 `--json` writes FeedLens's normalized inspection JSON, not a converted JSON
 Feed document. Errors use stderr and a non-zero exit status; recoverable feed
@@ -82,6 +92,7 @@ moon check --target wasm; moon test --target wasm
 moon check --target js; moon test --target js
 moon check --target native; moon test --target native
 powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
+powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1
 uv run --with feedparser==6.0.11 python tools/check_compatibility.py
 ```
 

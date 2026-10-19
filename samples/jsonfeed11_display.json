@@ -1,0 +1,19 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Reader display example",
+  "language": "en-US",
+  "icon": "icons/feed.png",
+  "favicon": "/icons/small.png",
+  "items": [
+    {
+      "id": "one",
+      "url": "posts/one",
+      "external_url": "https://outside.test/story",
+      "title": "A link story",
+      "content_text": "A summary of the outside page.",
+      "language": "fr",
+      "image": "images/preview.png",
+      "banner_image": "/images/banner.png"
+    }
+  ]
+}

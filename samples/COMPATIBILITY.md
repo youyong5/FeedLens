@@ -16,6 +16,7 @@ third-party feeds.
 | `atom1_attachments.xml` | Atom alternate versus enclosure links, optional enclosure metadata, and order; parser and CLI fixture only. |
 | `jsonfeed11_attachments.json` | JSON Feed attachment title, size, fractional duration, and order; parser and CLI fixture only. |
 | `real_wptavern_rss.xml`, `real_wptavern_atom.xml`, `real_wptavern_json.json` | Editorially reduced projections of two corresponding podcast entries from live public subscriptions, with source URLs and capture hashes in `REAL_WORLD.md`; date, article link, and attachment regression cases. |
+| `jsonfeed11_display.json` | Synthetic JSON Feed 1.1 fixture for language, feed icon/favicon, distinct permalink/external URL, and featured/banner item-image roles; parser and CLI fixture only. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-
@@ -79,3 +80,5 @@ episode's normalized UTC instant and retained attachment URL/type/size. The
 reference script verifies that their embedded MoonBit mirrors byte-match the
 checked-in projections; it does not compare their long omitted bodies or
 claim equivalence of opaque publisher IDs across XML and JSON.
+The phase-11 display metadata and JSON Feed fixture are parser regressions,
+not part of the older feedparser XML intersection.

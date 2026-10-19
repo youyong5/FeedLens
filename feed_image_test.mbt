@@ -125,3 +125,35 @@ test "JSON Feed icon and favicon retain separate roles and invalid types are dia
   assert_true(bad.diagnostics[1].kind is @feedlens.InvalidFeedImage(_))
   assert_eq(bad.diagnostics[0].line, 1)
 }
+
+///|
+test "Absent feed visuals stay empty and RSS image URI errors point to their fields" {
+  let atom = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated></feed>"
+  guard @feedlens.parse(atom) is Ok(atom_feed) else { fail("expected Atom") }
+  assert_eq(atom_feed.images, [])
+  let json = "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"T\",\"items\":[]}"
+  guard @feedlens.parse(json) is Ok(json_feed) else {
+    fail("expected JSON Feed")
+  }
+  assert_eq(json_feed.images, [])
+  let rss =
+    #|<rss version="2.0"><channel><title>T</title><link>L</link><description>D</description>
+    #|<image><url>bad space</url><title>Badge</title>
+    #|<link>http://[bad</link></image></channel></rss>
+  guard @feedlens.parse_with_source(rss, "https://example.test/feed.xml")
+    is Ok(feed) else {
+    fail("expected RSS")
+  }
+  assert_eq(feed.images[0].url, "bad space")
+  assert_eq(feed.images[0].link, Some("http://[bad"))
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.UnresolvedUri("rss image url") && d.line == 2
+    }),
+  )
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.UnresolvedUri("rss image link") && d.line == 3
+    }),
+  )
+}

@@ -74,3 +74,14 @@ No attachment parsing defect was found in these samples. The repaired parser
 gap was the absence of a comparable, validated date result; explicit URI
 resolution is a new opt-in library entry point, not a reinterpretation of
 the CLI's local file path.
+
+## Phase-11 display-field result
+
+The revised projections expose only display fields verified in the captured
+full responses: RSS `language=en-US` and one channel image (URL/title/link,
+32 × 32 declared pixels); Atom root `xml:lang=en-US` and one icon; JSON Feed
+`language=en-US`, one feed icon, and one featured item image per retained
+entry. FeedLens now returns their source/role metadata, with no fetched image
+bytes. No selected entry supplied JSON `external_url` or `banner_image`, and
+the feed supplied no JSON `favicon` or Atom `logo`; these are tested only in
+clearly synthetic cases. See `DISPLAY_FIELD_INVENTORY.md`.

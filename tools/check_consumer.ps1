@@ -1,0 +1,21 @@
+$ErrorActionPreference = "Stop"
+$feedlensRoot = Split-Path -Parent $PSScriptRoot
+$output = & moon -C $feedlensRoot run --target native examples/consumer
+if ($LASTEXITCODE -ne 0) {
+  throw "Library consumer example exited with $LASTEXITCODE"
+}
+$text = $output -join "`n"
+foreach ($expected in @(
+  "feed=Reader sample",
+  "language=en-US",
+  "icon=https://example.test/icons/feed.png",
+  "permalink=https://example.test/posts/one",
+  "outside=https://example.test/elsewhere/story",
+  "featured=https://example.test/images/preview.png",
+  "published=2026-10-19T08:30:00Z"
+)) {
+  if (-not $text.Contains($expected)) {
+    throw "Library consumer output missing: $expected"
+  }
+}
+Write-Output "PASS independent library consumer, exit=0, public API fields verified"

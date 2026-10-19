@@ -65,7 +65,7 @@ if ($jsonAttachmentModel.format -ne "jsonfeed1" -or $jsonAttachmentModel.entries
 }
 
 $realRss = Invoke-FeedLensCli @("samples/real_wptavern_rss.xml")
-if ($realRss.ExitCode -ne 0 -or $realRss.StandardError -or -not $realRss.StandardOutput.Contains("Entries: 2") -or -not $realRss.StandardOutput.Contains("size (bytes): 37878054")) {
+if ($realRss.ExitCode -ne 0 -or $realRss.StandardError -or -not $realRss.StandardOutput.Contains("Entries: 2") -or -not $realRss.StandardOutput.Contains("Language: en-US") -or -not $realRss.StandardOutput.Contains("rss_image: https://wptavern.com/wp-content/uploads/2021/12/cropped-tavern-favicon-32x32.png") -or -not $realRss.StandardOutput.Contains("size (bytes): 37878054")) {
   throw "Real RSS projection CLI scenario failed"
 }
 
@@ -74,7 +74,7 @@ if ($realAtom.ExitCode -ne 0 -or $realAtom.StandardError) {
   throw "Real Atom projection CLI scenario failed"
 }
 $realAtomModel = $realAtom.StandardOutput | ConvertFrom-Json
-if ($realAtomModel.format -ne "atom1" -or $realAtomModel.entries.Count -ne 2 -or $realAtomModel.entries[0].attachments[0].size_in_bytes -ne 37878054 -or $realAtomModel.entries[1].attachments[0].size_in_bytes -ne 39694700) {
+if ($realAtomModel.format -ne "atom1" -or $realAtomModel.language -ne "en-US" -or $realAtomModel.images[0].role -ne "atom_icon" -or $realAtomModel.entries.Count -ne 2 -or $realAtomModel.entries[0].attachments[0].size_in_bytes -ne 37878054 -or $realAtomModel.entries[1].attachments[0].size_in_bytes -ne 39694700) {
   throw "Real Atom projection JSON output was not the expected normalized model"
 }
 
@@ -83,8 +83,17 @@ if ($realJson.ExitCode -ne 0 -or $realJson.StandardError) {
   throw "Real JSON Feed projection CLI scenario failed"
 }
 $realJsonModel = $realJson.StandardOutput | ConvertFrom-Json
-if ($realJsonModel.format -ne "jsonfeed1" -or $realJsonModel.entries.Count -ne 2 -or $realJsonModel.entries[0].published_at -ne "2026-10-14T14:00:00+01:00" -or $realJsonModel.entries[0].attachments[0].size_in_bytes -ne 37878054) {
+if ($realJsonModel.format -ne "jsonfeed1" -or $realJsonModel.language -ne "en-US" -or $realJsonModel.images[0].role -ne "json_icon" -or $realJsonModel.entries.Count -ne 2 -or $realJsonModel.entries[0].images[0].role -ne "json_featured" -or $realJsonModel.entries[0].published_at -ne "2026-10-14T14:00:00+01:00" -or $realJsonModel.entries[0].attachments[0].size_in_bytes -ne 37878054) {
   throw "Real JSON Feed projection JSON output was not the expected normalized model"
+}
+
+$display = Invoke-FeedLensCli @("--json", "samples/jsonfeed11_display.json")
+if ($display.ExitCode -ne 0 -or $display.StandardError) {
+  throw "Display-metadata JSON CLI scenario failed"
+}
+$displayModel = $display.StandardOutput | ConvertFrom-Json
+if ($displayModel.images.Count -ne 2 -or $displayModel.images[1].role -ne "json_favicon" -or $displayModel.entries[0].link -ne "posts/one" -or $displayModel.entries[0].external_url -ne "https://outside.test/story" -or $displayModel.entries[0].language -ne "fr" -or $displayModel.entries[0].images[0].role -ne "json_featured" -or $displayModel.entries[0].images[1].role -ne "json_banner" -or $displayModel.entries[0].attachments.Count -ne 0) {
+  throw "Display-metadata CLI output mixed distinct reader fields"
 }
 
 $help = Invoke-FeedLensCli @("--", "--help")
@@ -116,5 +125,6 @@ Write-Output "PASS JSON Feed attachment JSON exit=$($jsonAttachments.ExitCode), 
 Write-Output "PASS real RSS projection exit=$($realRss.ExitCode)"
 Write-Output "PASS real Atom projection JSON exit=$($realAtom.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS real JSON Feed projection JSON exit=$($realJson.ExitCode), ConvertFrom-Json accepted output"
+Write-Output "PASS display-metadata JSON exit=$($display.ExitCode), distinct roles and links verified"
 Write-Output "PASS help exit=$($help.ExitCode)"
 Write-Output "PASS fatal parse/read/argument errors exit=$($parseError.ExitCode)/$($readError.ExitCode)/$($argumentError.ExitCode)"

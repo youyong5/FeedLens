@@ -1,0 +1,5 @@
+import {
+  "youyong5/feedlens",
+}
+
+pkgtype(kind: "executable")
