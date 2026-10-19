@@ -160,6 +160,47 @@ test "render_json keeps feed image roles and RSS metadata" {
 }
 
 ///|
+test "render_json separates JSON item permalink, external URL, images, and attachments" {
+  guard @feedlens.parse(
+      "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"T\",\"items\":[{\"id\":\"one\",\"content_text\":\"B\",\"url\":\"https://example.test/post\",\"external_url\":\"https://outside.test/story\",\"image\":\"https://example.test/preview.png\",\"banner_image\":\"https://example.test/banner.png\"}]}",
+    )
+    is Ok(feed) else {
+    fail("expected JSON Feed")
+  }
+  guard @json.parse(@render.render_json(feed))
+    is {
+      "entries": Array(
+        [
+          {
+            "link": String(link),
+            "external_url": String(external_url),
+            "images": Array(images),
+            "attachments": Array(attachments),
+            ..
+          },
+        ]
+      ),
+      ..
+    } else {
+    fail("expected separate item display fields")
+  }
+  assert_eq(link, "https://example.test/post")
+  assert_eq(external_url, "https://outside.test/story")
+  assert_eq(images.length(), 2)
+  assert_eq(attachments.length(), 0)
+  guard images[0] is { "role": String(role), "url": String(url), .. } else {
+    fail("expected featured image")
+  }
+  assert_eq(role, "json_featured")
+  assert_eq(url, "https://example.test/preview.png")
+  assert_true(
+    @render.render_human(feed).contains(
+      "external URL: https://outside.test/story",
+    ),
+  )
+}
+
+///|
 test "render_json includes ordered attachment metadata and nulls" {
   guard @feedlens.parse(
       "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Media\",\"items\":[{\"id\":\"item\",\"content_text\":\"Body\",\"attachments\":[{\"url\":\"https://example.test/one.mp3\",\"mime_type\":\"audio/mpeg\",\"title\":\"Quoted \\\"episode\\\"\",\"size_in_bytes\":9007199254740991,\"duration_in_seconds\":12.5},{\"url\":\"https://example.test/two.mp3\",\"mime_type\":\"audio/mpeg\"}]}]}",

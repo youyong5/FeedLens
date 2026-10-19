@@ -67,13 +67,16 @@ fn uri_with_attachment_url(attachment : Attachment, url : String) -> Attachment 
 fn uri_with_entry_urls(
   entry : Entry,
   link : String?,
+  external_url : String?,
   attachments : Array[Attachment],
+  images : Array[EntryImage],
 ) -> Entry {
   {
     identifier: entry.identifier,
     title: entry.title,
     title_kind: entry.title_kind,
     link,
+    external_url,
     language: entry.language,
     description: entry.description,
     description_kind: entry.description_kind,
@@ -82,6 +85,7 @@ fn uri_with_entry_urls(
     authors: entry.authors,
     categories: entry.categories,
     attachments,
+    images,
     published_at: entry.published_at,
     updated_at: entry.updated_at,
   }
@@ -401,7 +405,9 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
       uri_with_entry_urls(
         feed.entries[index],
         self.links[index],
+        feed.entries[index].external_url,
         self.attachments[index],
+        feed.entries[index].images,
       ),
     )
   }
@@ -547,6 +553,20 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
         )
       None => None
     }
+    let external_url = match entry.external_url {
+      Some(raw) =>
+        Some(
+          uri_at(
+            Some(source_url),
+            raw,
+            "json feed item " + index.to_string() + " external_url",
+            1,
+            1,
+            diagnostics,
+          ),
+        )
+      None => None
+    }
     let attachments : Array[Attachment] = []
     for attachment_index = 0
         attachment_index < entry.attachments.length()
@@ -565,15 +585,33 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
       )
       attachments.push(uri_with_attachment_url(attachment, url))
     }
-    entries.push(uri_with_entry_urls(entry, entry_link, attachments))
+    let images : Array[EntryImage] = []
+    for image in entry.images {
+      images.push({
+        source: image.source,
+        role: image.role,
+        url: uri_at(
+          Some(source_url),
+          image.url,
+          "json feed item " + index.to_string() + " image",
+          1,
+          1,
+          diagnostics,
+        ),
+      })
+    }
+    entries.push(
+      uri_with_entry_urls(entry, entry_link, external_url, attachments, images),
+    )
   }
   uri_with_feed_urls(with_feed_images(feed, images), link, entries)
 }
 
 ///|
-/// Parse a document and resolve only feed/entry alternate links and attachment
-/// URLs against an explicit HTTP(S) source URL. Atom `xml:base` is inherited
-/// by nested elements. Identifiers and HTML content are never rewritten.
+/// Parse a document and resolve documented feed/entry links, attachment URLs,
+/// feed-image URLs, and JSON Feed item external/image URLs against an explicit
+/// HTTP(S) source URL. Atom `xml:base` is inherited by nested elements.
+/// Identifiers and HTML content are never rewritten.
 /// `parse(String)` remains the raw-reference entry point.
 pub fn parse_with_source(
   input : String,

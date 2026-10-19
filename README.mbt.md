@@ -33,6 +33,8 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.images` | direct channel image | direct feed icon/logo | feed icon/favicon |
 | `Entry.categories` | direct item categories | direct entry categories | `tags` |
 | `Entry.attachments` | direct item `enclosure` | direct entry `link rel="enclosure"` | item `attachments` |
+| `Entry.external_url` | none | none | item `external_url`, separate from `url` permalink |
+| `Entry.images` | none in supported core | none in supported core | item `image` (featured preview), `banner_image` (detail banner) |
 
 `title` and `link` have the same meaning across supported formats. There are no duplicate
 format-specific public values, so the normalized fields cannot drift apart. `title_kind`
@@ -62,6 +64,14 @@ JSON Feed timeline icon and source-list favicon. Missing required image data
 or invalid optional dimensions are diagnosed. No image is fetched, inspected,
 resized, or promoted to an attachment. `parse_with_source` resolves image URLs
 and the RSS image link; Atom icon/logo honor their own `xml:base` scopes.
+`Entry.external_url` is not a fallback permalink. JSON Feed item images are
+`EntryImage` values with `source = JsonFeed1` and distinct `JsonFeatured`/
+`JsonBanner` roles; they are separate from `Entry.attachments`. Their public
+array has a fixed featured-then-banner order, because JSON object member order
+is not semantically significant. RSS and Atom core do not supply equivalent
+item fields with these exact roles, so they remain absent there. Blank or
+wrong-type JSON URL values are diagnosed and omitted; malformed URI references
+remain raw with `UnresolvedUri` when `parse_with_source` is used.
 
 ### Dates without local-time guessing
 
@@ -137,9 +147,10 @@ match @feedlens.parse_with_source(input, "https://example.org/feeds/news.atom") 
 }
 ```
 
-The new entry point resolves only `Feed.link`, `Entry.link`, and each
-`Entry.attachments[].url` using RFC 3986 path, root-path, query, fragment,
-and dot-segment rules. RSS and JSON Feed use the caller-supplied document URL;
+The new entry point resolves `Feed.link`, `Entry.link`,
+`Entry.attachments[].url`, feed-image URLs (and RSS image link), JSON item
+`external_url`, and JSON item-image URLs using RFC 3986 path, root-path, query,
+fragment, and dot-segment rules. RSS and JSON Feed use the caller-supplied document URL;
 Atom additionally applies the inherited `xml:base` on the feed, entry, link,
 and any intervening XML elements, matching the XML namespace URI rather than
 an arbitrary `base` attribute. JSON Feed's declared `feed_url` and

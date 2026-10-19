@@ -116,6 +116,21 @@ pub struct FeedImage {
 } derive(Debug, Eq)
 
 ///|
+/// JSON Feed item images serve distinct reader presentation roles.
+pub enum EntryImageRole {
+  JsonFeatured
+  JsonBanner
+} derive(Debug, Eq)
+
+///|
+/// An item image hint, separate from downloadable attachments.
+pub struct EntryImage {
+  source : FeedFormat
+  role : EntryImageRole
+  url : String
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed entry. Fields retain decoded source text without HTML
 /// rendering or sanitization.
 pub struct Entry {
@@ -125,6 +140,8 @@ pub struct Entry {
   title : String?
   title_kind : TextKind
   link : String?
+  /// JSON Feed `external_url` names an outside page, not the item permalink.
+  external_url : String?
   /// Effective language for this entry when declared or inherited; no
   /// language is guessed from text or the local environment.
   language : String?
@@ -139,6 +156,7 @@ pub struct Entry {
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
+  images : Array[EntryImage]
   /// RSS `pubDate`, Atom `published`, or JSON Feed `date_published`.
   published_at : String?
   /// Atom `updated` or JSON Feed `date_modified`; RSS has no corresponding
@@ -178,6 +196,7 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     title: entry.title,
     title_kind: entry.title_kind,
     link: entry.link,
+    external_url: entry.external_url,
     language,
     description: entry.description,
     description_kind: entry.description_kind,
@@ -186,6 +205,7 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     authors: entry.authors,
     categories: entry.categories,
     attachments: entry.attachments,
+    images: entry.images,
     published_at: entry.published_at,
     updated_at: entry.updated_at,
   }
@@ -264,6 +284,18 @@ pub extend FeedImage with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend FeedImage with Eq::{not_equal, equal}
+
+///|
+pub extend EntryImageRole with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EntryImageRole with Eq::{not_equal, equal}
+
+///|
+pub extend EntryImage with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend EntryImage with Eq::{not_equal, equal}
 
 ///|
 pub extend Entry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -681,6 +713,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               title: None,
               title_kind: Unspecified,
               link: None,
+              external_url: None,
               language: channel_language,
               description: None,
               description_kind: Unspecified,
@@ -689,6 +722,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               authors: [],
               categories: [],
               attachments: [],
+              images: [],
               published_at: None,
               updated_at: None,
             })
@@ -924,6 +958,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               title: item_title,
               title_kind: Unspecified,
               link: item_link,
+              external_url: None,
               language: None,
               description: item_description,
               description_kind: Unspecified,
@@ -932,6 +967,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               authors: item_authors,
               categories: item_categories,
               attachments: item_attachments,
+              images: [],
               published_at: item_published_at,
               updated_at: None,
             })

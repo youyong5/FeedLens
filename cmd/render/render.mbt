@@ -139,8 +139,21 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
     output.write_string(option_or_none(entry.title))
     output.write_string("\n   link: ")
     output.write_string(option_or_none(entry.link))
+    if entry.external_url is Some(url) {
+      output.write_string("\n   external URL: ")
+      output.write_string(url)
+    }
     output.write_string("\n   language: ")
     output.write_string(option_or_none(entry.language))
+    if !entry.images.is_empty() {
+      output.write_string("\n   images:")
+      for image in entry.images {
+        output.write_string("\n     - ")
+        output.write_string(entry_image_role_name(image.role))
+        output.write_string(": ")
+        output.write_string(image.url)
+      }
+    }
     output.write_string("\n   attachments: ")
     output.write_string(entry.attachments.length().to_string())
     for attachment in entry.attachments {
@@ -295,6 +308,23 @@ fn feed_image_json(image : @feedlens.FeedImage) -> Json {
 }
 
 ///|
+fn entry_image_role_name(role : @feedlens.EntryImageRole) -> String {
+  match role {
+    JsonFeatured => "json_featured"
+    JsonBanner => "json_banner"
+  }
+}
+
+///|
+fn entry_image_json(image : @feedlens.EntryImage) -> Json {
+  Json::object({
+    "source": format_json(image.source),
+    "role": Json::string(entry_image_role_name(image.role)),
+    "url": Json::string(image.url),
+  })
+}
+
+///|
 fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
   match kind {
     MissingChannelField(field) =>
@@ -347,6 +377,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "title": optional_string_json(entry.title),
     "title_kind": text_kind_json(entry.title_kind),
     "link": optional_string_json(entry.link),
+    "external_url": optional_string_json(entry.external_url),
     "language": optional_string_json(entry.language),
     "description": optional_string_json(entry.description),
     "description_kind": text_kind_json(entry.description_kind),
@@ -355,6 +386,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "authors": Json::array(entry.authors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
     "attachments": Json::array(entry.attachments.map(attachment_json)),
+    "images": Json::array(entry.images.map(entry_image_json)),
     "published_at": optional_string_json(entry.published_at),
     "updated_at": optional_string_json(entry.updated_at),
   })

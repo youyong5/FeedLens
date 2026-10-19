@@ -81,6 +81,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     title: entry.title,
     title_kind: entry.title_kind,
     link: entry.link,
+    external_url: entry.external_url,
     language: entry.language,
     description: entry.description,
     description_kind: entry.description_kind,
@@ -89,6 +90,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     authors,
     categories: entry.categories,
     attachments: entry.attachments,
+    images: entry.images,
     published_at: entry.published_at,
     updated_at: entry.updated_at,
   }
@@ -867,6 +869,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               title: entry_title,
               title_kind: entry_title_kind,
               link: entry_link,
+              external_url: None,
               language: entry_language,
               description: entry_summary,
               description_kind: entry_summary_kind,
@@ -875,6 +878,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               authors,
               categories: entry_categories,
               attachments: entry_attachments,
+              images: [],
               published_at: entry_published,
               updated_at: entry_updated,
             })

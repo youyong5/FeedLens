@@ -115,6 +115,7 @@ pub struct Entry {
   title : String?
   title_kind : TextKind
   link : String?
+  external_url : String?
   language : String?
   description : String?
   description_kind : TextKind
@@ -123,12 +124,30 @@ pub struct Entry {
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
+  images : Array[EntryImage]
   published_at : String?
   updated_at : String?
 } derive(Eq, @debug.Debug)
 pub fn Entry::equal(Self, Self) -> Bool
 pub fn Entry::not_equal(Self, Self) -> Bool
 pub fn Entry::to_repr(Self) -> @debug.Repr
+
+pub struct EntryImage {
+  source : FeedFormat
+  role : EntryImageRole
+  url : String
+} derive(Eq, @debug.Debug)
+pub fn EntryImage::equal(Self, Self) -> Bool
+pub fn EntryImage::not_equal(Self, Self) -> Bool
+pub fn EntryImage::to_repr(Self) -> @debug.Repr
+
+pub enum EntryImageRole {
+  JsonFeatured
+  JsonBanner
+} derive(Eq, @debug.Debug)
+pub fn EntryImageRole::equal(Self, Self) -> Bool
+pub fn EntryImageRole::not_equal(Self, Self) -> Bool
+pub fn EntryImageRole::to_repr(Self) -> @debug.Repr
 
 pub struct Feed {
   format : FeedFormat

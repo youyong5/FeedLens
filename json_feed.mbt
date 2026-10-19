@@ -130,6 +130,51 @@ fn json_feed_images(
 }
 
 ///|
+fn json_item_url(
+  item : Map[String, Json],
+  field : String,
+  diagnostics : Array[Diagnostic],
+  index : Int32,
+) -> String? {
+  match json_optional_string(item, field, diagnostics, Some(index)) {
+    None => None
+    Some(value) =>
+      match non_blank_text(value) {
+        Some(url) => Some(url)
+        None => {
+          add_json_diagnostic(diagnostics, Some(index), field)
+          None
+        }
+      }
+  }
+}
+
+///|
+fn json_entry_images(
+  item : Map[String, Json],
+  diagnostics : Array[Diagnostic],
+  index : Int32,
+) -> Array[EntryImage] {
+  let images : Array[EntryImage] = []
+  for field in ["image", "banner_image"] {
+    match json_item_url(item, field, diagnostics, index) {
+      Some(url) =>
+        images.push({
+          source: JsonFeed1,
+          role: if field == "image" {
+            JsonFeatured
+          } else {
+            JsonBanner
+          },
+          url,
+        })
+      None => ()
+    }
+  }
+  images
+}
+
+///|
 fn json_author(
   value : Json,
   diagnostics : Array[Diagnostic],
@@ -499,6 +544,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       title: json_optional_string(item, "title", diagnostics, Some(index)),
       title_kind: Text,
       link: json_optional_string(item, "url", diagnostics, Some(index)),
+      external_url: json_item_url(item, "external_url", diagnostics, index),
       language,
       description: json_optional_string(
         item,
@@ -512,6 +558,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       authors,
       categories: json_tags(item, diagnostics, index),
       attachments: json_attachments(item, diagnostics, index),
+      images: json_entry_images(item, diagnostics, index),
       published_at: json_optional_string(
         item,
         "date_published",
