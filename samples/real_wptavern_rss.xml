@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>WP Tavern</title>
+    <link>https://wptavern.com</link>
+    <description>WordPress News — Free as in Beer.</description>
+    <item>
+      <title>#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats</title>
+      <link>https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/</link>
+      <pubDate>Wed, 14 Oct 2026 13:00:00 +0000</pubDate>
+      <category><![CDATA[podcast]]></category>
+      <category><![CDATA[security]]></category>
+      <guid isPermaLink="false">https://wptavern.com/?post_type=podcast&#038;p=209016</guid>
+      <enclosure url="https://episodes.castos.com/601a97348e9993-63339407/2656179/c1e-89rgrh87qmqirmkrd-0vvdm9rvh1kp-56fstm.mp3" length="37878054" type="audio/mpeg"/>
+    </item>
+    <item>
+      <title>#236 &#8211; Brian Coords on WordPress as the Source of Truth</title>
+      <link>https://wptavern.com/podcast/236-brian-coords-on-wordpress-as-the-source-of-truth/</link>
+      <pubDate>Wed, 07 Oct 2026 13:00:00 +0000</pubDate>
+      <category><![CDATA[ai]]></category>
+      <category><![CDATA[podcast]]></category>
+      <guid isPermaLink="false">https://wptavern.com/?post_type=podcast&#038;p=208932</guid>
+      <enclosure url="https://episodes.castos.com/601a97348e9993-63339407/2647523/c1e-x8ojou1j6v4ck8dwr-8dm6m923bz48-xfrmnx.mp3" length="39694700" type="audio/mpeg"/>
+    </item>
+  </channel>
+</rss>

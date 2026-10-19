@@ -19,9 +19,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SAMPLES = ROOT / "samples"
 
 
-def embedded_sample(function: str) -> str:
+def embedded_sample(function: str, test_file: str = "compatibility_test.mbt") -> str:
     """Read the deterministic `#|` mirror used by cross-target MoonBit tests."""
-    lines = (ROOT / "compatibility_test.mbt").read_text("utf-8").splitlines()
+    lines = (ROOT / test_file).read_text("utf-8").splitlines()
     marker = f"fn {function}() -> String {{"
     start = lines.index(marker) + 1
     mirrored: list[str] = []
@@ -112,6 +112,19 @@ def main() -> None:
     }
     for filename, function in mirrors.items():
         if embedded_sample(function) == (SAMPLES / filename).read_text("utf-8"):
+            print(f"PASS mirror {filename}")
+        else:
+            failures += 1
+            print(f"FAIL mirror {filename}")
+    real_mirrors = {
+        "real_wptavern_rss.xml": "real_rss_sample",
+        "real_wptavern_atom.xml": "real_atom_sample",
+        "real_wptavern_json.json": "real_json_sample",
+    }
+    for filename, function in real_mirrors.items():
+        if embedded_sample(function, "real_samples_test.mbt") == (
+            SAMPLES / filename
+        ).read_text("utf-8"):
             print(f"PASS mirror {filename}")
         else:
             failures += 1

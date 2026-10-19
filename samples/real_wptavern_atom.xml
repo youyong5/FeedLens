@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title type="text">WP Tavern</title>
+  <subtitle type="text">WordPress News — Free as in Beer.</subtitle>
+  <updated>2026-10-13T13:39:19Z</updated>
+  <link rel="alternate" type="text/html" href="https://wptavern.com"/>
+  <id>https://wptavern.com/feed/atom/</id>
+  <entry>
+    <author><name>Nathan Wrigley</name></author>
+    <title type="html"><![CDATA[#237 &#8211; Robert Abela on WordPress Security and the Battle Against AI Threats]]></title>
+    <link rel="alternate" type="text/html" href="https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/"/>
+    <id>https://wptavern.com/?post_type=podcast&amp;p=209016</id>
+    <updated>2026-10-13T13:39:19Z</updated>
+    <published>2026-10-14T13:00:00Z</published>
+    <category scheme="https://wptavern.com" term="podcast"/>
+    <category scheme="https://wptavern.com" term="security"/>
+    <link rel="enclosure" href="https://episodes.castos.com/601a97348e9993-63339407/2656179/c1e-89rgrh87qmqirmkrd-0vvdm9rvh1kp-56fstm.mp3" length="37878054" type="audio/mpeg"/>
+  </entry>
+  <entry>
+    <author><name>Nathan Wrigley</name></author>
+    <title type="html"><![CDATA[#236 &#8211; Brian Coords on WordPress as the Source of Truth]]></title>
+    <link rel="alternate" type="text/html" href="https://wptavern.com/podcast/236-brian-coords-on-wordpress-as-the-source-of-truth/"/>
+    <id>https://wptavern.com/?post_type=podcast&amp;p=208932</id>
+    <updated>2026-10-07T10:52:47Z</updated>
+    <published>2026-10-07T13:00:00Z</published>
+    <category scheme="https://wptavern.com" term="ai"/>
+    <category scheme="https://wptavern.com" term="podcast"/>
+    <link rel="enclosure" href="https://episodes.castos.com/601a97348e9993-63339407/2647523/c1e-x8ojou1j6v4ck8dwr-8dm6m923bz48-xfrmnx.mp3" length="39694700" type="audio/mpeg"/>
+  </entry>
+</feed>

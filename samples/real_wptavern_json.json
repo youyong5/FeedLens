@@ -1,0 +1,31 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "WP Tavern",
+  "home_page_url": "https://wptavern.com",
+  "feed_url": "https://wptavern.com/feed/json",
+  "description": "WordPress News — Free as in Beer.",
+  "items": [
+    {
+      "id": "https://wptavern.com/?post_type=podcast&#038;p=209016",
+      "title": "#237 – Robert Abela on WordPress Security and the Battle Against AI Threats",
+      "url": "https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/",
+      "date_published": "2026-10-14T14:00:00+01:00",
+      "date_modified": "2026-10-13T14:39:19+01:00",
+      "content_text": "Transcript\n[00:00:19] Nathan Wrigley: Welcome to the Jukebox Podcast from WP Tavern. My name is Nathan Wrigley.",
+      "authors": [{"name": "Nathan Wrigley", "url": "https://wptavern.com/author/nathanwrigley/"}],
+      "tags": ["podcast", "security"],
+      "attachments": [{"url": "https://episodes.castos.com/601a97348e9993-63339407/2656179/c1e-89rgrh87qmqirmkrd-0vvdm9rvh1kp-56fstm.mp3", "mime_type": "audio/mpeg", "size_in_bytes": 37878054}]
+    },
+    {
+      "id": "https://wptavern.com/?post_type=podcast&#038;p=208932",
+      "title": "#236 – Brian Coords on WordPress as the Source of Truth",
+      "url": "https://wptavern.com/podcast/236-brian-coords-on-wordpress-as-the-source-of-truth/",
+      "date_published": "2026-10-07T14:00:00+01:00",
+      "date_modified": "2026-10-07T11:52:47+01:00",
+      "content_text": "Transcript",
+      "authors": [{"name": "Nathan Wrigley", "url": "https://wptavern.com/author/nathanwrigley/"}],
+      "tags": ["ai", "podcast"],
+      "attachments": [{"url": "https://episodes.castos.com/601a97348e9993-63339407/2647523/c1e-x8ojou1j6v4ck8dwr-8dm6m923bz48-xfrmnx.mp3", "mime_type": "audio/mpeg", "size_in_bytes": 39694700}]
+    }
+  ]
+}
