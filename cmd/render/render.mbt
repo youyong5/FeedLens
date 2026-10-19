@@ -97,6 +97,7 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     InvalidAuthor(author) => "invalid author: " + author
     InvalidCategory(category) => "invalid category: " + category
     InvalidAttachment(message) => "invalid attachment: " + message
+    InvalidLanguage(message) => "invalid language: " + message
     UnresolvedUri(field) => "unresolved URI: " + field
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
@@ -115,6 +116,8 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
   output.write_string(option_or_none(feed.title))
   output.write_string("\nLink: ")
   output.write_string(option_or_none(feed.link))
+  output.write_string("\nLanguage: ")
+  output.write_string(option_or_none(feed.language))
   output.write_string("\nEntries: ")
   output.write_string(feed.entries.length().to_string())
   for index = 0; index < feed.entries.length(); index = index + 1 {
@@ -127,6 +130,8 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
     output.write_string(option_or_none(entry.title))
     output.write_string("\n   link: ")
     output.write_string(option_or_none(entry.link))
+    output.write_string("\n   language: ")
+    output.write_string(option_or_none(entry.language))
     output.write_string("\n   attachments: ")
     output.write_string(entry.attachments.length().to_string())
     for attachment in entry.attachments {
@@ -274,6 +279,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "InvalidCategory", "message": category }
     InvalidAttachment(message) =>
       { "type": "InvalidAttachment", "message": message }
+    InvalidLanguage(message) =>
+      { "type": "InvalidLanguage", "message": message }
     UnresolvedUri(field) => { "type": "UnresolvedUri", "field": field }
     InvalidJsonFeedField(field) =>
       { "type": "InvalidJsonFeedField", "field": field }
@@ -298,6 +305,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "title": optional_string_json(entry.title),
     "title_kind": text_kind_json(entry.title_kind),
     "link": optional_string_json(entry.link),
+    "language": optional_string_json(entry.language),
     "description": optional_string_json(entry.description),
     "description_kind": text_kind_json(entry.description_kind),
     "content": optional_string_json(entry.content),
@@ -319,6 +327,7 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
       "title": optional_string_json(feed.title),
       "title_kind": text_kind_json(feed.title_kind),
       "link": optional_string_json(feed.link),
+      "language": optional_string_json(feed.language),
       "description": optional_string_json(feed.description),
       "description_kind": text_kind_json(feed.description_kind),
       "updated_at": optional_string_json(feed.updated_at),

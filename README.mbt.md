@@ -19,6 +19,8 @@ landing page; this document contains the full mapping and boundary specification
 | --- | --- | --- | --- |
 | `Feed.identifier` | none | feed `id` | `feed_url` |
 | `Feed.description` | channel `description` | feed `subtitle` | `description` |
+| `Feed.language` | channel `language` | feed `xml:lang` | `language` (1.1 only) |
+| `Entry.language` | inherited channel language | inherited feed `xml:lang`, or entry override/reset | inherited feed language, or item override (1.1 only) |
 | `Feed.updated_at` | none | feed `updated` | none |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
 | `Entry.description` | item `description` | entry `summary` | `summary` |
@@ -40,6 +42,16 @@ values retain decoded source text for XML and JSON source strings for JSON Feed;
 FeedLens neither renders nor sanitizes them. `content_kind` follows the same rules.
 `description` is never copied into `content`: it remains a summary/RSS description
 even when no body is available.
+
+Language tags are kept as declared, without BCP 47 canonicalization or a
+guessed default. `Entry.language` is the effective entry-level context: RSS
+items inherit channel language; Atom entries inherit feed `xml:lang` unless
+the entry declares its own. An explicit empty Atom `xml:lang` resets to
+`None`. JSON Feed 1.1 items inherit feed `language` unless an item declares
+its own; malformed or blank declarations are diagnosed and do not inherit.
+The 1.0 format does not declare a `language` field, so those keys are ignored.
+Language attributes on nested Atom text constructs are not projected into a
+single entry language.
 
 ### Dates without local-time guessing
 

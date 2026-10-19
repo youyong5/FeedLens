@@ -81,6 +81,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     title: entry.title,
     title_kind: entry.title_kind,
     link: entry.link,
+    language: entry.language,
     description: entry.description,
     description_kind: entry.description_kind,
     content: entry.content,
@@ -174,6 +175,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut feed_subtitle : String? = None
     let mut feed_updated : String? = None
     let mut feed_link : String? = None
+    let mut feed_language : String? = None
     let feed_authors : Array[Author] = []
     let feed_categories : Array[Category] = []
     let mut author_owner : String? = None
@@ -207,6 +209,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_updated : String? = None
     let mut entry_summary : String? = None
     let mut entry_link : String? = None
+    let mut entry_language : String? = None
     let mut entry_own_authors : Array[Author] = []
     let mut entry_source_authors : Array[Author] = []
     let mut entry_categories : Array[Category] = []
@@ -252,6 +255,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             }
             feed_line = event.span.start.line
             feed_column = event.span.start.column
+            feed_language = match xml_language_attribute(element) {
+              Some(value) => non_blank_text(value)
+              None => None
+            }
           } else if depth == 1 && is_atom_name(element.name, "entry") {
             entry_open = true
             entry_depth = depth + 1
@@ -263,6 +270,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_updated = None
             entry_summary = None
             entry_link = None
+            entry_language = match xml_language_attribute(element) {
+              Some(value) => non_blank_text(value)
+              None => feed_language
+            }
             entry_own_authors = []
             entry_source_authors = []
             entry_categories = []
@@ -510,6 +521,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             }
             feed_line = event.span.start.line
             feed_column = event.span.start.column
+            feed_language = match xml_language_attribute(element) {
+              Some(value) => non_blank_text(value)
+              None => None
+            }
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "author") {
@@ -852,6 +867,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               title: entry_title,
               title_kind: entry_title_kind,
               link: entry_link,
+              language: entry_language,
               description: entry_summary,
               description_kind: entry_summary_kind,
               content: entry_content,
@@ -901,6 +917,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             title: feed_title,
             title_kind: feed_title_kind,
             link: feed_link,
+            language: feed_language,
             description: feed_subtitle,
             description_kind: feed_subtitle_kind,
             updated_at: feed_updated,

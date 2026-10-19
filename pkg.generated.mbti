@@ -100,6 +100,7 @@ pub enum DiagnosticKind {
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
+  InvalidLanguage(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int, String)
@@ -113,6 +114,7 @@ pub struct Entry {
   title : String?
   title_kind : TextKind
   link : String?
+  language : String?
   description : String?
   description_kind : TextKind
   content : String?
@@ -133,6 +135,7 @@ pub struct Feed {
   title : String?
   title_kind : TextKind
   link : String?
+  language : String?
   description : String?
   description_kind : TextKind
   updated_at : String?

@@ -72,6 +72,7 @@ test "render_human lists entries and source locations" {
     rendered.has_prefix("FeedLens — MoonBit multi-format Feed parser library"),
   )
   assert_true(rendered.contains("Format: RSS 2.0"))
+  assert_true(rendered.contains("Language: (none)"))
   assert_true(rendered.contains("Entries: 1"))
   assert_true(rendered.contains("1. identifier: entry"))
   assert_true(rendered.contains("Diagnostics: none"))
@@ -96,6 +97,29 @@ test "render_json escapes normalized JSON Feed strings without changing them" {
   }
   assert_eq(title, "Quoted: \"yes\"\nnext")
   assert_eq(content, "line one\nline two")
+}
+
+///|
+test "render_json exposes declared and inherited language" {
+  guard @feedlens.parse(
+      "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"T\",\"language\":\"en-US\",\"items\":[{\"id\":\"one\",\"content_text\":\"B\"},{\"id\":\"two\",\"content_text\":\"B\",\"language\":\"fr\"}]}",
+    )
+    is Ok(feed) else {
+    fail("expected JSON Feed")
+  }
+  guard @json.parse(@render.render_json(feed))
+    is {
+      "language": String(language),
+      "entries": Array(
+        [{ "language": String(first), .. }, { "language": String(second), .. }]
+      ),
+      ..
+    } else {
+    fail("expected normalized language fields")
+  }
+  assert_eq(language, "en-US")
+  assert_eq(first, "en-US")
+  assert_eq(second, "fr")
 }
 
 ///|

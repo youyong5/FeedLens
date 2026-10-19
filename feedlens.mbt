@@ -23,6 +23,7 @@ pub enum DiagnosticKind {
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
+  InvalidLanguage(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
@@ -98,6 +99,9 @@ pub struct Entry {
   title : String?
   title_kind : TextKind
   link : String?
+  /// Effective language for this entry when declared or inherited; no
+  /// language is guessed from text or the local environment.
+  language : String?
   /// RSS `description`, Atom `summary`, or JSON Feed `summary`.
   description : String?
   description_kind : TextKind
@@ -126,6 +130,8 @@ pub struct Feed {
   title : String?
   title_kind : TextKind
   link : String?
+  /// Declared feed language, if present; spelling is preserved.
+  language : String?
   /// RSS channel `description`, Atom `subtitle`, or JSON Feed `description`.
   description : String?
   description_kind : TextKind
@@ -137,6 +143,26 @@ pub struct Feed {
   entries : Array[Entry]
   diagnostics : Array[Diagnostic]
 } derive(Debug, Eq)
+
+///|
+fn with_entry_language(entry : Entry, language : String?) -> Entry {
+  {
+    identifier: entry.identifier,
+    title: entry.title,
+    title_kind: entry.title_kind,
+    link: entry.link,
+    language,
+    description: entry.description,
+    description_kind: entry.description_kind,
+    content: entry.content,
+    content_kind: entry.content_kind,
+    authors: entry.authors,
+    categories: entry.categories,
+    attachments: entry.attachments,
+    published_at: entry.published_at,
+    updated_at: entry.updated_at,
+  }
+}
 
 ///|
 /// A fatal error that prevents producing a feed.
@@ -243,6 +269,18 @@ fn attribute_value(
   for attribute in element.attributes {
     if attribute.name.local_name == expected &&
       attribute.name.namespace_uri is None {
+      return Some(attribute.value)
+    }
+  }
+  None
+}
+
+///|
+fn xml_language_attribute(element : @xml.NamespaceElement) -> String? {
+  for attribute in element.attributes {
+    if attribute.name.local_name == "lang" &&
+      attribute.name.namespace_uri ==
+      Some("http://www.w3.org/XML/1998/namespace") {
       return Some(attribute.value)
     }
   }
@@ -403,6 +441,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_title : String? = None
     let mut channel_link : String? = None
     let mut channel_description : String? = None
+    let mut channel_language : String? = None
     let mut channel_title_location : (Int32, Int32)? = None
     let mut channel_link_location : (Int32, Int32)? = None
     let mut channel_description_location : (Int32, Int32)? = None
@@ -511,7 +550,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             (
               is_rss_name(element.name, "title") ||
               is_rss_name(element.name, "link") ||
-              is_rss_name(element.name, "description")
+              is_rss_name(element.name, "description") ||
+              is_rss_name(element.name, "language")
             ) {
             capture_field = Some(element.name.local_name)
             capture_depth = depth + 1
@@ -529,10 +569,11 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 channel_link_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
-              _ =>
+              "description" =>
                 channel_description_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
+              _ => ()
             }
           } else if capture_field is None &&
             item_open &&
@@ -601,6 +642,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               title: None,
               title_kind: Unspecified,
               link: None,
+              language: channel_language,
               description: None,
               description_kind: Unspecified,
               content: None,
@@ -631,7 +673,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             (
               is_rss_name(element.name, "title") ||
               is_rss_name(element.name, "link") ||
-              is_rss_name(element.name, "description")
+              is_rss_name(element.name, "description") ||
+              is_rss_name(element.name, "language")
             ) {
             match element.name.local_name {
               "title" => {
@@ -646,11 +689,19 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   (event.span.start.line, event.span.start.column),
                 )
               }
-              _ => {
+              "description" => {
                 channel_description = None
                 channel_description_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
+              }
+              _ => {
+                channel_language = None
+                diagnostics.push({
+                  kind: InvalidLanguage("rss channel language blank"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
               }
             }
           } else if item_open &&
@@ -736,7 +787,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 match field {
                   "title" => channel_title = None
                   "link" => channel_link = None
-                  _ => channel_description = None
+                  "description" => channel_description = None
+                  _ => channel_language = None
                 }
               }
             } else if item_open {
@@ -803,7 +855,18 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                         column: capture_column,
                       })
                   }
-                _ => channel_description = non_blank_text(captured_text)
+                "description" =>
+                  channel_description = non_blank_text(captured_text)
+                _ => {
+                  channel_language = non_blank_text(captured_text)
+                  if channel_language is None {
+                    diagnostics.push({
+                      kind: InvalidLanguage("rss channel language blank"),
+                      line: capture_line,
+                      column: capture_column,
+                    })
+                  }
+                }
               }
             }
             capture_field = None
@@ -822,6 +885,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               title: item_title,
               title_kind: Unspecified,
               link: item_link,
+              language: None,
               description: item_description,
               description_kind: Unspecified,
               content: item_content,
@@ -852,12 +916,19 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             channel_link_location, channel_description_location, diagnostics, channel_line,
             channel_column,
           )
+          for index = 0; index < entries.length(); index = index + 1 {
+            entries[index] = with_entry_language(
+              entries[index],
+              channel_language,
+            )
+          }
           return Ok({
             format: Rss2,
             identifier: None,
             title: channel_title,
             title_kind: Unspecified,
             link: channel_link,
+            language: channel_language,
             description: channel_description,
             description_kind: Unspecified,
             updated_at: None,

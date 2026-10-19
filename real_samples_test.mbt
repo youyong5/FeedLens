@@ -126,6 +126,8 @@ test "real WP Tavern RSS projection preserves ordered enclosures and raw dates" 
   }
   assert_true(feed.format is @feedlens.Rss2)
   assert_eq(feed.title, Some("WP Tavern"))
+  assert_eq(feed.language, Some("en-US"))
+  assert_eq(feed.entries[0].language, Some("en-US"))
   assert_eq(feed.entries.length(), 2)
   assert_eq(
     feed.entries[0].published_at,
@@ -151,6 +153,8 @@ test "real WP Tavern Atom projection preserves alternate and enclosure links" {
     fail("expected Atom projection")
   }
   assert_true(feed.format is @feedlens.Atom1)
+  assert_eq(feed.language, Some("en-US"))
+  assert_eq(feed.entries[0].language, Some("en-US"))
   assert_eq(feed.entries.length(), 2)
   assert_eq(feed.entries[0].published_at, Some("2026-10-14T13:00:00Z"))
   assert_eq(
@@ -176,6 +180,8 @@ test "real WP Tavern JSON projection preserves attachment metadata and offsets" 
     fail("expected JSON Feed projection")
   }
   assert_true(feed.format is @feedlens.JsonFeed1)
+  assert_eq(feed.language, Some("en-US"))
+  assert_eq(feed.entries[0].language, Some("en-US"))
   assert_eq(feed.entries.length(), 2)
   assert_eq(feed.entries[0].published_at, Some("2026-10-14T14:00:00+01:00"))
   assert_eq(

@@ -65,6 +65,33 @@ fn json_optional_string(
 }
 
 ///|
+fn json_language(
+  object : Map[String, Json],
+  diagnostics : Array[Diagnostic],
+  item_index : Int32?,
+) -> (Bool, String?) {
+  match json_field(object, "language") {
+    None => (false, None)
+    Some(String(value)) =>
+      match non_blank_text(value) {
+        Some(language) => (true, Some(language))
+        None => {
+          diagnostics.push({
+            kind: InvalidLanguage("json feed language blank"),
+            line: 1,
+            column: 1,
+          })
+          (true, None)
+        }
+      }
+    Some(_) => {
+      add_json_diagnostic(diagnostics, item_index, "language")
+      (true, None)
+    }
+  }
+}
+
+///|
 fn json_author(
   value : Json,
   diagnostics : Array[Diagnostic],
@@ -351,6 +378,11 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
   )
   let link = json_optional_string(object, "home_page_url", diagnostics, None)
   let identifier = json_optional_string(object, "feed_url", diagnostics, None)
+  let feed_language = if version == JSON_FEED_1_1 {
+    json_language(object, diagnostics, None).1
+  } else {
+    None
+  }
   let (_, feed_authors) = json_authors(object, diagnostics, None)
   let entries : Array[Entry] = []
 
@@ -409,11 +441,26 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     } else {
       copy_authors(feed_authors)
     }
+    let language = if version == JSON_FEED_1_1 {
+      let (declared, item_language) = json_language(
+        item,
+        diagnostics,
+        Some(index),
+      )
+      if declared {
+        item_language
+      } else {
+        feed_language
+      }
+    } else {
+      None
+    }
     entries.push({
       identifier: Some(identifier),
       title: json_optional_string(item, "title", diagnostics, Some(index)),
       title_kind: Text,
       link: json_optional_string(item, "url", diagnostics, Some(index)),
+      language,
       description: json_optional_string(
         item,
         "summary",
@@ -446,6 +493,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     title: Some(title),
     title_kind: Text,
     link,
+    language: feed_language,
     description,
     description_kind: Text,
     updated_at: None,
