@@ -113,3 +113,113 @@ test "Atom bad optional length is diagnosed but enclosure survives" {
   )
   assert_eq(feed.diagnostics[1].line, 3)
 }
+
+///|
+test "JSON Feed 1.1 attachments retain order, title, size, and fractional duration" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Audio","items":[{"id":"one","content_text":"Body","attachments":[{"url":"https://example.test/a.mp3","mime_type":"audio/mpeg","title":"First 🎵","size_in_bytes":9007199254740991,"duration_in_seconds":12.5},{"url":"https://example.test/b.mp3","mime_type":"audio/ogg"}]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  assert_eq(feed.entries.length(), 1)
+  let attachments = feed.entries[0].attachments
+  assert_eq(attachments.length(), 2)
+  assert_true(attachments[0].source is @feedlens.JsonFeed1)
+  assert_eq(attachments[0].url, "https://example.test/a.mp3")
+  assert_eq(attachments[0].media_type, Some("audio/mpeg"))
+  assert_eq(attachments[0].title, Some("First 🎵"))
+  assert_eq(attachments[0].size_in_bytes, Some(9007199254740991L))
+  assert_eq(attachments[0].duration_in_seconds, Some(12.5))
+  assert_eq(attachments[1].url, "https://example.test/b.mp3")
+  assert_eq(attachments[1].size_in_bytes, None)
+  assert_eq(feed.diagnostics, [])
+}
+
+///|
+test "JSON Feed 1.0 accepts attachments and skips only invalid attachments" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1","title":"Feed","items":[{"id":"one","content_text":"Body","attachments":[false,{"url":"","mime_type":"audio/mpeg"},{"url":"https://example.test/bad","mime_type":"audio/mpeg","size_in_bytes":9007199254740992,"duration_in_seconds":-3},{"url":"https://example.test/good","mime_type":"audio/mpeg","size_in_bytes":0,"duration_in_seconds":0.25}]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  assert_eq(feed.entries.length(), 1)
+  assert_eq(feed.entries[0].identifier, Some("one"))
+  assert_eq(feed.entries[0].attachments.length(), 2)
+  assert_eq(feed.entries[0].attachments[0].size_in_bytes, None)
+  assert_eq(feed.entries[0].attachments[0].duration_in_seconds, None)
+  assert_eq(feed.entries[0].attachments[1].size_in_bytes, Some(0L))
+  assert_eq(feed.entries[0].attachments[1].duration_in_seconds, Some(0.25))
+  assert_eq(feed.diagnostics.length(), 4)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 0: object"),
+  )
+  assert_true(
+    feed.diagnostics[1].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 1: url or mime_type"
+    ),
+  )
+  assert_true(
+    feed.diagnostics[2].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 2: size_in_bytes"
+    ),
+  )
+  assert_true(
+    feed.diagnostics[3].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 2: duration_in_seconds"
+    ),
+  )
+  assert_eq(feed.diagnostics[0].line, 1)
+  assert_eq(feed.diagnostics[0].column, 1)
+}
+
+///|
+test "JSON Feed attachments array type error preserves item" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Feed","items":[{"id":"one","content_text":"Body","attachments":{"url":"wrong"}}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  assert_eq(feed.entries.length(), 1)
+  assert_eq(feed.entries[0].attachments.length(), 0)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 0: attachments array"
+    ),
+  )
+}
+
+///|
+test "JSON Feed rejects fractional byte sizes and invalid durations" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Feed","items":[{"id":"one","content_text":"Body","attachments":[{"url":"https://example.test/a","mime_type":"audio/mpeg","size_in_bytes":1.5,"duration_in_seconds":1e400},{"url":"https://example.test/b","mime_type":"audio/mpeg","size_in_bytes":"42","duration_in_seconds":"bad"}]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  assert_eq(feed.entries[0].attachments.length(), 2)
+  assert_eq(feed.entries[0].attachments[0].size_in_bytes, None)
+  assert_eq(feed.entries[0].attachments[0].duration_in_seconds, None)
+  assert_eq(feed.entries[0].attachments[1].size_in_bytes, None)
+  assert_eq(feed.entries[0].attachments[1].duration_in_seconds, None)
+  assert_eq(feed.diagnostics.length(), 4)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 0: size_in_bytes"
+    ),
+  )
+  assert_true(
+    feed.diagnostics[1].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 0: duration_in_seconds"
+    ),
+  )
+  assert_true(
+    feed.diagnostics[2].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 1: size_in_bytes"
+    ),
+  )
+  assert_true(
+    feed.diagnostics[3].kind
+    is @feedlens.InvalidAttachment(
+      "json feed item 0 attachment 1: duration_in_seconds"
+    ),
+  )
+}

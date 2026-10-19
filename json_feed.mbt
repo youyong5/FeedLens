@@ -178,6 +178,136 @@ fn json_tags(
 }
 
 ///|
+fn json_attachment_problem(
+  diagnostics : Array[Diagnostic],
+  item_index : Int32,
+  attachment_index : Int32,
+  field : String,
+) -> Unit {
+  // Core JSON values have no semantic source span; see add_json_diagnostic.
+  diagnostics.push({
+    kind: InvalidAttachment(
+      "json feed item " +
+      item_index.to_string() +
+      " attachment " +
+      attachment_index.to_string() +
+      ": " +
+      field,
+    ),
+    line: 1,
+    column: 1,
+  })
+}
+
+///|
+fn json_attachment(
+  value : Json,
+  diagnostics : Array[Diagnostic],
+  item_index : Int32,
+  attachment_index : Int32,
+) -> Attachment? {
+  let object = match value {
+    Object(object) => object
+    _ => {
+      json_attachment_problem(
+        diagnostics, item_index, attachment_index, "object",
+      )
+      return None
+    }
+  }
+  let url = match json_field(object, "url") {
+    Some(String(value)) => non_blank_text(value)
+    _ => None
+  }
+  let media_type = match json_field(object, "mime_type") {
+    Some(String(value)) => non_blank_text(value)
+    _ => None
+  }
+  if url is None || media_type is None {
+    json_attachment_problem(
+      diagnostics, item_index, attachment_index, "url or mime_type",
+    )
+    return None
+  }
+  let title = match json_field(object, "title") {
+    None => None
+    Some(String(value)) => Some(value)
+    Some(_) => {
+      json_attachment_problem(
+        diagnostics, item_index, attachment_index, "title",
+      )
+      None
+    }
+  }
+  let size = match json_field(object, "size_in_bytes") {
+    None => None
+    Some(number) =>
+      match number {
+        Number(_, ..) =>
+          match attachment_size(number.stringify()) {
+            Some(value) => Some(value)
+            None => {
+              json_attachment_problem(
+                diagnostics, item_index, attachment_index, "size_in_bytes",
+              )
+              None
+            }
+          }
+        _ => {
+          json_attachment_problem(
+            diagnostics, item_index, attachment_index, "size_in_bytes",
+          )
+          None
+        }
+      }
+  }
+  let duration = match json_field(object, "duration_in_seconds") {
+    None => None
+    Some(number) =>
+      match number {
+        Number(value, ..) if value >= 0.0 && !value.is_inf() && !value.is_nan() =>
+          Some(value)
+        _ => {
+          json_attachment_problem(
+            diagnostics, item_index, attachment_index, "duration_in_seconds",
+          )
+          None
+        }
+      }
+  }
+  Some({
+    source: JsonFeed1,
+    url: url.unwrap(),
+    media_type,
+    size_in_bytes: size,
+    title,
+    duration_in_seconds: duration,
+  })
+}
+
+///|
+fn json_attachments(
+  item : Map[String, Json],
+  diagnostics : Array[Diagnostic],
+  item_index : Int32,
+) -> Array[Attachment] {
+  let attachments : Array[Attachment] = []
+  match json_field(item, "attachments") {
+    None => ()
+    Some(Array(values)) =>
+      for index = 0; index < values.length(); index = index + 1 {
+        match json_attachment(values[index], diagnostics, item_index, index) {
+          Some(attachment) => attachments.push(attachment)
+          None => ()
+        }
+      }
+    Some(_) =>
+      json_attachment_problem(diagnostics, item_index, 0, "attachments array")
+  }
+  attachments
+}
+
+///|
 fn json_parse_error_location(error : @json.ParseError) -> (Int32, Int32) {
   match error {
     @json.InvalidChar({ line, column, }, _) => (line, column + 1)
@@ -295,7 +425,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       content_kind,
       authors,
       categories: json_tags(item, diagnostics, index),
-      attachments: [],
+      attachments: json_attachments(item, diagnostics, index),
       published_at: json_optional_string(
         item,
         "date_published",
