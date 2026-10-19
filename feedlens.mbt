@@ -4,26 +4,27 @@
 /// channel field points to its element; an absent one points to `<channel>`.
 pub struct Diagnostic {
   kind : DiagnosticKind
-  line : Int
-  column : Int
+  line : Int32
+  column : Int32
 } derive(Debug, Eq)
 
 ///|
 /// The kind of recoverable RSS data problem.
 pub enum DiagnosticKind {
   MissingChannelField(String)
-  MissingItemIdentifier(Int)
+  MissingItemIdentifier(Int32)
   MissingFeedField(String)
-  MissingEntryField(Int, String)
+  MissingEntryField(Int32, String)
   UnsupportedNestedMarkup(String)
   UnsupportedTextConstruct(String)
   UnsupportedAtomContent(String)
-  MissingAlternateLink(Int)
-  MissingSummaryForExternalContent(Int)
+  MissingAlternateLink(Int32)
+  MissingSummaryForExternalContent(Int32)
   InvalidAuthor(String)
   InvalidCategory(String)
+  InvalidAttachment(String)
   InvalidJsonFeedField(String)
-  InvalidJsonFeedItem(Int, String)
+  InvalidJsonFeedItem(Int32, String)
 } derive(Debug, Eq)
 
 ///|
@@ -73,6 +74,19 @@ pub struct Category {
 } derive(Debug, Eq)
 
 ///|
+/// Metadata for a related resource. `size_in_bytes` is limited to the largest
+/// integer exactly representable by all three backends and JSON consumers.
+/// `title` and `duration_in_seconds` are supplied by JSON Feed only.
+pub struct Attachment {
+  source : FeedFormat
+  url : String
+  media_type : String?
+  size_in_bytes : Int64?
+  title : String?
+  duration_in_seconds : Double?
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed entry. Fields retain decoded source text without HTML
 /// rendering or sanitization.
 pub struct Entry {
@@ -92,6 +106,7 @@ pub struct Entry {
   content_kind : TextKind
   authors : Array[Author]
   categories : Array[Category]
+  attachments : Array[Attachment]
   /// RSS `pubDate`, Atom `published`, or JSON Feed `date_published`.
   published_at : String?
   /// Atom `updated` or JSON Feed `date_modified`; RSS has no corresponding
@@ -124,12 +139,12 @@ pub struct Feed {
 ///|
 /// A fatal error that prevents producing a feed.
 pub enum ParseError {
-  InvalidXml(String, Int, Int)
+  InvalidXml(String, Int32, Int32)
   UnsupportedRoot(String, String?)
   UnsupportedRssVersion(String?)
   MissingChannel
   InvalidRssStructure(String)
-  InvalidJson(String, Int, Int)
+  InvalidJson(String, Int32, Int32)
   InvalidJsonFeed(String)
   UnsupportedJsonFeedVersion(String?)
 } derive(Debug, Eq)
@@ -175,6 +190,12 @@ pub extend Category with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Category with Eq::{not_equal, equal}
+
+///|
+pub extend Attachment with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Attachment with Eq::{not_equal, equal}
 
 ///|
 pub extend Entry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -235,11 +256,87 @@ fn non_blank_text(text : String) -> String? {
 }
 
 ///|
+/// Byte counts are non-negative decimal integers within JS's exact integer
+/// range. Validation happens before arithmetic, so malformed inputs cannot
+/// wrap or be rounded by the JSON DOM's Double representation.
+fn attachment_size(text : String) -> Int64? {
+  let text = text.trim()
+  if text.is_empty() {
+    return None
+  }
+  let mut value = 0L
+  for character in text {
+    let digit = character.to_int() - 48
+    if digit < 0 ||
+      digit > 9 ||
+      value > (9007199254740991L - digit.to_int64()) / 10L {
+      return None
+    }
+    value = value * 10L + digit.to_int64()
+  }
+  Some(value)
+}
+
+///|
+fn xml_attachment(
+  element : @xml.NamespaceElement,
+  source : FeedFormat,
+  url_name : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Attachment? {
+  let url = match attribute_value(element, url_name) {
+    Some(value) => non_blank_text(value)
+    None => None
+  }
+  let media_type = match attribute_value(element, "type") {
+    Some(value) => non_blank_text(value)
+    None => None
+  }
+  let length = attribute_value(element, "length")
+  let size = match length {
+    Some(raw) =>
+      match attachment_size(raw) {
+        Some(value) => Some(value)
+        None => {
+          diagnostics.push({
+            kind: InvalidAttachment("invalid length"),
+            line,
+            column,
+          })
+          None
+        }
+      }
+    None => None
+  }
+  if url is None ||
+    (source == Rss2 && (media_type is None || length is None || size is None)) {
+    diagnostics.push({
+      kind: InvalidAttachment(
+        "missing required RSS enclosure attribute or attachment URL",
+      ),
+      line,
+      column,
+    })
+    return None
+  }
+  Some({
+    source,
+    url: url.unwrap(),
+    media_type,
+    size_in_bytes: size,
+    title: None,
+    duration_in_seconds: None,
+  })
+}
+
+///|
 fn missing_field_location(
-  field_location : (Int, Int)?,
-  channel_line : Int,
-  channel_column : Int,
-) -> (Int, Int) {
+  field_location : (Int32, Int32)?,
+  channel_line : Int32,
+  channel_column : Int32,
+) -> (Int32, Int32) {
   field_location.unwrap_or((channel_line, channel_column))
 }
 
@@ -248,12 +345,12 @@ fn add_missing_channel_diagnostics(
   title : String?,
   link : String?,
   description : String?,
-  title_location : (Int, Int)?,
-  link_location : (Int, Int)?,
-  description_location : (Int, Int)?,
+  title_location : (Int32, Int32)?,
+  link_location : (Int32, Int32)?,
+  description_location : (Int32, Int32)?,
   diagnostics : Array[Diagnostic],
-  channel_line : Int,
-  channel_column : Int,
+  channel_line : Int32,
+  channel_column : Int32,
 ) -> Unit {
   if title is None {
     let (line, column) = missing_field_location(
@@ -292,9 +389,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_title : String? = None
     let mut channel_link : String? = None
     let mut channel_description : String? = None
-    let mut channel_title_location : (Int, Int)? = None
-    let mut channel_link_location : (Int, Int)? = None
-    let mut channel_description_location : (Int, Int)? = None
+    let mut channel_title_location : (Int32, Int32)? = None
+    let mut channel_link_location : (Int32, Int32)? = None
+    let mut channel_description_location : (Int32, Int32)? = None
     let channel_categories : Array[Category] = []
     let entries : Array[Entry] = []
     let diagnostics : Array[Diagnostic] = []
@@ -311,6 +408,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut item_published_at : String? = None
     let mut item_authors : Array[Author] = []
     let mut item_categories : Array[Category] = []
+    let mut item_attachments : Array[Attachment] = []
 
     let mut capture_field : String? = None
     let mut capture_depth = 0
@@ -364,6 +462,22 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             item_published_at = None
             item_authors = []
             item_categories = []
+            item_attachments = []
+          } else if item_open &&
+            depth == item_depth &&
+            is_rss_name(element.name, "enclosure") {
+            match
+              xml_attachment(
+                element,
+                Rss2,
+                "url",
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
+              Some(attachment) => item_attachments.push(attachment)
+              None => ()
+            }
           } else if capture_field is None &&
             channel_seen &&
             depth == channel_depth &&
@@ -479,6 +593,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content_kind: Unspecified,
               authors: [],
               categories: [],
+              attachments: [],
               published_at: None,
               updated_at: None,
             })
@@ -523,6 +638,21 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   (event.span.start.line, event.span.start.column),
                 )
               }
+            }
+          } else if item_open &&
+            depth == item_depth &&
+            is_rss_name(element.name, "enclosure") {
+            match
+              xml_attachment(
+                element,
+                Rss2,
+                "url",
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
+              Some(attachment) => item_attachments.push(attachment)
+              None => ()
             }
           } else if item_open &&
             depth == item_depth &&
@@ -684,6 +814,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content_kind: Unspecified,
               authors: item_authors,
               categories: item_categories,
+              attachments: item_attachments,
               published_at: item_published_at,
               updated_at: None,
             })

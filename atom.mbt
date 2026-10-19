@@ -87,6 +87,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     content_kind: entry.content_kind,
     authors,
     categories: entry.categories,
+    attachments: entry.attachments,
     published_at: entry.published_at,
     updated_at: entry.updated_at,
   }
@@ -94,10 +95,10 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
 
 ///|
 fn atom_location(
-  field_location : (Int, Int)?,
-  entry_line : Int,
-  entry_column : Int,
-) -> (Int, Int) {
+  field_location : (Int32, Int32)?,
+  entry_line : Int32,
+  entry_column : Int32,
+) -> (Int32, Int32) {
   field_location.unwrap_or((entry_line, entry_column))
 }
 
@@ -106,11 +107,11 @@ fn add_missing_atom_feed_diagnostics(
   id : String?,
   title : String?,
   updated : String?,
-  id_location : (Int, Int)?,
-  title_location : (Int, Int)?,
-  updated_location : (Int, Int)?,
-  feed_line : Int,
-  feed_column : Int,
+  id_location : (Int32, Int32)?,
+  title_location : (Int32, Int32)?,
+  updated_location : (Int32, Int32)?,
+  feed_line : Int32,
+  feed_column : Int32,
   diagnostics : Array[Diagnostic],
 ) -> Unit {
   if id is None {
@@ -129,15 +130,15 @@ fn add_missing_atom_feed_diagnostics(
 
 ///|
 fn add_missing_atom_entry_diagnostics(
-  index : Int,
+  index : Int32,
   id : String?,
   title : String?,
   updated : String?,
-  id_location : (Int, Int)?,
-  title_location : (Int, Int)?,
-  updated_location : (Int, Int)?,
-  entry_line : Int,
-  entry_column : Int,
+  id_location : (Int32, Int32)?,
+  title_location : (Int32, Int32)?,
+  updated_location : (Int32, Int32)?,
+  entry_line : Int32,
+  entry_column : Int32,
   diagnostics : Array[Diagnostic],
 ) -> Unit {
   if id is None {
@@ -187,14 +188,14 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut author_child_text = ""
     let mut feed_title_kind = Text
     let mut feed_subtitle_kind = Text
-    let mut feed_id_location : (Int, Int)? = None
-    let mut feed_title_location : (Int, Int)? = None
-    let mut feed_updated_location : (Int, Int)? = None
+    let mut feed_id_location : (Int32, Int32)? = None
+    let mut feed_title_location : (Int32, Int32)? = None
+    let mut feed_updated_location : (Int32, Int32)? = None
 
     let entries : Array[Entry] = []
     let diagnostics : Array[Diagnostic] = []
     let entry_needs_feed_authors : Array[Bool] = []
-    let entry_locations : Array[(Int, Int)] = []
+    let entry_locations : Array[(Int32, Int32)] = []
 
     let mut entry_open = false
     let mut entry_depth = 0
@@ -212,14 +213,14 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut source_open = false
     let mut source_depth = 0
     let mut entry_content_present = false
-    let mut entry_external_content_location : (Int, Int)? = None
+    let mut entry_external_content_location : (Int32, Int32)? = None
     let mut entry_content : String? = None
     let mut entry_title_kind = Text
     let mut entry_summary_kind = Text
     let mut entry_content_kind = Text
-    let mut entry_id_location : (Int, Int)? = None
-    let mut entry_title_location : (Int, Int)? = None
-    let mut entry_updated_location : (Int, Int)? = None
+    let mut entry_id_location : (Int32, Int32)? = None
+    let mut entry_title_location : (Int32, Int32)? = None
+    let mut entry_updated_location : (Int32, Int32)? = None
 
     let mut capture_field : String? = None
     let mut capture_in_entry = false
@@ -827,6 +828,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               content_kind: entry_content_kind,
               authors,
               categories: entry_categories,
+              attachments: [],
               published_at: entry_published,
               updated_at: entry_updated,
             })

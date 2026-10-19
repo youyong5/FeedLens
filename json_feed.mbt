@@ -7,7 +7,7 @@ const JSON_FEED_1_1 = "https://jsonfeed.org/version/1.1"
 ///|
 fn add_json_diagnostic(
   diagnostics : Array[Diagnostic],
-  item_index : Int?,
+  item_index : Int32?,
   field : String,
 ) -> Unit {
   let kind = match item_index {
@@ -49,7 +49,7 @@ fn json_optional_string(
   object : Map[String, Json],
   name : String,
   diagnostics : Array[Diagnostic],
-  item_index : Int?,
+  item_index : Int32?,
 ) -> String? {
   match json_field(object, name) {
     None => None
@@ -68,7 +68,7 @@ fn json_optional_string(
 fn json_author(
   value : Json,
   diagnostics : Array[Diagnostic],
-  item_index : Int?,
+  item_index : Int32?,
   field : String,
 ) -> Author? {
   match value {
@@ -108,7 +108,7 @@ fn json_author(
 fn json_authors(
   object : Map[String, Json],
   diagnostics : Array[Diagnostic],
-  item_index : Int?,
+  item_index : Int32?,
 ) -> (Bool, Array[Author]) {
   match json_field(object, "authors") {
     Some(Array(values)) => {
@@ -144,7 +144,7 @@ fn json_authors(
 fn json_tags(
   object : Map[String, Json],
   diagnostics : Array[Diagnostic],
-  item_index : Int,
+  item_index : Int32,
 ) -> Array[Category] {
   let categories : Array[Category] = []
   match json_field(object, "tags") {
@@ -178,7 +178,7 @@ fn json_tags(
 }
 
 ///|
-fn json_parse_error_location(error : @json.ParseError) -> (Int, Int) {
+fn json_parse_error_location(error : @json.ParseError) -> (Int32, Int32) {
   match error {
     @json.InvalidChar({ line, column, }, _) => (line, column + 1)
     @json.InvalidNumber({ line, column, }, _) => (line, column + 1)
@@ -295,6 +295,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       content_kind,
       authors,
       categories: json_tags(item, diagnostics, index),
+      attachments: [],
       published_at: json_optional_string(
         item,
         "date_published",

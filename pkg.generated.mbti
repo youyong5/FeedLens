@@ -11,6 +11,18 @@ pub fn parse(String) -> Result[Feed, ParseError]
 // Errors
 
 // Types and methods
+pub struct Attachment {
+  source : FeedFormat
+  url : String
+  media_type : String?
+  size_in_bytes : Int64?
+  title : String?
+  duration_in_seconds : Double?
+} derive(Eq, @debug.Debug)
+pub fn Attachment::equal(Self, Self) -> Bool
+pub fn Attachment::not_equal(Self, Self) -> Bool
+pub fn Attachment::to_repr(Self) -> @debug.Repr
+
 pub struct Author {
   source : AuthorSource
   name : String?
@@ -62,6 +74,7 @@ pub enum DiagnosticKind {
   MissingSummaryForExternalContent(Int)
   InvalidAuthor(String)
   InvalidCategory(String)
+  InvalidAttachment(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int, String)
 } derive(Eq, @debug.Debug)
@@ -80,6 +93,7 @@ pub struct Entry {
   content_kind : TextKind
   authors : Array[Author]
   categories : Array[Category]
+  attachments : Array[Attachment]
   published_at : String?
   updated_at : String?
 } derive(Eq, @debug.Debug)

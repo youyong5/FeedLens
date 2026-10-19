@@ -92,6 +92,7 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
       "missing summary for external content: " + index.to_string()
     InvalidAuthor(author) => "invalid author: " + author
     InvalidCategory(category) => "invalid category: " + category
+    InvalidAttachment(message) => "invalid attachment: " + message
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
       "invalid JSON Feed item " + index.to_string() + ": " + field
@@ -222,6 +223,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
     InvalidAuthor(author) => { "type": "InvalidAuthor", "message": author }
     InvalidCategory(category) =>
       { "type": "InvalidCategory", "message": category }
+    InvalidAttachment(message) =>
+      { "type": "InvalidAttachment", "message": message }
     InvalidJsonFeedField(field) =>
       { "type": "InvalidJsonFeedField", "field": field }
     InvalidJsonFeedItem(index, field) =>
