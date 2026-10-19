@@ -1,14 +1,15 @@
-# FeedLens
+# FeedLens — MoonBit 多格式 Feed 解析库
 
-`youyong5/feedlens` is a reusable MoonBit library for parsing RSS 2.0, Atom
-1.0, and JSON Feed 1.0/1.1.
+`youyong5/feedlens` is a reusable MoonBit multi-format Feed parsing library
+for RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1. Diagnostics and the local-file
+CLI are supporting tools, not the primary product.
 
 It gives callers one source-aware, cross-format model for the common feed
 fields while preserving document order and distinguishing fatal parse failures
 from recoverable feed-quality diagnostics. It is intentionally a parser and
 local inspection library: it does not fetch feeds, sanitize/render HTML, or
-guess missing dates or a document's source URL. `README.md` is the GitHub landing page; this document
-contains the full mapping and boundary specification.
+guess missing dates or a document's source URL. `README.md` is the GitHub
+landing page; this document contains the full mapping and boundary specification.
 
 ## Public model
 
@@ -193,13 +194,13 @@ match @feedlens.parse(input) {
 the cross-target parser; only the CLI package imports local-file IO and process
 exit support. It reads one UTF-8 local file and never performs a network request.
 
-On Windows, from the module root:
+On Windows, from the module root, run the source-traceable offline projections
+of WP Tavern's three real public subscriptions:
 
 ```powershell
-moon run --target native cmd/main samples/rss2_compat.xml
-moon run --target native cmd/main samples/atom1_compat.xml
-moon run --target native cmd/main --json samples/jsonfeed11_compat.json
-moon run --target native cmd/main --json samples/jsonfeed11_attachments.json
+moon run --target native cmd/main samples/real_wptavern_rss.xml
+moon run --target native cmd/main samples/real_wptavern_atom.xml
+moon run --target native cmd/main --json samples/real_wptavern_json.json
 moon run --target native cmd/main -- --help
 ```
 
@@ -209,14 +210,16 @@ The extra `--` in the help command is required by Moon 0.1.20260920 so that
 Normal output is a short, human-readable summary:
 
 ```text
+FeedLens — MoonBit multi-format Feed parser library
 Format: RSS 2.0
-Title: RSS & Compatibility
-Link: https://feeds.example.test/rss
+Title: WP Tavern
+Link: https://wptavern.com
 Entries: 2
 
-1. identifier: rss-item-1
-   title: First & Main
-   link: https://example.test/posts/1
+1. identifier: https://wptavern.com/?post_type=podcast&p=209016
+   title: #237 – Robert Abela on WordPress Security and the Battle Against AI Threats
+   link: https://wptavern.com/podcast/237-robert-abela-on-wordpress-security-and-the-battle-against-ai-threats/
+   attachments: 1
 ```
 
 `--json` writes exactly one JSON value to stdout. It contains the normalized
@@ -228,10 +231,12 @@ return exit code `2`; `--help` and successful parsing return `0`. Recoverable
 feed diagnostics are written into normal output and still return `0`. In
 `--json` mode, no status/error text is written to stdout.
 
-The CLI is exercised on the Native backend in this environment. Its file IO and
-exit implementation uses verified `moonbitlang/x@0.5.5` APIs in the executable
-package only; the parser package itself does not import that dependency and is
-still checked/tested on Wasm, JS, and Native.
+The CLI is exercised on the Native backend in this environment. File IO and
+process exit use verified `moonbitlang/x@0.5.5` APIs only in the executable
+package. The parser now also imports the pure `moonbitlang/x/time` package for
+date validation; it does not import file IO and remains checked/tested on
+Wasm, JS, and Native. A local file path is never treated as a source URL, so
+the CLI uses `parse`, not `parse_with_source`.
 
 ## XML dependency
 
@@ -243,9 +248,11 @@ installed here. Matching uses resolved namespace URIs instead of tag prefixes.
 
 ## Verification samples
 
-`samples/` contains compact, synthetic RSS/Atom/JSON Feed compatibility and attachment samples
-plus boundary and malformed-XML cases. `compatibility_test.mbt` embeds their
-source text so Wasm, JS, and Native tests need no filesystem or network access.
+`samples/` contains compact synthetic compatibility/boundary cases and three
+[real-feed offline projections](samples/REAL_WORLD.md) with source URLs,
+capture date, response hashes, reduction policy, and baseline findings.
+`compatibility_test.mbt` and `real_samples_test.mbt` embed checked-in XML/JSON
+samples so Wasm, JS, and Native tests need no filesystem or network access.
 
 For an end-to-end Native CLI check (including file IO, exit codes, stderr, and
 PowerShell's standard `ConvertFrom-Json`), run:
@@ -256,7 +263,8 @@ powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 
 For a development-only independent comparison, use
 `uv run --with feedparser==6.0.11 python tools/check_compatibility.py`.
-The script compares only the declared field intersection in
+The script checks the real-sample mirrors and compares the older independent
+XML reference only on the declared field intersection in
 `samples/reference_intersection.json`; it is not a MoonBit dependency. See
 `samples/COMPATIBILITY.md` for actual reference version/results and intentional
 normalization differences, including RSS link fallback for a missing guid.

@@ -15,6 +15,7 @@ third-party feeds.
 | `rss2_attachments.xml` | RSS direct item enclosures, order, byte sizes, and MIME types; parser and CLI fixture only. |
 | `atom1_attachments.xml` | Atom alternate versus enclosure links, optional enclosure metadata, and order; parser and CLI fixture only. |
 | `jsonfeed11_attachments.json` | JSON Feed attachment title, size, fractional duration, and order; parser and CLI fixture only. |
+| `real_wptavern_rss.xml`, `real_wptavern_atom.xml`, `real_wptavern_json.json` | Editorially reduced projections of two corresponding podcast entries from live public subscriptions, with source URLs and capture hashes in `REAL_WORLD.md`; date, article link, and attachment regression cases. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-
@@ -50,6 +51,11 @@ PASS rss2_compat.xml
 PASS atom1_compat.xml
 ```
 
+A repeat run on 2026-10-19 with the same feedparser 6.0.11 also passed all
+five checked-in/embedded mirrors (the two original XML cases and three real
+projections) and both declared XML intersection comparisons. The script
+performs no network request during the comparison.
+
 ## Intentional differences
 
 - FeedLens assigns an RSS item's `identifier` from `link` when `guid` is
@@ -66,3 +72,10 @@ PASS atom1_compat.xml
 
 No parser defect was found by this reference comparison. The identified RSS
 identifier difference is documented, pre-existing FeedLens behavior.
+
+The real-feed projections are not treated as independent feedparser
+agreements. They are compared across FeedLens's three formats for the selected
+episode's normalized UTC instant and retained attachment URL/type/size. The
+reference script verifies that their embedded MoonBit mirrors byte-match the
+checked-in projections; it does not compare their long omitted bodies or
+claim equivalence of opaque publisher IDs across XML and JSON.

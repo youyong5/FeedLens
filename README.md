@@ -1,10 +1,9 @@
-# FeedLens
+# FeedLens — MoonBit 多格式 Feed 解析库
 
-FeedLens is a reusable [MoonBit](https://www.moonbitlang.com/) library for
-inspecting syndication feeds through one explicit, source-aware model. It
-parses RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1 without fetching the network,
-silently flattening unsupported XML markup, or exposing its XML parser as part
-of the public API.
+FeedLens is a reusable [MoonBit](https://www.moonbitlang.com/) multi-format
+Feed parsing library. It extracts RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1
+into one source-aware model. Diagnostics and a local-file CLI help inspect
+results; the library never fetches a feed or an attachment.
 
 ## What it covers
 
@@ -15,9 +14,9 @@ of the public API.
 | JSON Feed 1.0/1.1 | Feed/items, text/HTML body choice, authors, inherited authors, tags, attachments | Pagination, icons, avatars, extension mapping, unsupported URI fields |
 
 The normalized model keeps summary/description separate from article content,
-preserves author/category/attachment source semantics, retains document order, and reports
-recoverable data-quality diagnostics with locations. Fatal malformed or
-unsupported documents return `ParseError`.
+preserves author/category/attachment source semantics, retains document order,
+and reports recoverable data-quality diagnostics with locations. Fatal malformed
+or unsupported documents return `ParseError`.
 Attachment URLs and metadata are parsed only; FeedLens never downloads them.
 Raw publication/update dates remain available; a separate, cross-target API
 validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
@@ -33,25 +32,42 @@ GitHub landing page; both documents describe the same supported scope.
 
 ```moonbit nocheck
 match @feedlens.parse(input) {
-  Ok(feed) => println(feed.entries[0].identifier.unwrap_or("(no identifier)"))
+  Ok(feed) => {
+    let entry = feed.entries[0]
+    println(entry.identifier.unwrap_or("(no identifier)"))
+    match @feedlens.normalize_date(feed.format, entry.published_at) {
+      Ok(Some(date)) => println(date.utc)
+      _ => ()
+    }
+  }
   Err(_) => println("feed parsing failed")
 }
 ```
 
+When the caller knows the document's actual HTTP(S) URL, it can use
+`parse_with_source(input, source_url)` to resolve article and attachment URLs,
+including Atom `xml:base`; `parse(input)` continues to preserve raw references.
 The library package remains portable across Wasm, JavaScript, and Native.
 
 ## Local-file CLI
 
 The separate Native executable reads one local XML or JSON file and prints the
-normalized model. It never fetches URLs.
+normalized model. It does not infer a source URL from the file path and never
+fetches URLs. These checked-in files are [small, source-traceable projections](samples/REAL_WORLD.md)
+of WP Tavern's real RSS, Atom, and JSON Feed subscriptions:
 
 ```powershell
-moon run --target native cmd/main samples/rss2_compat.xml
-moon run --target native cmd/main samples/atom1_compat.xml
-moon run --target native cmd/main --json samples/jsonfeed11_compat.json
-moon run --target native cmd/main --json samples/jsonfeed11_attachments.json
+moon run --target native cmd/main samples/real_wptavern_rss.xml
+moon run --target native cmd/main samples/real_wptavern_atom.xml
+moon run --target native cmd/main --json samples/real_wptavern_json.json
 moon run --target native cmd/main -- --help
 ```
+
+The first RSS episode reports `Entries: 2` and an `audio/mpeg` enclosure of
+`37878054` bytes. The Atom and JSON Feed projections expose the same media URL
+and byte count. Their differently formatted publication dates normalize to
+`2026-10-14T13:00:00Z` through the library date API. The snapshots are offline;
+the publisher's full live feeds are not bundled.
 
 `--json` writes FeedLens's normalized inspection JSON, not a converted JSON
 Feed document. Errors use stderr and a non-zero exit status; recoverable feed
@@ -70,6 +86,10 @@ uv run --with feedparser==6.0.11 python tools/check_compatibility.py
 ```
 
 `samples/` contains small checked-in inputs used by the cross-target tests.
+The three real-feed projections retain selected metadata but omit long bodies;
+their original URLs, capture date, response hashes, and baseline findings are
+recorded in [samples/REAL_WORLD.md](samples/REAL_WORLD.md). The optional Python
+script also checks that the cross-target embedded mirrors match these files.
 The optional Python command is an independent, local-only comparison against
 feedparser 6.0.11; its defined field intersection and observed results are in
 [samples/COMPATIBILITY.md](samples/COMPATIBILITY.md).

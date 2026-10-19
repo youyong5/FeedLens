@@ -18,6 +18,9 @@ pub fn parse_args(args : Array[String]) -> Result[Command, String] {
 ///|
 pub fn help_text() -> String {
   (
+    #|FeedLens — MoonBit multi-format Feed parser library
+    #|Local-file inspection command (RSS 2.0, Atom 1.0, JSON Feed 1.0/1.1).
+    #|
     #|Usage: feedlens [--json] <path>
     #|
     #|Read one local RSS 2.0, Atom 1.0, or JSON Feed 1.0/1.1 file.
@@ -104,7 +107,9 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
 ///|
 pub fn render_human(feed : @feedlens.Feed) -> String {
   let output = StringBuilder()
-  output.write_string("Format: ")
+  output.write_string(
+    "FeedLens — MoonBit multi-format Feed parser library\nFormat: ",
+  )
   output.write_string(format_name(feed.format))
   output.write_string("\nTitle: ")
   output.write_string(option_or_none(feed.title))

@@ -57,5 +57,12 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_attachments.xml > atom-attachments.json
           moon run --target native cmd/main --json samples/jsonfeed11_attachments.json > json-attachments.json
           python3 -c "import json; atom=json.load(open('atom-attachments.json', encoding='utf-8')); jf=json.load(open('json-attachments.json', encoding='utf-8')); assert atom['entries'][0]['link'] == 'https://example.test/articles/one'; assert len(atom['entries'][0]['attachments']) == 2; assert jf['entries'][0]['attachments'][0]['duration_in_seconds'] == 12.5"
+      - name: Inspect real-feed offline projections
+        run: |
+          moon run --target native cmd/main samples/real_wptavern_rss.xml > real-rss.txt
+          grep -q 'size (bytes): 37878054' real-rss.txt
+          moon run --target native cmd/main --json samples/real_wptavern_atom.xml > real-atom.json
+          moon run --target native cmd/main --json samples/real_wptavern_json.json > real-json.json
+          python3 -c "import json; atom=json.load(open('real-atom.json', encoding='utf-8')); jf=json.load(open('real-json.json', encoding='utf-8')); assert len(atom['entries']) == len(jf['entries']) == 2; assert atom['entries'][0]['attachments'][0]['size_in_bytes'] == jf['entries'][0]['attachments'][0]['size_in_bytes'] == 37878054"
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help

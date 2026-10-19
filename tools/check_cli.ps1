@@ -64,6 +64,29 @@ if ($jsonAttachmentModel.format -ne "jsonfeed1" -or $jsonAttachmentModel.entries
   throw "JSON Feed attachment JSON was not the expected normalized model"
 }
 
+$realRss = Invoke-FeedLensCli @("samples/real_wptavern_rss.xml")
+if ($realRss.ExitCode -ne 0 -or $realRss.StandardError -or -not $realRss.StandardOutput.Contains("Entries: 2") -or -not $realRss.StandardOutput.Contains("size (bytes): 37878054")) {
+  throw "Real RSS projection CLI scenario failed"
+}
+
+$realAtom = Invoke-FeedLensCli @("--json", "samples/real_wptavern_atom.xml")
+if ($realAtom.ExitCode -ne 0 -or $realAtom.StandardError) {
+  throw "Real Atom projection CLI scenario failed"
+}
+$realAtomModel = $realAtom.StandardOutput | ConvertFrom-Json
+if ($realAtomModel.format -ne "atom1" -or $realAtomModel.entries.Count -ne 2 -or $realAtomModel.entries[0].attachments[0].size_in_bytes -ne 37878054 -or $realAtomModel.entries[1].attachments[0].size_in_bytes -ne 39694700) {
+  throw "Real Atom projection JSON output was not the expected normalized model"
+}
+
+$realJson = Invoke-FeedLensCli @("--json", "samples/real_wptavern_json.json")
+if ($realJson.ExitCode -ne 0 -or $realJson.StandardError) {
+  throw "Real JSON Feed projection CLI scenario failed"
+}
+$realJsonModel = $realJson.StandardOutput | ConvertFrom-Json
+if ($realJsonModel.format -ne "jsonfeed1" -or $realJsonModel.entries.Count -ne 2 -or $realJsonModel.entries[0].published_at -ne "2026-10-14T14:00:00+01:00" -or $realJsonModel.entries[0].attachments[0].size_in_bytes -ne 37878054) {
+  throw "Real JSON Feed projection JSON output was not the expected normalized model"
+}
+
 $help = Invoke-FeedLensCli @("--", "--help")
 if ($help.ExitCode -ne 0 -or -not $help.StandardOutput.Contains("Usage: feedlens") -or $help.StandardError) {
   throw "Help CLI scenario failed"
@@ -90,5 +113,8 @@ Write-Output "PASS JSON exit=$($json.ExitCode), ConvertFrom-Json accepted output
 Write-Output "PASS RSS attachment summary exit=$($rssAttachments.ExitCode)"
 Write-Output "PASS Atom attachment JSON exit=$($atomAttachments.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS JSON Feed attachment JSON exit=$($jsonAttachments.ExitCode), ConvertFrom-Json accepted output"
+Write-Output "PASS real RSS projection exit=$($realRss.ExitCode)"
+Write-Output "PASS real Atom projection JSON exit=$($realAtom.ExitCode), ConvertFrom-Json accepted output"
+Write-Output "PASS real JSON Feed projection JSON exit=$($realJson.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS help exit=$($help.ExitCode)"
 Write-Output "PASS fatal parse/read/argument errors exit=$($parseError.ExitCode)/$($readError.ExitCode)/$($argumentError.ExitCode)"

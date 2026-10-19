@@ -1,5 +1,8 @@
 ///|
 test "parse_args accepts help, normal, and JSON modes" {
+  assert_true(
+    @render.help_text().contains("MoonBit multi-format Feed parser library"),
+  )
   assert_true(@render.parse_args(["--help"]) is Ok(@render.Help))
   assert_true(
     @render.parse_args(["sample.xml"]) is Ok(@render.Parse("sample.xml", false)),
@@ -65,6 +68,9 @@ test "render_human lists entries and source locations" {
     fail("expected RSS feed")
   }
   let rendered = @render.render_human(feed)
+  assert_true(
+    rendered.has_prefix("FeedLens — MoonBit multi-format Feed parser library"),
+  )
   assert_true(rendered.contains("Format: RSS 2.0"))
   assert_true(rendered.contains("Entries: 1"))
   assert_true(rendered.contains("1. identifier: entry"))

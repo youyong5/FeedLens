@@ -54,3 +54,20 @@ JS, and Native; `tools/check_compatibility.py` verifies the mirrors offline.
 The existing independent feedparser comparison remains limited to its declared
 older XML intersection fixtures; these editorial projections are parser
 regression samples, not new feedparser reference claims.
+
+## Phase-10 result
+
+The same two entries now validate across all three date syntaxes with
+`normalize_date`: episode #237 yields `2026-10-14T13:00:00Z` in each format,
+while each original date string remains available. The two episodes and their
+single attachments retain their original order and respective byte counts
+`37878054` and `39694700` in each projection. `parse_with_source` was also
+run against these projections using the recorded subscription URLs; their
+already-absolute article and media URLs remain unchanged. Relative-reference
+and nested Atom `xml:base` cases are exercised separately by small synthetic
+tests, because these particular live feeds did not contain such references.
+
+No attachment parsing defect was found in these samples. The repaired parser
+gap was the absence of a comparable, validated date result; explicit URI
+resolution is a new opt-in library entry point, not a reinterpretation of
+the CLI's local file path.
