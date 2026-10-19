@@ -210,6 +210,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_own_authors : Array[Author] = []
     let mut entry_source_authors : Array[Author] = []
     let mut entry_categories : Array[Category] = []
+    let mut entry_attachments : Array[Attachment] = []
     let mut source_open = false
     let mut source_depth = 0
     let mut entry_content_present = false
@@ -265,6 +266,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_own_authors = []
             entry_source_authors = []
             entry_categories = []
+            entry_attachments = []
             source_open = false
             source_depth = 0
             entry_content_present = false
@@ -362,6 +364,20 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             is_atom_name(element.name, "link") {
             if entry_link is None {
               entry_link = atom_alternate_link(element)
+            }
+            if atom_attribute_value(element, "rel") == Some("enclosure") {
+              match
+                xml_attachment(
+                  element,
+                  Atom1,
+                  "href",
+                  event.span.start.line,
+                  event.span.start.column,
+                  diagnostics,
+                ) {
+                Some(attachment) => entry_attachments.push(attachment)
+                None => ()
+              }
             }
           } else if entry_open &&
             depth == entry_depth &&
@@ -553,6 +569,20 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             is_atom_name(element.name, "link") {
             if entry_link is None {
               entry_link = atom_alternate_link(element)
+            }
+            if atom_attribute_value(element, "rel") == Some("enclosure") {
+              match
+                xml_attachment(
+                  element,
+                  Atom1,
+                  "href",
+                  event.span.start.line,
+                  event.span.start.column,
+                  diagnostics,
+                ) {
+                Some(attachment) => entry_attachments.push(attachment)
+                None => ()
+              }
             }
           } else if entry_open &&
             depth == entry_depth &&
@@ -828,7 +858,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               content_kind: entry_content_kind,
               authors,
               categories: entry_categories,
-              attachments: [],
+              attachments: entry_attachments,
               published_at: entry_published,
               updated_at: entry_updated,
             })

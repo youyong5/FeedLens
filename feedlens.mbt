@@ -76,7 +76,8 @@ pub struct Category {
 ///|
 /// Metadata for a related resource. `size_in_bytes` is limited to the largest
 /// integer exactly representable by all three backends and JSON consumers.
-/// `title` and `duration_in_seconds` are supplied by JSON Feed only.
+/// `title` is available from Atom links and JSON Feed; duration is supplied
+/// by JSON Feed only.
 pub struct Attachment {
   source : FeedFormat
   url : String
@@ -314,7 +315,11 @@ fn xml_attachment(
     (source == Rss2 && (media_type is None || length is None || size is None)) {
     diagnostics.push({
       kind: InvalidAttachment(
-        "missing required RSS enclosure attribute or attachment URL",
+        if source == Rss2 {
+          "missing required RSS enclosure attribute"
+        } else {
+          "missing Atom enclosure href"
+        },
       ),
       line,
       column,
@@ -326,7 +331,14 @@ fn xml_attachment(
     url: url.unwrap(),
     media_type,
     size_in_bytes: size,
-    title: None,
+    title: if source == Atom1 {
+      match attribute_value(element, "title") {
+        Some(value) => non_blank_text(value)
+        None => None
+      }
+    } else {
+      None
+    },
     duration_in_seconds: None,
   })
 }

@@ -54,3 +54,62 @@ test "RSS invalid enclosure is skipped with source position and no integer overf
   assert_eq(feed.diagnostics[0].column, 23)
   assert_true(feed.diagnostics[1].kind is @feedlens.InvalidAttachment(_))
 }
+
+///|
+test "Atom enclosure links keep order without replacing alternate link" {
+  let xml =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed</id><title>Feed</title><updated>2024-01-01T00:00:00Z</updated><author><name>A</name></author>
+    #|<entry><id>urn:entry</id><title>Entry</title><updated>2024-01-01T00:00:00Z</updated>
+    #|<link rel="self" href="https://example.test/self"/><link rel="enclosure" href="media/a.mp3" type="audio/mpeg" length="42" title="A &amp; B"/>
+    #|<link href="https://example.test/article"/><link rel="enclosure" href="https://example.test/b.mp3"/>
+    #|</entry></feed>
+  guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
+  let entry = feed.entries[0]
+  assert_eq(entry.link, Some("https://example.test/article"))
+  assert_eq(entry.attachments.length(), 2)
+  assert_true(entry.attachments[0].source is @feedlens.Atom1)
+  assert_eq(entry.attachments[0].url, "media/a.mp3")
+  assert_eq(entry.attachments[0].media_type, Some("audio/mpeg"))
+  assert_eq(entry.attachments[0].size_in_bytes, Some(42L))
+  assert_eq(entry.attachments[0].title, Some("A & B"))
+  assert_eq(entry.attachments[1].media_type, None)
+  assert_eq(entry.attachments[1].size_in_bytes, None)
+  assert_eq(feed.diagnostics, [])
+}
+
+///|
+test "prefixed Atom enclosure ignores foreign and nested links" {
+  let xml =
+    #|<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:x="urn:wrong"><a:id>urn:feed</a:id><a:title>Feed</a:title><a:updated>2024-01-01T00:00:00Z</a:updated><a:author><a:name>A</a:name></a:author>
+    #|<a:entry><a:id>urn:entry</a:id><a:title>Entry</a:title><a:updated>2024-01-01T00:00:00Z</a:updated><a:content>Body</a:content>
+    #|<x:link rel="enclosure" href="wrong"/><a:source><a:link rel="enclosure" href="nested"/></a:source>
+    #|<a:link rel="enclosure" href="right" length="9007199254740991"/></a:entry></a:feed>
+  guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
+  assert_eq(feed.entries[0].attachments.length(), 1)
+  assert_eq(feed.entries[0].attachments[0].url, "right")
+  assert_eq(
+    feed.entries[0].attachments[0].size_in_bytes,
+    Some(9007199254740991L),
+  )
+}
+
+///|
+test "Atom bad optional length is diagnosed but enclosure survives" {
+  let xml =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed</id><title>Feed</title><updated>2024-01-01T00:00:00Z</updated><author><name>A</name></author>
+    #|<entry><id>urn:entry</id><title>Entry</title><updated>2024-01-01T00:00:00Z</updated><content>Body</content>
+    #|<link rel="enclosure" href="https://example.test/a" length="-1"/><link rel="enclosure" length="4"/>
+    #|</entry></feed>
+  guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
+  assert_eq(feed.entries[0].attachments.length(), 1)
+  assert_eq(feed.entries[0].attachments[0].size_in_bytes, None)
+  assert_true(
+    feed.diagnostics[0].kind is @feedlens.InvalidAttachment("invalid length"),
+  )
+  assert_eq(feed.diagnostics[0].line, 3)
+  assert_true(
+    feed.diagnostics[1].kind
+    is @feedlens.InvalidAttachment("missing Atom enclosure href"),
+  )
+  assert_eq(feed.diagnostics[1].line, 3)
+}
