@@ -7,7 +7,7 @@ It gives callers one source-aware, cross-format model for the common feed
 fields while preserving document order and distinguishing fatal parse failures
 from recoverable feed-quality diagnostics. It is intentionally a parser and
 local inspection library: it does not fetch feeds, sanitize/render HTML, or
-resolve dates and URLs. `README.md` is the GitHub landing page; this document
+guess missing dates and URLs. `README.md` is the GitHub landing page; this document
 contains the full mapping and boundary specification.
 
 ## Public model
@@ -39,6 +39,35 @@ values retain decoded source text for XML and JSON source strings for JSON Feed;
 FeedLens neither renders nor sanitizes them. `content_kind` follows the same rules.
 `description` is never copied into `content`: it remains a summary/RSS description
 even when no body is available.
+
+### Dates without local-time guessing
+
+The original `Feed.updated_at`, `Entry.published_at`, and `Entry.updated_at`
+strings remain unchanged. Call `normalize_date(feed.format, raw_date)` to get
+`Result[NormalizedDate?, DateError]`: `Ok(None)` means absent; `Err` means a
+present but invalid or unsupported value. A successful result provides `utc`
+(RFC 3339 UTC text), `unix_seconds`, `nanosecond`, the original
+`offset_minutes`, and `precision` (`Minute`, `Second`, or `Fraction(digits)`).
+This function is pure and gives the same result on Wasm, JS, and Native; it
+never uses the machine's local time zone.
+
+```moonbit nocheck
+match @feedlens.normalize_date(feed.format, feed.entries[0].published_at) {
+  Ok(Some(date)) => println(date.utc)
+  Ok(None) => println("publication date missing")
+  Err(_) => println("publication date invalid or unsupported")
+}
+```
+
+RSS accepts the common RFC 822/1123 profile with a four-digit year, optional
+weekday, `HH:MM` or `HH:MM:SS`, and numeric `±HHMM`, `UT`/`UTC`/`GMT`, or
+US `EST`/`EDT`/`CST`/`CDT`/`MST`/`MDT`/`PST`/`PDT` zones. A stated weekday
+must agree with the calendar date. Atom and JSON Feed require RFC 3339 with an
+explicit offset or `Z`, and support 1–9 fractional-second digits. Calendar
+dates, times, and offsets are validated. Unknown-offset `-0000`/`-00:00`,
+two-digit RSS years, leap-second `:60`, and precision beyond nanoseconds are
+not normalized; the raw field is still available. No date is substituted from
+the file timestamp, fetch time, or local clock.
 
 `Author` preserves source semantics through `source`, `name`, `uri`, and `email`.
 RSS item authors are exposed only as their original `email` text (`source = Rss2`);
@@ -104,7 +133,7 @@ values become `None` with a diagnostic. They follow ordinary IEEE 754 rounding.
 
 - Accepts only root objects whose `version` is exactly `https://jsonfeed.org/version/1` or `https://jsonfeed.org/version/1.1`. JSON is selected whenever the first non-whitespace input character is not `<`; XML dispatch remains unchanged.
 - `title` must be a string and `items` must be an array. Invalid JSON, a non-object root, absent/wrong-type `version`, absent/wrong-type `title`, absent/wrong-type `items`, and unsupported versions are fatal JSON-specific `ParseError` values, never `InvalidXml`.
-- Maps `title`, `description`, `home_page_url`, and `feed_url`; maps item `id`, `url`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. No URI or date parsing occurs.
+- Maps `title`, `description`, `home_page_url`, and `feed_url`; maps item `id`, `url`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. Raw date strings can be independently validated through `normalize_date`; no URI resolution occurs during `parse`.
 - Both content fields are legal. When both are valid strings, `content_html` deliberately wins because it preserves the richer declared representation; the unified model exposes one `Entry.content`. An item must have one valid content field. A malformed/missing item `id` or content discards that item with `InvalidJsonFeedItem`; a JSON number id is retained as its JSON spelling. Optional malformed item fields are diagnosed and become `None`.
 - Supports `authors` arrays and deprecated `author` objects at feed/item level. If `authors` is present it wins, even over `author`; undeclared item authors inherit feed authors. A JSON Feed author needs a non-blank `name` or `url`, and its URL is exposed through `Author.uri`.
 - Maps item `tags` to ordered categories. Empty tags and malformed optional fields are diagnosed and skipped. Unknown extension keys are ignored.
@@ -113,7 +142,7 @@ values become `None` with a diagnostic. They follow ordinary IEEE 754 rounding.
 
 ## Not supported
 
-- Attachment retrieval or verification; JSON Feed pagination following, icons, favicons, author avatars, language, expired state, and extension fields; network retrieval; date parsing; and URI resolution.
+- Attachment retrieval or verification; JSON Feed pagination following, icons, favicons, author avatars, language, expired state, and extension fields; network retrieval and URI resolution.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
 - Atom XHTML serialization, external Atom-content retrieval, category hierarchy, and link URI resolution.
 

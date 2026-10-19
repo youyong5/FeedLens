@@ -6,6 +6,8 @@ import {
 }
 
 // Values
+pub fn normalize_date(FeedFormat, String?) -> Result[NormalizedDate?, DateError]
+
 pub fn parse(String) -> Result[Feed, ParseError]
 
 // Errors
@@ -52,6 +54,27 @@ pub struct Category {
 pub fn Category::equal(Self, Self) -> Bool
 pub fn Category::not_equal(Self, Self) -> Bool
 pub fn Category::to_repr(Self) -> @debug.Repr
+
+pub enum DateError {
+  InvalidSyntax
+  InvalidCalendarDate
+  InvalidOffset
+  UnsupportedPrecision
+  UnsupportedTimeZone
+  OutOfRange
+} derive(Eq, @debug.Debug)
+pub fn DateError::equal(Self, Self) -> Bool
+pub fn DateError::not_equal(Self, Self) -> Bool
+pub fn DateError::to_repr(Self) -> @debug.Repr
+
+pub enum DatePrecision {
+  Minute
+  Second
+  Fraction(Int)
+} derive(Eq, @debug.Debug)
+pub fn DatePrecision::equal(Self, Self) -> Bool
+pub fn DatePrecision::not_equal(Self, Self) -> Bool
+pub fn DatePrecision::to_repr(Self) -> @debug.Repr
 
 pub struct Diagnostic {
   kind : DiagnosticKind
@@ -127,6 +150,17 @@ pub enum FeedFormat {
 pub fn FeedFormat::equal(Self, Self) -> Bool
 pub fn FeedFormat::not_equal(Self, Self) -> Bool
 pub fn FeedFormat::to_repr(Self) -> @debug.Repr
+
+pub struct NormalizedDate {
+  utc : String
+  unix_seconds : Int64
+  nanosecond : Int
+  offset_minutes : Int
+  precision : DatePrecision
+} derive(Eq, @debug.Debug)
+pub fn NormalizedDate::equal(Self, Self) -> Bool
+pub fn NormalizedDate::not_equal(Self, Self) -> Bool
+pub fn NormalizedDate::to_repr(Self) -> @debug.Repr
 
 pub enum ParseError {
   InvalidXml(String, Int, Int)

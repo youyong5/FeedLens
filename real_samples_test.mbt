@@ -125,6 +125,11 @@ test "real WP Tavern RSS projection preserves ordered enclosures and raw dates" 
   assert_eq(feed.entries[0].attachments[0].size_in_bytes, Some(37878054L))
   assert_eq(feed.entries[1].attachments[0].size_in_bytes, Some(39694700L))
   assert_eq(feed.diagnostics, [])
+  guard @feedlens.normalize_date(feed.format, feed.entries[0].published_at)
+    is Ok(Some(date)) else {
+    fail("expected valid RSS publication date")
+  }
+  assert_eq(date.utc, "2026-10-14T13:00:00Z")
 }
 
 ///|
@@ -145,6 +150,11 @@ test "real WP Tavern Atom projection preserves alternate and enclosure links" {
   assert_eq(feed.entries[1].attachments[0].size_in_bytes, Some(39694700L))
   assert_eq(feed.entries[0].authors[0].name, Some("Nathan Wrigley"))
   assert_eq(feed.diagnostics, [])
+  guard @feedlens.normalize_date(feed.format, feed.entries[0].published_at)
+    is Ok(Some(date)) else {
+    fail("expected valid Atom publication date")
+  }
+  assert_eq(date.utc, "2026-10-14T13:00:00Z")
 }
 
 ///|
@@ -164,4 +174,9 @@ test "real WP Tavern JSON projection preserves attachment metadata and offsets" 
   assert_eq(feed.entries[0].authors[0].name, Some("Nathan Wrigley"))
   assert_eq(feed.entries[0].categories[0].term, "podcast")
   assert_eq(feed.diagnostics, [])
+  guard @feedlens.normalize_date(feed.format, feed.entries[0].published_at)
+    is Ok(Some(date)) else {
+    fail("expected valid JSON Feed publication date")
+  }
+  assert_eq(date.utc, "2026-10-14T13:00:00Z")
 }
