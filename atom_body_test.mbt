@@ -237,3 +237,34 @@ test "Atom XML media keeps comments, processing instructions and several roots" 
   assert_true(fragment.markup.contains("/>mid<!--note--><?step go?><n0:b"))
   assert_eq(feed.diagnostics, [])
 }
+
+///|
+test "Atom blank external src and nested MIME text get positioned diagnostics" {
+  let xml =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src=" " type="application/xml"/></entry>
+    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="text/markdown">one<b>two</b></content></entry></feed>
+  guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
+  assert_eq(feed.entries[0].atom_body, None)
+  assert_eq(feed.entries[1].atom_body, None)
+  assert_eq(feed.entries[1].content, None)
+  assert_eq(feed.diagnostics.length(), 2)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.UnsupportedAtomContent("empty external Atom src"),
+  )
+  assert_true(
+    feed.diagnostics[1].kind
+    is @feedlens.UnsupportedAtomContent("Atom content with nested markup"),
+  )
+  assert_eq(feed.diagnostics[0].line, 2)
+  assert_eq(feed.diagnostics[1].line, 3)
+}
+
+///|
+test "malformed inline XML is a fatal XML error" {
+  let xml =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="application/xml"><a></content></entry></feed>
+  assert_true(@feedlens.parse(xml) is Err(@feedlens.InvalidXml(_, _, _)))
+}

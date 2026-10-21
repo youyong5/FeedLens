@@ -50,7 +50,8 @@ match @feedlens.parse(input) {
 
 When the caller knows the document's actual HTTP(S) URL, it can use
 `parse_with_source(input, source_url)` to resolve article, image, and attachment URLs,
-including Atom `xml:base`; `parse(input)` continues to preserve raw references.
+including external Atom content references under `xml:base`; `parse(input)`
+continues to preserve raw references.
 The library package remains portable across Wasm, JavaScript, and Native.
 A separate [consumer example](examples/consumer/main.mbt) imports only the
 public parser package. Run `moon run --target native examples/consumer` or
@@ -132,16 +133,18 @@ and banner image are detailed in [the inventory](samples/DISPLAY_FIELD_INVENTORY
 `--json` writes FeedLens's normalized inspection JSON, not a converted JSON
 Feed document. Errors use stderr and a non-zero exit status; recoverable feed
 diagnostics still result in success.
-For `samples/atom1_content_forms.xml`, representative actual entry-body values
-in this output are:
+For `samples/atom1_content_forms.xml`, these two actual `atom_body` values
+are shown as an excerpt array:
 
 ```json
-{"kind":"external","src":"entry.xml","url":"entry.xml","base_uri":"https://example.test/feeds/media/","media_type":"application/xml"}
-{"kind":"inline_binary","base64":"AQID/w==","byte_length":4,"media_type":"IMAGE/PNG"}
+[
+  {"kind":"external","src":"entry.xml","url":"entry.xml","base_uri":"https://example.test/feeds/media/","media_type":"application/xml"},
+  {"kind":"inline_binary","base64":"AQID/w==","byte_length":4,"media_type":"IMAGE/PNG"}
+]
 ```
 
-These are two separate `atom_body` objects from the normalized output, shown
-individually for readability; the complete CLI stdout is one JSON feed object.
+The full CLI stdout remains one JSON feed object containing these values in
+its ordered `entries` array.
 For the XHTML sample, this is an exact feed-title field excerpt from the
 CLI's normalized JSON (other fields omitted here):
 
