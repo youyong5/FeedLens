@@ -326,7 +326,7 @@ test "Atom inline content retains text, HTML, CDATA, and whitespace" {
 }
 
 ///|
-test "Atom content rejects unsupported types and nested XML" {
+test "Atom XHTML content is captured while unsupported types and nested text are diagnosed" {
   let result = @feedlens.parse(
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -338,20 +338,17 @@ test "Atom content rejects unsupported types and nested XML" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
-  assert_eq(feed.entries[0].content, None)
+  assert_eq(feed.entries[0].content, Some("markup"))
+  assert_true(feed.entries[0].content_kind is @feedlens.Xhtml)
   assert_eq(feed.entries[1].content, None)
   assert_eq(feed.entries[2].content, None)
-  assert_eq(feed.diagnostics.length(), 3)
+  assert_eq(feed.diagnostics.length(), 2)
   assert_true(
     feed.diagnostics[0].kind
     is @feedlens.UnsupportedAtomContent("Atom content with unsupported type"),
   )
   assert_true(
     feed.diagnostics[1].kind
-    is @feedlens.UnsupportedAtomContent("Atom content with unsupported type"),
-  )
-  assert_true(
-    feed.diagnostics[2].kind
     is @feedlens.UnsupportedAtomContent("Atom content with nested markup"),
   )
 }
@@ -512,7 +509,7 @@ test "Atom missing fields have source locations and feed author is inherited" {
 }
 
 ///|
-test "Atom XHTML text and content forms produce diagnostics" {
+test "Atom XHTML title and external content have independent outcomes" {
   let result = @feedlens.parse(
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -522,19 +519,16 @@ test "Atom XHTML text and content forms produce diagnostics" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
-  assert_eq(feed.title, None)
-  assert_eq(feed.diagnostics.length(), 4)
+  assert_eq(feed.title, Some("markup"))
+  assert_true(feed.title_kind is @feedlens.Xhtml)
+  assert_eq(feed.diagnostics.length(), 2)
   assert_true(
-    feed.diagnostics[0].kind is @feedlens.UnsupportedTextConstruct("atom title"),
-  )
-  assert_true(
-    feed.diagnostics[1].kind
+    feed.diagnostics[0].kind
     is @feedlens.UnsupportedAtomContent("external Atom content"),
   )
   assert_true(
-    feed.diagnostics[2].kind is @feedlens.MissingSummaryForExternalContent(0),
+    feed.diagnostics[1].kind is @feedlens.MissingSummaryForExternalContent(0),
   )
-  assert_true(feed.diagnostics[3].kind is @feedlens.MissingFeedField("title"))
 }
 
 ///|

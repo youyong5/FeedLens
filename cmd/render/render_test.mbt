@@ -60,6 +60,39 @@ test "render_json preserves normalized values, nulls, and diagnostic order" {
 }
 
 ///|
+test "render_json exposes unsanitized Atom XHTML text kind and fragments" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Plan <em>A</em></div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Body</p></div></content></entry></feed>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
+  let rendered = @render.render_json(feed)
+  guard @json.parse(rendered)
+    is {
+      "title": String(title),
+      "title_kind": String(kind),
+      "title_xhtml": { "markup": String(markup), .. },
+      "entries": Array(entries),
+      ..
+    } else {
+    fail("expected XHTML JSON fields")
+  }
+  assert_eq(title, "Plan A")
+  assert_eq(kind, "xhtml")
+  assert_eq(
+    markup, "Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em>",
+  )
+  guard entries[0]
+    is {
+      "content_kind": String(content_kind),
+      "content_xhtml": { "markup": String(body), .. },
+      ..
+    } else {
+    fail("expected XHTML body JSON fields")
+  }
+  assert_eq(content_kind, "xhtml")
+  assert_eq(body, "<h:p xmlns:h=\"http://www.w3.org/1999/xhtml\">Body</h:p>")
+}
+
+///|
 test "render_human lists entries and source locations" {
   guard @feedlens.parse(
       "<rss version=\"2.0\"><channel><title>Feed</title><link>https://example.test/</link><description>Description</description><item><guid>entry</guid><title>Entry</title><link>https://example.test/entry</link></item></channel></rss>",

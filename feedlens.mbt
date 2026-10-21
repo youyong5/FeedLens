@@ -44,6 +44,19 @@ pub enum TextKind {
   Unspecified
   Text
   Html
+  Xhtml
+} derive(Debug, Eq)
+
+///|
+/// An Atom XHTML fragment. `markup` omits the required outer XHTML div and
+/// uses deterministic namespace-qualified XML serialization. `language` is
+/// the effective xml:lang at that div; `base_references` retains the ordered
+/// xml:base declarations from the feed/entry, text construct, and div. The
+/// latter are raw references, not guessed absolute URLs.
+pub struct XhtmlFragment {
+  markup : String
+  language : String?
+  base_references : Array[String]
 } derive(Debug, Eq)
 
 ///|
@@ -139,6 +152,8 @@ pub struct Entry {
   identifier : String?
   title : String?
   title_kind : TextKind
+  /// Present only for a successfully captured Atom XHTML title.
+  title_xhtml : XhtmlFragment?
   link : String?
   /// JSON Feed `external_url` names an outside page, not the item permalink.
   external_url : String?
@@ -148,11 +163,15 @@ pub struct Entry {
   /// RSS `description`, Atom `summary`, or JSON Feed `summary`.
   description : String?
   description_kind : TextKind
+  /// Present only for a successfully captured Atom XHTML summary.
+  description_xhtml : XhtmlFragment?
   /// RSS Content `encoded`, inline Atom `content`, or JSON Feed
   /// `content_html`/`content_text`. External Atom content is not fetched and
   /// therefore remains `None`.
   content : String?
   content_kind : TextKind
+  /// Present only for a successfully captured inline Atom XHTML body.
+  content_xhtml : XhtmlFragment?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
@@ -173,12 +192,16 @@ pub struct Feed {
   identifier : String?
   title : String?
   title_kind : TextKind
+  /// Present only for a successfully captured Atom XHTML feed title.
+  title_xhtml : XhtmlFragment?
   link : String?
   /// Declared feed language, if present; spelling is preserved.
   language : String?
   /// RSS channel `description`, Atom `subtitle`, or JSON Feed `description`.
   description : String?
   description_kind : TextKind
+  /// Present only for a successfully captured Atom XHTML subtitle.
+  description_xhtml : XhtmlFragment?
   /// Atom feed `updated`; RSS and JSON Feed have no corresponding feed-level
   /// core field in the supported subset.
   updated_at : String?
@@ -195,13 +218,16 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     identifier: entry.identifier,
     title: entry.title,
     title_kind: entry.title_kind,
+    title_xhtml: entry.title_xhtml,
     link: entry.link,
     external_url: entry.external_url,
     language,
     description: entry.description,
     description_kind: entry.description_kind,
+    description_xhtml: entry.description_xhtml,
     content: entry.content,
     content_kind: entry.content_kind,
+    content_xhtml: entry.content_xhtml,
     authors: entry.authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -248,6 +274,12 @@ pub extend TextKind with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend TextKind with Eq::{not_equal, equal}
+
+///|
+pub extend XhtmlFragment with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend XhtmlFragment with Eq::{not_equal, equal}
 
 ///|
 pub extend AuthorSource with @moonbitlang/core/debug.Debug::{to_repr}
@@ -712,13 +744,16 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               identifier: None,
               title: None,
               title_kind: Unspecified,
+              title_xhtml: None,
               link: None,
               external_url: None,
               language: channel_language,
               description: None,
               description_kind: Unspecified,
+              description_xhtml: None,
               content: None,
               content_kind: Unspecified,
+              content_xhtml: None,
               authors: [],
               categories: [],
               attachments: [],
@@ -957,13 +992,16 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               identifier,
               title: item_title,
               title_kind: Unspecified,
+              title_xhtml: None,
               link: item_link,
               external_url: None,
               language: None,
               description: item_description,
               description_kind: Unspecified,
+              description_xhtml: None,
               content: item_content,
               content_kind: Unspecified,
+              content_xhtml: None,
               authors: item_authors,
               categories: item_categories,
               attachments: item_attachments,
@@ -1002,10 +1040,12 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             identifier: None,
             title: channel_title,
             title_kind: Unspecified,
+            title_xhtml: None,
             link: channel_link,
             language: channel_language,
             description: channel_description,
             description_kind: Unspecified,
+            description_xhtml: None,
             updated_at: None,
             authors: [],
             categories: channel_categories,

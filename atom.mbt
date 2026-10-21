@@ -31,6 +31,7 @@ fn atom_text_kind(element : @xml.NamespaceElement) -> TextKind? {
   match atom_attribute_value(element, "type") {
     None | Some("text") => Some(Text)
     Some("html") => Some(Html)
+    Some("xhtml") => Some(Xhtml)
     _ => None
   }
 }
@@ -80,13 +81,16 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     identifier: entry.identifier,
     title: entry.title,
     title_kind: entry.title_kind,
+    title_xhtml: entry.title_xhtml,
     link: entry.link,
     external_url: entry.external_url,
     language: entry.language,
     description: entry.description,
     description_kind: entry.description_kind,
+    description_xhtml: entry.description_xhtml,
     content: entry.content,
     content_kind: entry.content_kind,
+    content_xhtml: entry.content_xhtml,
     authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -178,6 +182,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut feed_updated : String? = None
     let mut feed_link : String? = None
     let mut feed_language : String? = None
+    let mut feed_base_references : Array[String] = []
     let feed_authors : Array[Author] = []
     let feed_categories : Array[Category] = []
     let mut author_owner : String? = None
@@ -192,6 +197,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut author_child_text = ""
     let mut feed_title_kind = Text
     let mut feed_subtitle_kind = Text
+    let mut feed_title_xhtml : XhtmlFragment? = None
+    let mut feed_subtitle_xhtml : XhtmlFragment? = None
     let mut feed_id_location : (Int32, Int32)? = None
     let mut feed_title_location : (Int32, Int32)? = None
     let mut feed_updated_location : (Int32, Int32)? = None
@@ -212,6 +219,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_summary : String? = None
     let mut entry_link : String? = None
     let mut entry_language : String? = None
+    let mut entry_base_references : Array[String] = []
     let mut entry_own_authors : Array[Author] = []
     let mut entry_source_authors : Array[Author] = []
     let mut entry_categories : Array[Category] = []
@@ -224,6 +232,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_title_kind = Text
     let mut entry_summary_kind = Text
     let mut entry_content_kind = Text
+    let mut entry_title_xhtml : XhtmlFragment? = None
+    let mut entry_summary_xhtml : XhtmlFragment? = None
+    let mut entry_content_xhtml : XhtmlFragment? = None
     let mut entry_id_location : (Int32, Int32)? = None
     let mut entry_title_location : (Int32, Int32)? = None
     let mut entry_updated_location : (Int32, Int32)? = None
@@ -235,6 +246,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut capture_has_nested_markup = false
     let mut capture_unsupported_type = false
     let mut capture_text_kind = Text
+    let mut xhtml_capture : AtomXhtmlCapture? = None
     let mut capture_line = 1
     let mut capture_column = 1
 
@@ -243,7 +255,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
       match event.kind {
         @xml.Start(element) => {
           if capture_field is Some(_) && depth >= capture_depth {
-            capture_has_nested_markup = true
+            match xhtml_capture {
+              Some(state) => state.node(element, depth == capture_depth, false)
+              None => capture_has_nested_markup = true
+            }
           }
           if !root_seen {
             root_seen = true
@@ -261,6 +276,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               Some(value) => non_blank_text(value)
               None => None
             }
+            feed_base_references = []
+            match xml_base_attribute(element) {
+              Some(value) => feed_base_references.push(value)
+              None => ()
+            }
           } else if depth == 1 && is_atom_name(element.name, "entry") {
             entry_open = true
             entry_depth = depth + 1
@@ -276,6 +296,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               Some(value) => non_blank_text(value)
               None => feed_language
             }
+            entry_base_references = xhtml_copy_references(feed_base_references)
+            match xml_base_attribute(element) {
+              Some(value) => entry_base_references.push(value)
+              None => ()
+            }
             entry_own_authors = []
             entry_source_authors = []
             entry_categories = []
@@ -288,6 +313,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_title_kind = Text
             entry_summary_kind = Text
             entry_content_kind = Text
+            entry_title_xhtml = None
+            entry_summary_xhtml = None
+            entry_content_xhtml = None
             entry_id_location = None
             entry_title_location = None
             entry_updated_location = None
@@ -396,6 +424,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             depth == entry_depth &&
             is_atom_name(element.name, "content") {
             entry_content_present = true
+            entry_content = None
+            entry_content_kind = Text
+            entry_content_xhtml = None
             match atom_attribute_value(element, "src") {
               Some(_) => {
                 entry_external_content_location = Some(
@@ -417,6 +448,23 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                     capture_has_nested_markup = false
                     capture_unsupported_type = false
                     capture_text_kind = kind
+                    entry_content_xhtml = None
+                    xhtml_capture = if kind == Xhtml {
+                      let references = xhtml_copy_references(
+                        entry_base_references,
+                      )
+                      match xml_base_attribute(element) {
+                        Some(value) => references.push(value)
+                        None => ()
+                      }
+                      let language = match xml_language_attribute(element) {
+                        Some(value) => non_blank_text(value)
+                        None => entry_language
+                      }
+                      Some(AtomXhtmlCapture::new(language, references))
+                    } else {
+                      None
+                    }
                     capture_line = event.span.start.line
                     capture_column = event.span.start.column
                   }
@@ -444,7 +492,38 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             capture_depth = depth + 1
             captured_text = ""
             capture_has_nested_markup = false
-            capture_text_kind = atom_text_kind(element).unwrap_or(Text)
+            capture_text_kind = if element.name.local_name
+              is ("title" | "subtitle") {
+              atom_text_kind(element).unwrap_or(Text)
+            } else {
+              Text
+            }
+            match element.name.local_name {
+              "title" => {
+                feed_title = None
+                feed_title_xhtml = None
+              }
+              "subtitle" => {
+                feed_subtitle = None
+                feed_subtitle_xhtml = None
+              }
+              _ => ()
+            }
+            xhtml_capture = if capture_text_kind == Xhtml &&
+              element.name.local_name is ("title" | "subtitle") {
+              let references = xhtml_copy_references(feed_base_references)
+              match xml_base_attribute(element) {
+                Some(value) => references.push(value)
+                None => ()
+              }
+              let language = match xml_language_attribute(element) {
+                Some(value) => non_blank_text(value)
+                None => feed_language
+              }
+              Some(AtomXhtmlCapture::new(language, references))
+            } else {
+              None
+            }
             capture_unsupported_type = element.name.local_name
               is ("title" | "subtitle") &&
               atom_text_kind(element) is None
@@ -482,7 +561,38 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             capture_depth = depth + 1
             captured_text = ""
             capture_has_nested_markup = false
-            capture_text_kind = atom_text_kind(element).unwrap_or(Text)
+            capture_text_kind = if element.name.local_name
+              is ("title" | "summary") {
+              atom_text_kind(element).unwrap_or(Text)
+            } else {
+              Text
+            }
+            match element.name.local_name {
+              "title" => {
+                entry_title = None
+                entry_title_xhtml = None
+              }
+              "summary" => {
+                entry_summary = None
+                entry_summary_xhtml = None
+              }
+              _ => ()
+            }
+            xhtml_capture = if capture_text_kind == Xhtml &&
+              element.name.local_name is ("title" | "summary") {
+              let references = xhtml_copy_references(entry_base_references)
+              match xml_base_attribute(element) {
+                Some(value) => references.push(value)
+                None => ()
+              }
+              let language = match xml_language_attribute(element) {
+                Some(value) => non_blank_text(value)
+                None => entry_language
+              }
+              Some(AtomXhtmlCapture::new(language, references))
+            } else {
+              None
+            }
             capture_unsupported_type = element.name.local_name
               is ("title" | "summary") &&
               atom_text_kind(element) is None
@@ -510,7 +620,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
         }
         @xml.Empty(element) =>
           if capture_field is Some(_) && depth >= capture_depth {
-            capture_has_nested_markup = true
+            match xhtml_capture {
+              Some(state) => state.node(element, depth == capture_depth, true)
+              None => capture_has_nested_markup = true
+            }
           } else if !root_seen {
             root_seen = true
             if !is_atom_name(element.name, "feed") {
@@ -605,6 +718,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             depth == entry_depth &&
             is_atom_name(element.name, "content") {
             entry_content_present = true
+            entry_content = None
+            entry_content_kind = Text
+            entry_content_xhtml = None
             match atom_attribute_value(element, "src") {
               Some(_) => {
                 entry_external_content_location = Some(
@@ -618,6 +734,12 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               }
               None =>
                 match atom_text_kind(element) {
+                  Some(Xhtml) =>
+                    diagnostics.push({
+                      kind: UnsupportedAtomContent("invalid Atom XHTML div"),
+                      line: event.span.start.line,
+                      column: event.span.start.column,
+                    })
                   Some(kind) => {
                     entry_content = Some("")
                     entry_content_kind = kind
@@ -650,17 +772,29 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 column: event.span.start.column,
               })
             }
+            if element.name.local_name is ("title" | "subtitle") &&
+              atom_text_kind(element) == Some(Xhtml) {
+              diagnostics.push({
+                kind: UnsupportedTextConstruct(
+                  "invalid atom XHTML " + element.name.local_name,
+                ),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
             let kind = atom_text_kind(element).unwrap_or(Text)
             match element.name.local_name {
               "id" => feed_id = None
               "title" => {
                 feed_title = None
                 feed_title_kind = kind
+                feed_title_xhtml = None
               }
               "updated" => feed_updated = None
               _ => {
                 feed_subtitle = None
                 feed_subtitle_kind = kind
+                feed_subtitle_xhtml = None
               }
             }
             match element.name.local_name {
@@ -697,18 +831,30 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 column: event.span.start.column,
               })
             }
+            if element.name.local_name is ("title" | "summary") &&
+              atom_text_kind(element) == Some(Xhtml) {
+              diagnostics.push({
+                kind: UnsupportedTextConstruct(
+                  "invalid atom XHTML " + element.name.local_name,
+                ),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
             let kind = atom_text_kind(element).unwrap_or(Text)
             match element.name.local_name {
               "id" => entry_id = None
               "title" => {
                 entry_title = None
                 entry_title_kind = kind
+                entry_title_xhtml = None
               }
               "published" => entry_published = None
               "updated" => entry_updated = None
               _ => {
                 entry_summary = None
                 entry_summary_kind = kind
+                entry_summary_xhtml = None
               }
             }
             match element.name.local_name {
@@ -732,10 +878,29 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             author_child_text = author_child_text + text
           }
           if capture_field is Some(_) {
-            captured_text = captured_text + text
+            match xhtml_capture {
+              Some(state) => state.text(text, depth > capture_depth)
+              None => captured_text = captured_text + text
+            }
           }
         }
+        @xml.Comment(value) =>
+          match xhtml_capture {
+            Some(state) => state.comment(value)
+            None => ()
+          }
+        @xml.PI(target~, data~) =>
+          match xhtml_capture {
+            Some(state) => state.processing_instruction(target, data)
+            None => ()
+          }
         @xml.End(name) => {
+          if capture_field is Some(_) && depth > capture_depth {
+            match xhtml_capture {
+              Some(state) => state.end(name, depth == capture_depth + 1)
+              None => ()
+            }
+          }
           if author_child is Some(field) &&
             author_child_depth == depth &&
             is_atom_name(name, field) {
@@ -783,7 +948,25 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           if capture_field is Some(field) &&
             capture_depth == depth &&
             is_atom_name(name, field) {
-            if capture_unsupported_type || capture_has_nested_markup {
+            let xhtml_fragment = match xhtml_capture {
+              Some(state) => state.fragment()
+              None => None
+            }
+            if capture_text_kind == Xhtml && xhtml_fragment is None {
+              if field == "content" {
+                diagnostics.push({
+                  kind: UnsupportedAtomContent("invalid Atom XHTML div"),
+                  line: capture_line,
+                  column: capture_column,
+                })
+              } else {
+                diagnostics.push({
+                  kind: UnsupportedTextConstruct("invalid atom XHTML " + field),
+                  line: capture_line,
+                  column: capture_column,
+                })
+              }
+            } else if capture_unsupported_type || capture_has_nested_markup {
               if field == "content" && capture_has_nested_markup {
                 diagnostics.push({
                   kind: UnsupportedAtomContent(
@@ -798,6 +981,40 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                   line: capture_line,
                   column: capture_column,
                 })
+              }
+            } else if capture_text_kind == Xhtml {
+              match xhtml_capture {
+                Some(state) => {
+                  let plain = state.plain_text
+                  if capture_in_entry {
+                    match field {
+                      "title" => {
+                        entry_title = non_blank_text(plain)
+                        entry_title_kind = Xhtml
+                        entry_title_xhtml = xhtml_fragment
+                      }
+                      "summary" => {
+                        entry_summary = non_blank_text(plain)
+                        entry_summary_kind = Xhtml
+                        entry_summary_xhtml = xhtml_fragment
+                      }
+                      _ => {
+                        entry_content = Some(plain)
+                        entry_content_kind = Xhtml
+                        entry_content_xhtml = xhtml_fragment
+                      }
+                    }
+                  } else if field == "title" {
+                    feed_title = non_blank_text(plain)
+                    feed_title_kind = Xhtml
+                    feed_title_xhtml = xhtml_fragment
+                  } else {
+                    feed_subtitle = non_blank_text(plain)
+                    feed_subtitle_kind = Xhtml
+                    feed_subtitle_xhtml = xhtml_fragment
+                  }
+                }
+                None => ()
               }
             } else if capture_in_entry {
               match field {
@@ -836,6 +1053,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             capture_has_nested_markup = false
             capture_unsupported_type = false
             capture_text_kind = Text
+            xhtml_capture = None
           }
           if entry_open && depth == entry_depth && is_atom_name(name, "entry") {
             let index = entries.length()
@@ -868,13 +1086,16 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               identifier: entry_id,
               title: entry_title,
               title_kind: entry_title_kind,
+              title_xhtml: entry_title_xhtml,
               link: entry_link,
               external_url: None,
               language: entry_language,
               description: entry_summary,
               description_kind: entry_summary_kind,
+              description_xhtml: entry_summary_xhtml,
               content: entry_content,
               content_kind: entry_content_kind,
+              content_xhtml: entry_content_xhtml,
               authors,
               categories: entry_categories,
               attachments: entry_attachments,
@@ -920,10 +1141,12 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             identifier: feed_id,
             title: feed_title,
             title_kind: feed_title_kind,
+            title_xhtml: feed_title_xhtml,
             link: feed_link,
             language: feed_language,
             description: feed_subtitle,
             description_kind: feed_subtitle_kind,
+            description_xhtml: feed_subtitle_xhtml,
             updated_at: feed_updated,
             authors: feed_authors,
             categories: feed_categories,

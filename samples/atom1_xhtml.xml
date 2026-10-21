@@ -1,0 +1,12 @@
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <id>urn:example:feed</id>
+  <title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Plan <em>A</em> &amp; B</div></title>
+  <updated>2026-10-21T00:00:00Z</updated>
+  <author><name>Example</name></author>
+  <entry>
+    <id>urn:example:entry:1</id>
+    <title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Race <strong>review</strong></div></title>
+    <updated>2026-10-21T00:00:00Z</updated>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml"><p>Lap <strong>12</strong> &amp; rain.</p></div></content>
+  </entry>
+</feed>

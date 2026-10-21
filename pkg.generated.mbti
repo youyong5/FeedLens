@@ -114,13 +114,16 @@ pub struct Entry {
   identifier : String?
   title : String?
   title_kind : TextKind
+  title_xhtml : XhtmlFragment?
   link : String?
   external_url : String?
   language : String?
   description : String?
   description_kind : TextKind
+  description_xhtml : XhtmlFragment?
   content : String?
   content_kind : TextKind
+  content_xhtml : XhtmlFragment?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
@@ -154,10 +157,12 @@ pub struct Feed {
   identifier : String?
   title : String?
   title_kind : TextKind
+  title_xhtml : XhtmlFragment?
   link : String?
   language : String?
   description : String?
   description_kind : TextKind
+  description_xhtml : XhtmlFragment?
   updated_at : String?
   authors : Array[Author]
   categories : Array[Category]
@@ -233,10 +238,20 @@ pub enum TextKind {
   Unspecified
   Text
   Html
+  Xhtml
 } derive(Eq, @debug.Debug)
 pub fn TextKind::equal(Self, Self) -> Bool
 pub fn TextKind::not_equal(Self, Self) -> Bool
 pub fn TextKind::to_repr(Self) -> @debug.Repr
+
+pub struct XhtmlFragment {
+  markup : String
+  language : String?
+  base_references : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn XhtmlFragment::equal(Self, Self) -> Bool
+pub fn XhtmlFragment::not_equal(Self, Self) -> Bool
+pub fn XhtmlFragment::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

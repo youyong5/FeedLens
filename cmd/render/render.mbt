@@ -115,6 +115,11 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
   output.write_string(format_name(feed.format))
   output.write_string("\nTitle: ")
   output.write_string(option_or_none(feed.title))
+  if feed.title_kind is Xhtml {
+    output.write_string(
+      "\nTitle kind: XHTML (unsanitized; see --json title_xhtml)",
+    )
+  }
   output.write_string("\nLink: ")
   output.write_string(option_or_none(feed.link))
   output.write_string("\nLanguage: ")
@@ -137,8 +142,16 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
     output.write_string(option_or_none(entry.identifier))
     output.write_string("\n   title: ")
     output.write_string(option_or_none(entry.title))
+    if entry.title_kind is Xhtml {
+      output.write_string("\n   title kind: XHTML (unsanitized)")
+    }
     output.write_string("\n   link: ")
     output.write_string(option_or_none(entry.link))
+    if entry.content_kind is Xhtml && entry.content_xhtml is Some(_) {
+      output.write_string(
+        "\n   content kind: XHTML (unsanitized; see --json content_xhtml)",
+      )
+    }
     if entry.external_url is Some(url) {
       output.write_string("\n   external URL: ")
       output.write_string(url)
@@ -211,8 +224,24 @@ fn text_kind_json(kind : @feedlens.TextKind) -> Json {
       Unspecified => "unspecified"
       Text => "text"
       Html => "html"
+      Xhtml => "xhtml"
     },
   )
+}
+
+///|
+fn xhtml_fragment_json(fragment : @feedlens.XhtmlFragment?) -> Json {
+  match fragment {
+    None => Json::null()
+    Some(value) =>
+      Json::object({
+        "markup": Json::string(value.markup),
+        "language": optional_string_json(value.language),
+        "base_references": Json::array(
+          value.base_references.map(fn(reference) { Json::string(reference) }),
+        ),
+      })
+  }
 }
 
 ///|
@@ -376,13 +405,16 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "identifier": optional_string_json(entry.identifier),
     "title": optional_string_json(entry.title),
     "title_kind": text_kind_json(entry.title_kind),
+    "title_xhtml": xhtml_fragment_json(entry.title_xhtml),
     "link": optional_string_json(entry.link),
     "external_url": optional_string_json(entry.external_url),
     "language": optional_string_json(entry.language),
     "description": optional_string_json(entry.description),
     "description_kind": text_kind_json(entry.description_kind),
+    "description_xhtml": xhtml_fragment_json(entry.description_xhtml),
     "content": optional_string_json(entry.content),
     "content_kind": text_kind_json(entry.content_kind),
+    "content_xhtml": xhtml_fragment_json(entry.content_xhtml),
     "authors": Json::array(entry.authors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
     "attachments": Json::array(entry.attachments.map(attachment_json)),
@@ -400,10 +432,12 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
       "identifier": optional_string_json(feed.identifier),
       "title": optional_string_json(feed.title),
       "title_kind": text_kind_json(feed.title_kind),
+      "title_xhtml": xhtml_fragment_json(feed.title_xhtml),
       "link": optional_string_json(feed.link),
       "language": optional_string_json(feed.language),
       "description": optional_string_json(feed.description),
       "description_kind": text_kind_json(feed.description_kind),
+      "description_xhtml": xhtml_fragment_json(feed.description_xhtml),
       "updated_at": optional_string_json(feed.updated_at),
       "authors": Json::array(feed.authors.map(author_json)),
       "categories": Json::array(feed.categories.map(category_json)),
