@@ -1,4 +1,5 @@
 import {
   "youyong5/feedlens",
   "moonbitlang/core/json",
+  "moonbitlang/core/encoding/base64",
 }

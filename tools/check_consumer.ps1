@@ -14,7 +14,9 @@ foreach ($expected in @(
   "featured=https://example.test/images/preview.png",
   "published=2026-10-19T08:30:00Z",
   "xhtml_title=Plan A",
-  "xhtml_markup=Plan <h:em"
+  "xhtml_markup=Plan <h:em",
+  "atom_binary_type=application/octet-stream",
+  "atom_binary_bytes=3"
 )) {
   if (-not $text.Contains($expected)) {
     throw "Library consumer output missing: $expected"

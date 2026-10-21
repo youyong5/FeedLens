@@ -15,6 +15,28 @@ pub fn parse_with_source(String, String) -> Result[Feed, ParseError]
 // Errors
 
 // Types and methods
+pub enum AtomBody {
+  InlineText(String, String)
+  InlineHtml(String)
+  InlineXhtml(XhtmlFragment)
+  InlineXml(XmlFragment, String)
+  InlineBinary(Bytes, String)
+  External(AtomExternalContent)
+} derive(Eq, @debug.Debug)
+pub fn AtomBody::equal(Self, Self) -> Bool
+pub fn AtomBody::not_equal(Self, Self) -> Bool
+pub fn AtomBody::to_repr(Self) -> @debug.Repr
+
+pub struct AtomExternalContent {
+  src : String
+  url : String
+  media_type : String?
+  base_uri : String?
+} derive(Eq, @debug.Debug)
+pub fn AtomExternalContent::equal(Self, Self) -> Bool
+pub fn AtomExternalContent::not_equal(Self, Self) -> Bool
+pub fn AtomExternalContent::to_repr(Self) -> @debug.Repr
+
 pub struct Attachment {
   source : FeedFormat
   url : String
@@ -97,6 +119,7 @@ pub enum DiagnosticKind {
   UnsupportedAtomContent(String)
   MissingAlternateLink(Int)
   MissingSummaryForExternalContent(Int)
+  MissingSummaryForBinaryContent(Int)
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
@@ -126,6 +149,7 @@ pub struct Entry {
   content_xhtml : XhtmlFragment?
   content_source : String?
   content_media_type : String?
+  atom_body : AtomBody?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
@@ -254,6 +278,15 @@ pub struct XhtmlFragment {
 pub fn XhtmlFragment::equal(Self, Self) -> Bool
 pub fn XhtmlFragment::not_equal(Self, Self) -> Bool
 pub fn XhtmlFragment::to_repr(Self) -> @debug.Repr
+
+pub struct XmlFragment {
+  markup : String
+  language : String?
+  base_references : Array[String]
+} derive(Eq, @debug.Debug)
+pub fn XmlFragment::equal(Self, Self) -> Bool
+pub fn XmlFragment::not_equal(Self, Self) -> Bool
+pub fn XmlFragment::to_repr(Self) -> @debug.Repr
 
 // Type aliases
 

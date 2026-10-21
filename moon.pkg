@@ -1,6 +1,7 @@
 import {
   "Milky2018/xml",
   "moonbitlang/core/debug",
+  "moonbitlang/core/encoding/base64",
   "moonbitlang/core/json",
   "moonbitlang/x/time",
 }

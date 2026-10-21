@@ -75,13 +75,18 @@ jobs:
           python3 -c "import json; x=json.load(open('atom-xhtml.json', encoding='utf-8')); e=x['entries'][0]; assert x['title'] == 'Plan A & B' and x['title_kind'] == 'xhtml' and '<h:em' in x['title_xhtml']['markup']; assert e['title'] == 'Race review' and e['content_kind'] == 'xhtml' and '<h:strong' in e['content_xhtml']['markup']"
       - name: Inspect Atom external and text MIME content
         run: |
-          moon run --target native cmd/main --json samples/atom1_content_sources.xml > atom-content.json
-          python3 -c "import json; x=json.load(open('atom-content.json', encoding='utf-8')); a,b=x['entries']; assert a['content'] is None and a['content_source'] == 'issue.pdf' and a['content_media_type'] == 'application/pdf'; assert b['content'] == 'Heading & details' and b['content_media_type'] == 'text/markdown'; assert x['diagnostics'] == []"
+          moon run --target native cmd/main --json samples/atom1_content_sources.xml > atom-content-sources.json
+          python3 -c "import json; x=json.load(open('atom-content-sources.json', encoding='utf-8')); a,b=x['entries']; assert a['content'] is None and a['content_source'] == 'issue.pdf' and a['content_media_type'] == 'application/pdf'; assert b['content'] == 'Heading & details' and b['content_media_type'] == 'text/markdown'; assert x['diagnostics'] == []"
+      - name: Inspect Atom content variants
+        run: |
+          moon run --target native cmd/main --json samples/atom1_content_forms.xml > atom-content.json
+          python3 -c "import json; x=json.load(open('atom-content.json', encoding='utf-8')); e=x['entries']; assert [v['atom_body']['kind'] for v in e] == ['external','inline_text','inline_xml','inline_binary']; assert e[0]['atom_body']['src'] == 'entry.xml'; assert e[1]['atom_body']['media_type'] == 'TEXT/MARKDOWN'; assert '<n0:root' in e[2]['atom_body']['markup']; assert e[3]['atom_body']['base64'] == 'AQID/w==' and e[3]['atom_body']['byte_length'] == 4"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
           grep -q 'published=2026-10-19T08:30:00Z' consumer.txt
           grep -q 'featured=https://example.test/images/preview.png' consumer.txt
           grep -q 'xhtml_title=Plan A' consumer.txt
+          grep -q 'atom_binary_bytes=3' consumer.txt
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help

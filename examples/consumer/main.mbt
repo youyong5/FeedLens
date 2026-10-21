@@ -37,4 +37,17 @@ fn main {
       }
     Err(_) => println("Atom XHTML parse failed")
   }
+  let atom_body =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQID</content></entry></feed>
+  match @feedlens.parse(atom_body) {
+    Ok(feed) =>
+      match feed.entries[0].atom_body {
+        Some(@feedlens.InlineBinary(bytes, media_type)) => {
+          println("atom_binary_type=" + media_type)
+          println("atom_binary_bytes=" + bytes.length().to_string())
+        }
+        _ => println("Atom binary body unavailable")
+      }
+    Err(_) => println("Atom binary parse failed")
+  }
 }

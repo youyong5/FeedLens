@@ -17,7 +17,9 @@ test "Atom content source uses the content element xml:base scope" {
     #|<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>A</name></author>
     #|<entry xml:base="posts/"><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>Abstract</summary><content xml:base="../media/" type="application/pdf" src="issue.pdf"/></entry></feed>
   guard @feedlens.parse_with_source(input, "https://origin.test/atom.xml")
-    is Ok(feed) else { fail("expected resolved Atom") }
+    is Ok(feed) else {
+    fail("expected resolved Atom")
+  }
   assert_eq(
     feed.entries[0].content_source,
     Some("https://example.test/feeds/media/issue.pdf"),
@@ -42,8 +44,14 @@ test "Atom text MIME content remains decoded text with its media type" {
   assert_eq(feed.entries[1].content_media_type, Some("text/plain"))
   assert_eq(feed.entries[2].content, None)
   assert_eq(feed.entries[2].content_media_type, Some("application/pdf"))
+  guard feed.entries[2].atom_body
+    is Some(@feedlens.InlineBinary(bytes, "application/pdf")) else {
+    fail("expected decoded PDF body")
+  }
+  assert_eq(bytes.length(), 1)
+  assert_eq(bytes[0].to_int(), 0)
+  assert_eq(feed.diagnostics.length(), 1)
   assert_true(
-    feed.diagnostics[0].kind
-    is @feedlens.UnsupportedAtomContent("Atom content with unsupported type"),
+    feed.diagnostics[0].kind is @feedlens.MissingSummaryForBinaryContent(2),
   )
 }

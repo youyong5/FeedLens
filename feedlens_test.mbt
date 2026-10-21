@@ -326,7 +326,7 @@ test "Atom inline content retains text, HTML, CDATA, and whitespace" {
 }
 
 ///|
-test "Atom XHTML content is captured while unsupported types and nested text are diagnosed" {
+test "Atom XHTML content is captured while invalid Base64 and nested text are diagnosed" {
   let result = @feedlens.parse(
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -342,13 +342,16 @@ test "Atom XHTML content is captured while unsupported types and nested text are
   assert_true(feed.entries[0].content_kind is @feedlens.Xhtml)
   assert_eq(feed.entries[1].content, None)
   assert_eq(feed.entries[2].content, None)
-  assert_eq(feed.diagnostics.length(), 2)
+  assert_eq(feed.diagnostics.length(), 3)
   assert_true(
     feed.diagnostics[0].kind
-    is @feedlens.UnsupportedAtomContent("Atom content with unsupported type"),
+    is @feedlens.UnsupportedAtomContent("invalid Atom Base64 content"),
   )
   assert_true(
-    feed.diagnostics[1].kind
+    feed.diagnostics[1].kind is @feedlens.MissingSummaryForBinaryContent(1),
+  )
+  assert_true(
+    feed.diagnostics[2].kind
     is @feedlens.UnsupportedAtomContent("Atom content with nested markup"),
   )
 }
@@ -387,7 +390,9 @@ test "Atom external content requires a summary" {
   assert_eq(feed.entries[0].content, None)
   assert_eq(feed.entries[0].content_source, Some("https://example.com/content"))
   assert_eq(feed.entries[0].content_media_type, None)
+  assert_true(feed.entries[0].content_kind is @feedlens.Text)
   assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (3, 85))
+  assert_true(feed.entries[0].atom_body is Some(@feedlens.External(_)))
 }
 
 ///|

@@ -38,3 +38,17 @@ test "a separate package can read Atom XHTML without importing XML internals" {
     "Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em>",
   )
 }
+
+///|
+test "a separate package can use detailed Atom body variants" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQID</content></entry></feed>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
+  guard feed.entries[0].atom_body
+    is Some(@feedlens.InlineBinary(bytes, media_type)) else {
+    fail("expected public binary variant")
+  }
+  assert_eq(media_type, "application/octet-stream")
+  assert_eq(bytes.length(), 3)
+  assert_eq(bytes[2].to_int(), 3)
+}

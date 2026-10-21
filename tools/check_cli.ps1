@@ -105,6 +105,19 @@ if ($xhtmlModel.title -ne "Plan A & B" -or $xhtmlModel.title_kind -ne "xhtml" -o
   throw "Atom XHTML CLI JSON lost text, kind, or namespaced markup"
 }
 
+$contentForms = Invoke-FeedLensCli @("--json", "samples/atom1_content_forms.xml")
+if ($contentForms.ExitCode -ne 0 -or $contentForms.StandardError) {
+  throw "Atom content forms CLI scenario failed"
+}
+$contentModel = $contentForms.StandardOutput | ConvertFrom-Json
+if ($contentModel.entries.Count -ne 4 -or $contentModel.entries[0].atom_body.kind -ne "external" -or $contentModel.entries[0].atom_body.src -ne "entry.xml" -or $contentModel.entries[0].atom_body.media_type -ne "application/xml" -or $contentModel.entries[1].atom_body.kind -ne "inline_text" -or $contentModel.entries[1].atom_body.media_type -ne "TEXT/MARKDOWN" -or $contentModel.entries[2].atom_body.kind -ne "inline_xml" -or -not $contentModel.entries[2].atom_body.markup.Contains("<n0:root") -or $contentModel.entries[3].atom_body.kind -ne "inline_binary" -or $contentModel.entries[3].atom_body.base64 -ne "AQID/w==" -or $contentModel.entries[3].atom_body.byte_length -ne 4) {
+  throw "Atom content forms CLI JSON lost a content variant"
+}
+$contentHuman = Invoke-FeedLensCli @("samples/atom1_content_forms.xml")
+if ($contentHuman.ExitCode -ne 0 -or $contentHuman.StandardError -or -not $contentHuman.StandardOutput.Contains("Atom content: external (not fetched); src: entry.xml") -or -not $contentHuman.StandardOutput.Contains("Atom content: binary; media type: IMAGE/PNG; bytes: 4")) {
+  throw "Atom content forms human summary lost external or binary metadata"
+}
+
 $help = Invoke-FeedLensCli @("--", "--help")
 if ($help.ExitCode -ne 0 -or -not $help.StandardOutput.Contains("Usage: feedlens") -or $help.StandardError) {
   throw "Help CLI scenario failed"
@@ -136,5 +149,7 @@ Write-Output "PASS real Atom projection JSON exit=$($realAtom.ExitCode), Convert
 Write-Output "PASS real JSON Feed projection JSON exit=$($realJson.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS display-metadata JSON exit=$($display.ExitCode), distinct roles and links verified"
 Write-Output "PASS Atom XHTML JSON exit=$($xhtml.ExitCode), ConvertFrom-Json accepted text and fragments"
+Write-Output "PASS Atom content forms JSON exit=$($contentForms.ExitCode), external/text/XML/Base64 variants verified"
+Write-Output "PASS Atom content forms human exit=$($contentHuman.ExitCode), external and binary summaries verified"
 Write-Output "PASS help exit=$($help.ExitCode)"
 Write-Output "PASS fatal parse/read/argument errors exit=$($parseError.ExitCode)/$($readError.ExitCode)/$($argumentError.ExitCode)"

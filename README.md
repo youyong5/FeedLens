@@ -11,7 +11,7 @@ results; the library never fetches a feed or an attachment.
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
 | RSS 2.0 | Channel/item metadata, language, channel image, Content Module body, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; unsupported extensions |
-| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML/XHTML and text/* MIME content, external content source/type, author inheritance, categories | External-content retrieval, binary/XML media decoding, XHTML rendering/sanitization, HTML-contained URLs |
+| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML/XHTML, XML-media and Base64 bodies, external-content references, author inheritance, categories | External-content retrieval, XHTML/XML rendering or sanitization, HTML-contained URLs, unmapped optional metadata |
 | JSON Feed 1.0/1.1 | Feed/items, icon/favicon, item external URL and featured/banner images, text/HTML body choice, authors, tags, attachments; language in 1.1 | Pagination, author avatars, extension mapping, unsupported URI fields |
 
 The normalized model keeps summary/description separate from article content,
@@ -24,7 +24,7 @@ attachments. JSON Feed `external_url` stays separate from the item permalink.
 Raw publication/update dates remain available; a separate, cross-target API
 validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
 `parse_with_source(input, source_url)` optionally resolves documented links,
-image URLs, attachment URLs, and Atom external content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
+image URLs, attachment URLs, and external Atom content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
@@ -70,10 +70,38 @@ Callers must use context-appropriate safe handling before displaying it.
 
 Atom external `content src` is available as `Entry.content_source`, with its
 declared `type` in `content_media_type`; `content` remains `None` because
-the library never fetches external resources. Inline `text/*` MIME content
-is decoded into `content` as text. See the
-[offline content sample](samples/atom1_content_sources.xml) and the
-[scope matrix](docs/STANDARD_SCOPE.md) for the exact boundary.
+the library never fetches external resources. These previously published
+convenience fields remain available; the detailed representation below is
+authoritative for content shape. The earlier
+[source/text sample](samples/atom1_content_sources.xml) remains in the
+regression suite.
+
+Atom entry bodies also expose `entry.atom_body`. `InlineText(value, media_type)`
+distinguishes MIME `text/*` (including `text/html`) from Atom's `InlineHtml`;
+`InlineXhtml` retains the existing fragment, `InlineXml` preserves a
+namespace-aware serialized XML fragment without div removal, `InlineBinary`
+contains decoded `Bytes`, and `External` exposes raw `src`, current `url`,
+declared `media_type`, and known absolute `base_uri`. `parse_with_source` resolves
+relative external URLs under scoped `xml:base`; neither parser fetches them.
+Legacy `entry.content` remains for supported inline text/HTML/XHTML display
+strings. XML, binary and external bodies are only in `atom_body`; no binary
+bytes are coerced into text. The [offline content sample](samples/atom1_content_forms.xml)
+covers all four new forms. The CLI's normalized JSON represents binary bytes
+as padded Base64 plus `byte_length`, not as a JSON Feed body.
+
+```moonbit nocheck
+match entry.atom_body {
+  Some(@feedlens.InlineBinary(bytes, media_type)) =>
+    println(media_type + ": " + bytes.length().to_string() + " bytes")
+  Some(@feedlens.External(reference)) =>
+    println("not fetched: " + reference.url)
+  _ => ()
+}
+```
+
+These fragments and references are untrusted input. FeedLens neither cleans
+XML/HTML nor checks remote content; callers must apply their own rendering,
+URI-access and download policy.
 
 ## Local-file CLI
 
@@ -87,6 +115,7 @@ moon run --target native cmd/main samples/real_wptavern_rss.xml
 moon run --target native cmd/main samples/real_wptavern_atom.xml
 moon run --target native cmd/main --json samples/real_wptavern_json.json
 moon run --target native cmd/main --json samples/atom1_xhtml.xml
+moon run --target native cmd/main --json samples/atom1_content_forms.xml
 moon run --target native cmd/main -- --help
 ```
 
@@ -103,6 +132,16 @@ and banner image are detailed in [the inventory](samples/DISPLAY_FIELD_INVENTORY
 `--json` writes FeedLens's normalized inspection JSON, not a converted JSON
 Feed document. Errors use stderr and a non-zero exit status; recoverable feed
 diagnostics still result in success.
+For `samples/atom1_content_forms.xml`, representative actual entry-body values
+in this output are:
+
+```json
+{"kind":"external","src":"entry.xml","url":"entry.xml","base_uri":"https://example.test/feeds/media/","media_type":"application/xml"}
+{"kind":"inline_binary","base64":"AQID/w==","byte_length":4,"media_type":"IMAGE/PNG"}
+```
+
+These are two separate `atom_body` objects from the normalized output, shown
+individually for readability; the complete CLI stdout is one JSON feed object.
 For the XHTML sample, this is an exact feed-title field excerpt from the
 CLI's normalized JSON (other fields omitted here):
 

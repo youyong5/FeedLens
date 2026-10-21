@@ -29,7 +29,10 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.updated_at` | none | feed `updated` | none |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
 | `Entry.description` | item `description` | entry `summary` | `summary` |
-| `Entry.content` | Content Module `content:encoded` | inline entry `content` | `content_html`, otherwise `content_text` |
+| `Entry.content` | Content Module `content:encoded` | inline text/HTML/XHTML display string; not XML/binary/external bodies | `content_html`, otherwise `content_text` |
+| `Entry.content_source` | none | external `content src`, raw with `parse`, resolved with `parse_with_source` | none |
+| `Entry.content_media_type` | none | declared `content type` spelling, if present | none |
+| `Entry.atom_body` | none | detailed inline or external Atom body | none |
 | `Entry.published_at` | item `pubDate` | entry `published` | `date_published` |
 | `Entry.updated_at` | none | entry `updated` | `date_modified` |
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
@@ -56,6 +59,28 @@ values retain decoded source text for XML and JSON source strings for JSON Feed;
 FeedLens neither renders nor sanitizes them. `content_kind` follows the same rules.
 `description` is never copied into `content`: it remains a summary/RSS description
 even when no body is available.
+
+`AtomBody` is the detailed, independent Atom body union: `InlineText(value,
+media_type)` (including case-insensitive MIME `text/*`), `InlineHtml(value)`
+(only Atom's literal `type="html"`), `InlineXhtml(fragment)`,
+`InlineXml(XmlFragment, media_type)`, `InlineBinary(Bytes, media_type)`, and
+`External(AtomExternalContent)`. `XmlFragment.markup` is deterministic,
+namespace-qualified XML serialization retaining child elements, attributes,
+mixed text, comments, processing instructions, and meaningful whitespace;
+unlike XHTML it does not strip a div. Its `language` and ordered raw
+`base_references` retain the content construct's inherited context. The
+external struct has raw `src`, current `url`, optional declared `media_type`,
+and `base_uri` only when an absolute effective base is known. `parse(input)`
+keeps the source spelling in `src` and `url`; `parse_with_source` resolves `url`
+against the supplied document URL and scoped `xml:base` while retaining `src`.
+The already-public `content_source`/`content_media_type` convenience fields
+remain for existing callers; `content_source` follows the current resolved URL
+and therefore does not itself retain raw `src` after `parse_with_source`.
+An absolute `xml:base` can provide a known `base_uri` even for `parse(input)`.
+No external content is retrieved. `Bytes` supplies exact decoded octets on
+all targets; the CLI emits padded Base64 and `byte_length`, never a lossy JSON
+string. XML and binary bodies leave legacy `Entry.content = None`; existing
+inline text/HTML/XHTML strings retain their previous meaning.
 
 Language tags are kept as declared, without BCP 47 canonicalization or a
 guessed default. `Entry.language` is the effective entry-level context: RSS
@@ -177,8 +202,9 @@ is a fatal `InvalidSourceUrl` error. No URI is fetched.
 
 Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
 including the RSS link-fallback identifier. Author URIs, RSS category domains,
-Atom category schemes and URLs inside HTML are not resolved in this stage.
-Atom content `src` is resolved using its own `xml:base` scope. Existing `parse` callers are unaffected; callers
+Atom category schemes and URLs inside HTML are
+not resolved in this stage. Atom content `src` uses its own `xml:base` scope.
+Existing `parse` callers are unaffected; callers
 that need the original references can continue using it.
 
 ## RSS 2.0
@@ -212,10 +238,11 @@ that need the original references can continue using it.
 - Reads direct feed/entry `author` person constructs and their direct `name`, `uri`, and `email` children. Effective entry authors use the first available layer: entry authors, then direct `entry/source` authors, then feed authors. Layers are never combined. An author lacking a non-blank direct `name` gets `InvalidAuthor` at its element; if no valid layer exists, the entry gets `MissingEntryField(_, "author")`. A feed may omit authors when every entry has a valid own/source author.
 - Reads direct feed and entry `category` elements. Atom `term` is required; optional `scheme` and `label` stay distinct from RSS `domain`. Missing/blank terms receive an `InvalidCategory` at the category element.
 - Reads only direct Atom entry `link` elements with `rel="enclosure"` as attachments. This does not change alternate-link selection. Missing `href` skips the attachment; invalid optional `length` is diagnosed and omitted from an otherwise valid attachment.
-- An entry without a `content` element must have an alternate link. The parser tracks that presence separately from successful body extraction, so an unsupported or external content element does not incorrectly trigger `MissingAlternateLink`.
+- An entry without a `content` element must have an alternate link. The parser tracks that presence separately from successful body extraction, so an invalid or external content element does not incorrectly trigger `MissingAlternateLink`.
 - Supports inline Atom `content` with omitted/`text`, `html`, and `xhtml` types as `Entry.content`. Text/HTML values retain XML-decoded source text and original whitespace. For XHTML, `content` is the concatenated display text while `content_xhtml.markup` retains the XML child structure and whitespace; `content_kind = Xhtml` prevents mistaking it for HTML or plain text.
-- External Atom content (`src`) is never fetched or exposed as a body. Its raw reference is available in `Entry.content_source`; `parse_with_source` resolves it against the content element's `xml:base` scope. The optional declared `type` is `Entry.content_media_type`. A missing `summary` still receives a diagnostic. Inline `text/*` MIME content is XML-decoded to `Entry.content` with `content_kind = Text` and its declared media type; nested XML remains diagnosed. Unsupported binary and XML MIME bodies remain unexposed with `UnsupportedAtomContent`.
-- Atom `title`, `subtitle`, `summary`, and inline `content` accept a single `div` in the exact XHTML namespace URI for `type="xhtml"`, regardless of prefix. The outer `div` is not part of `markup`; descendant elements/attributes/namespaces, mixed text, comments, processing instructions, and meaningful in-div whitespace are retained in deterministic XML serialization. `language` and `base_references` retain effective `xml:lang` and the inherited `xml:base` declaration chain even when declared on the removed div. Missing/wrong-namespace/multiple div roots or non-whitespace text outside div are diagnosed at the Atom field; no false complete value is exposed. Unhandled binary/XML media bodies and nested XML inside plain text constructs remain diagnosed. The serialization preserves XML content semantics, not original byte spelling of entities, prefixes, quote style, or attribute order independent of the parser. It is **not sanitized**; callers must apply safe rendering, escaping, and URI policy themselves. Neither entry point rewrites links inside XHTML markup.
+- External Atom content (`src`) is exposed through the existing `content_source`/`content_media_type` convenience fields and as an `External` reference with raw and optionally resolved URL, optional MIME type, and known effective absolute base. It is not fetched. Nonempty content or invalid `src`/media type receives a positioned diagnostic; a missing summary receives `MissingSummaryForExternalContent`.
+- Other case-insensitive `text/*` MIME types retain decoded text and their exact declared media-type spelling as `InlineText`; MIME `text/html` is not mislabeled as Atom's special `type="html"`. XML media types ending `/xml` or `+xml` expose `InlineXml` without stripping a wrapper. Other non-composite MIME types are Base64-decoded to `InlineBinary(Bytes, media_type)`; bad encoding produces `UnsupportedAtomContent("invalid Atom Base64 content")`, not a text body. Binary content lacking `summary` gets `MissingSummaryForBinaryContent`. MIME token/major-type checks are applied, but parameters are not fully validated against the MIME grammar.
+- Atom `title`, `subtitle`, `summary`, and inline `content` accept a single `div` in the exact XHTML namespace URI for `type="xhtml"`, regardless of prefix. The outer `div` is not part of `markup`; descendant elements/attributes/namespaces, mixed text, comments, processing instructions, and meaningful in-div whitespace are retained in deterministic XML serialization. `language` and `base_references` retain effective `xml:lang` and the inherited `xml:base` declaration chain even when declared on the removed div. Missing/wrong-namespace/multiple div roots or non-whitespace text outside div are diagnosed at the Atom field; no false complete value is exposed. Nested XML inside `text`/`html` constructs remains diagnosed. The serialization preserves XML content semantics, not original byte spelling of entities, prefixes, quote style, or attribute order independent of the parser. It is **not sanitized**; callers must apply safe rendering, escaping, and URI policy themselves. Neither entry point rewrites links inside XHTML markup.
 
 For the fixed [Atom XHTML acceptance sample](samples/atom1_xhtml.xml), actual
 public values include:
@@ -228,6 +255,7 @@ entry.title = Some("Race review")
 entry.content = Some("Lap 12 & rain.")
 entry.content_kind = Xhtml
 entry.content_xhtml.markup = "<h:p xmlns:h=\"http://www.w3.org/1999/xhtml\">Lap <h:strong xmlns:h=\"http://www.w3.org/1999/xhtml\">12</h:strong> &amp; rain.</h:p>"
+entry.atom_body = Some(InlineXhtml(...))
 ```
 
 `XhtmlFragment.base_references` retains raw scoped declarations rather than
@@ -235,6 +263,20 @@ guessing an absolute base from a local filename. Even with `parse_with_source`,
 callers must combine that chain with the known source URL and nested child
 `xml:base` before interpreting relative links in the fragment. The removed
 outer div's non-inherited style/class attributes are not projected.
+
+For the fixed [four-form Atom body sample](samples/atom1_content_forms.xml),
+the public union has `External(src="entry.xml", url="entry.xml",
+media_type=Some("application/xml"), base_uri=Some("https://example.test/feeds/media/"))`,
+`InlineText("**Text & more**", "TEXT/MARKDOWN")`, an `InlineXml`
+fragment containing `<n0:root ... n0:key="A&amp;B">one<n0:child .../>two</n0:root>`,
+and `InlineBinary` with bytes `[1, 2, 3, 255]` and media type `IMAGE/PNG`.
+The CLI exposes these respectively as `kind = external`, `inline_text`,
+`inline_xml`, and `inline_binary`; the last has `base64 = "AQID/w=="` and
+`byte_length = 4`. The CLI uses `parse`, so the external `url` is raw here;
+the known absolute `xml:base` supplies `base_uri`. `parse_with_source` resolves
+relative `src` from the caller's real document URL. All fragments and decoded
+bytes are untrusted; FeedLens performs no sanitization, XML-media validation,
+network access, or HTML rendering.
 
 ## JSON Feed 1.0 and 1.1
 
@@ -255,13 +297,23 @@ outer div's non-inherited style/class attributes are not projected.
 
 - Attachment/image retrieval or verification; JSON Feed pagination following, author avatars, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
-- Atom external-content retrieval, other media-type decoding, full XHTML rendering/sanitization, and resolution inside HTML/XHTML or unsupported constructs.
+- Atom external-content retrieval, comprehensive MIME-parameter validation, full XHTML/XML rendering or sanitization, and resolution inside HTML/XHTML or unsupported constructs. Atom's optional `rights`, `generator`, `contributor`, arbitrary link relations, and complete duplicate-field constraints remain outside the mapped subset.
 
 ## Example
 
 ```moonbit nocheck
 match @feedlens.parse(input) {
-  Ok(feed) => println(feed.entries[0].identifier.unwrap_or("(no identifier)"))
+  Ok(feed) => {
+    let entry = feed.entries[0]
+    println(entry.identifier.unwrap_or("(no identifier)"))
+    match entry.atom_body {
+      Some(@feedlens.InlineBinary(bytes, media_type)) =>
+        println(media_type + ": " + bytes.length().to_string() + " bytes")
+      Some(@feedlens.External(reference)) =>
+        println("external, not fetched: " + reference.url)
+      _ => ()
+    }
+  }
   Err(_) => println("feed parsing failed")
 }
 ```
@@ -280,6 +332,7 @@ moon run --target native cmd/main samples/real_wptavern_rss.xml
 moon run --target native cmd/main samples/real_wptavern_atom.xml
 moon run --target native cmd/main --json samples/real_wptavern_json.json
 moon run --target native cmd/main --json samples/atom1_xhtml.xml
+moon run --target native cmd/main --json samples/atom1_content_forms.xml
 moon run --target native cmd/main -- --help
 ```
 
@@ -302,7 +355,8 @@ Entries: 2
 ```
 
 `--json` writes exactly one JSON value to stdout. It contains the normalized
-`Feed`/`Entry` fields, text kinds, XHTML fragment objects (or `null`), ordered
+`Feed`/`Entry` fields, text kinds, XHTML fragment objects and detailed Atom
+body variants (or `null`), ordered
 author/category/attachment arrays, and ordered
 diagnostics with positions. Missing values are JSON `null`. This is FeedLens's
 normalized inspection format, **not** a conversion to a JSON Feed document.

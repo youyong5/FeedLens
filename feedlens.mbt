@@ -20,6 +20,7 @@ pub enum DiagnosticKind {
   UnsupportedAtomContent(String)
   MissingAlternateLink(Int32)
   MissingSummaryForExternalContent(Int32)
+  MissingSummaryForBinaryContent(Int32)
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
@@ -58,6 +59,56 @@ pub struct XhtmlFragment {
   language : String?
   base_references : Array[String]
 } derive(Debug, Eq)
+
+///|
+/// An XML media-type Atom body, serialized with stable namespace-qualified
+/// names. Unlike XHTML, no wrapper element is removed. This is unsanitized.
+pub struct XmlFragment {
+  markup : String
+  language : String?
+  base_references : Array[String]
+} derive(Debug, Eq)
+
+///|
+/// An Atom out-of-line body reference. `src` is the original IRI reference;
+/// `url` is that reference after optional source resolution. `base_uri` is
+/// present only when an absolute effective base is known. No fetch occurs.
+pub struct AtomExternalContent {
+  src : String
+  url : String
+  media_type : String?
+  base_uri : String?
+} derive(Debug, Eq)
+
+///|
+/// Detailed Atom body representation. `Bytes` contains exact decoded octets
+/// on Wasm, JS, and Native. MIME spelling is kept.
+pub enum AtomBody {
+  InlineText(String, String)
+  InlineHtml(String)
+  InlineXhtml(XhtmlFragment)
+  InlineXml(XmlFragment, String)
+  InlineBinary(Bytes, String)
+  External(AtomExternalContent)
+} derive(Debug, Eq)
+
+///|
+pub extend XmlFragment with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend XmlFragment with Eq::{not_equal, equal}
+
+///|
+pub extend AtomExternalContent with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AtomExternalContent with Eq::{not_equal, equal}
+
+///|
+pub extend AtomBody with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AtomBody with Eq::{not_equal, equal}
 
 ///|
 /// The source syntax that defines an author's fields.
@@ -178,6 +229,8 @@ pub struct Entry {
   /// Atom content `type` as declared (including media types); `None` when
   /// omitted or for other feed formats.
   content_media_type : String?
+  /// Detailed Atom body; `None` for RSS/JSON Feed and failed Atom extraction.
+  atom_body : AtomBody?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
@@ -236,6 +289,7 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     content_xhtml: entry.content_xhtml,
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
+    atom_body: entry.atom_body,
     authors: entry.authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -762,8 +816,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content: None,
               content_kind: Unspecified,
               content_xhtml: None,
-      content_source: None,
-      content_media_type: None,
+              content_source: None,
+              content_media_type: None,
+              atom_body: None,
               authors: [],
               categories: [],
               attachments: [],
@@ -1012,8 +1067,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content: item_content,
               content_kind: Unspecified,
               content_xhtml: None,
-      content_source: None,
-      content_media_type: None,
+              content_source: None,
+              content_media_type: None,
+              atom_body: None,
               authors: item_authors,
               categories: item_categories,
               attachments: item_attachments,

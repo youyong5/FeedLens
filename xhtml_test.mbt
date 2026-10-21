@@ -49,6 +49,7 @@ test "Atom XHTML acceptance fixture has display text and deterministic markup" {
     content.markup,
     "<h:p xmlns:h=\"http://www.w3.org/1999/xhtml\">Lap <h:strong xmlns:h=\"http://www.w3.org/1999/xhtml\">12</h:strong> &amp; rain.</h:p>",
   )
+  assert_true(entry.atom_body is Some(@feedlens.InlineXhtml(_)))
   assert_eq(feed.diagnostics, [])
 }
 

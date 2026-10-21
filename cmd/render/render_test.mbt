@@ -93,6 +93,59 @@ test "render_json exposes unsanitized Atom XHTML text kind and fragments" {
 }
 
 ///|
+test "render_json exposes binary bytes as Base64 and external references without fetching" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="image/png">AQID/w==</content></entry><entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="/body" type="application/xml"/></entry></feed>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
+  let human = @render.render_human(feed)
+  assert_true(
+    human.contains("Atom content: binary; media type: image/png; bytes: 4"),
+  )
+  assert_true(
+    human.contains(
+      "Atom content: external (not fetched); src: /body; URL: /body",
+    ),
+  )
+  let json = @render.render_json(feed)
+  guard @json.parse(json) is { "entries": Array(entries), .. } else {
+    fail("expected JSON entries")
+  }
+  guard entries[0]
+    is {
+      "atom_body": {
+        "kind": String(binary_kind),
+        "base64": String(base64),
+        "byte_length": Number(size, ..),
+        ..
+      },
+      "content": Null,
+      ..
+    } else {
+    fail("expected binary JSON")
+  }
+  assert_eq(binary_kind, "inline_binary")
+  assert_eq(base64, "AQID/w==")
+  assert_eq(size, 4)
+  guard entries[1]
+    is {
+      "atom_body": {
+        "kind": String(external_kind),
+        "src": String(src),
+        "url": String(url),
+        "base_uri": Null,
+        ..
+      },
+      "content": Null,
+      ..
+    } else {
+    fail("expected external JSON")
+  }
+  assert_eq(external_kind, "external")
+  assert_eq(src, "/body")
+  assert_eq(url, "/body")
+}
+
+///|
 test "render_human lists entries and source locations" {
   guard @feedlens.parse(
       "<rss version=\"2.0\"><channel><title>Feed</title><link>https://example.test/</link><description>Description</description><item><guid>entry</guid><title>Entry</title><link>https://example.test/entry</link></item></channel></rss>",

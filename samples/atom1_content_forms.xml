@@ -1,0 +1,24 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:p="urn:example:payload" xml:base="https://example.test/feeds/">
+  <id>urn:example:content-forms</id>
+  <title>Atom content forms</title>
+  <updated>2026-10-21T00:00:00Z</updated>
+  <author><name>Example</name></author>
+  <entry>
+    <id>urn:example:external</id><title>External</title><updated>2026-10-21T00:00:00Z</updated>
+    <summary>Remote body preview</summary>
+    <content type="application/xml" xml:base="media/" src="entry.xml"/>
+  </entry>
+  <entry>
+    <id>urn:example:text-mime</id><title>Text MIME</title><updated>2026-10-21T00:00:00Z</updated>
+    <content type="TEXT/MARKDOWN">**Text &amp; more**</content>
+  </entry>
+  <entry>
+    <id>urn:example:xml</id><title>XML</title><updated>2026-10-21T00:00:00Z</updated>
+    <content type="Application/Thing+XML">before <p:root p:key="A&amp;B">one<p:child/>two</p:root> after</content>
+  </entry>
+  <entry>
+    <id>urn:example:binary</id><title>Binary</title><updated>2026-10-21T00:00:00Z</updated>
+    <summary>Four bytes</summary>
+    <content type="IMAGE/PNG">AQID/w==</content>
+  </entry>
+</feed>

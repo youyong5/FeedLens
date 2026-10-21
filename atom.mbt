@@ -37,18 +37,6 @@ fn atom_text_kind(element : @xml.NamespaceElement) -> TextKind? {
 }
 
 ///|
-fn atom_content_kind(element : @xml.NamespaceElement) -> TextKind? {
-  match atom_text_kind(element) {
-    Some(kind) => Some(kind)
-    None =>
-      match atom_attribute_value(element, "type") {
-        Some(value) if value.to_lower().has_prefix("text/") => Some(Text)
-        _ => None
-      }
-  }
-}
-
-///|
 fn atom_non_blank_attribute(
   element : @xml.NamespaceElement,
   expected : String,
@@ -105,6 +93,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     content_xhtml: entry.content_xhtml,
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
+    atom_body: entry.atom_body,
     authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -251,6 +240,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_title_xhtml : XhtmlFragment? = None
     let mut entry_summary_xhtml : XhtmlFragment? = None
     let mut entry_content_xhtml : XhtmlFragment? = None
+    let mut entry_atom_body : AtomBody? = None
+    let mut entry_binary_content_location : (Int32, Int32)? = None
     let mut entry_id_location : (Int32, Int32)? = None
     let mut entry_title_location : (Int32, Int32)? = None
     let mut entry_updated_location : (Int32, Int32)? = None
@@ -263,6 +254,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut capture_unsupported_type = false
     let mut capture_text_kind = Text
     let mut xhtml_capture : AtomXhtmlCapture? = None
+    let mut xml_capture : AtomXmlCapture? = None
+    let mut capture_content_mode = ""
+    let mut capture_media_type = ""
     let mut capture_line = 1
     let mut capture_column = 1
 
@@ -273,7 +267,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           if capture_field is Some(_) && depth >= capture_depth {
             match xhtml_capture {
               Some(state) => state.node(element, depth == capture_depth, false)
-              None => capture_has_nested_markup = true
+              None =>
+                match xml_capture {
+                  Some(state) => state.node(element, false)
+                  None => capture_has_nested_markup = true
+                }
             }
           }
           if !root_seen {
@@ -334,6 +332,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_title_xhtml = None
             entry_summary_xhtml = None
             entry_content_xhtml = None
+            entry_atom_body = None
+            entry_binary_content_location = None
             entry_id_location = None
             entry_title_location = None
             entry_updated_location = None
@@ -448,51 +448,119 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_content_media_type = atom_attribute_value(element, "type")
             entry_content_source = atom_attribute_value(element, "src")
             entry_external_content_location = None
+            entry_atom_body = None
             match entry_content_source {
               Some(_) => {
                 entry_external_content_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
-              }
-              None =>
-                match atom_content_kind(element) {
-                  Some(kind) => {
-                    capture_field = Some("content")
-                    capture_in_entry = true
-                    capture_depth = depth + 1
-                    captured_text = ""
-                    capture_has_nested_markup = false
-                    capture_unsupported_type = false
-                    capture_text_kind = kind
-                    entry_content_xhtml = None
-                    xhtml_capture = if kind == Xhtml {
-                      let references = xhtml_copy_references(
-                        entry_base_references,
-                      )
-                      match xml_base_attribute(element) {
-                        Some(value) => references.push(value)
-                        None => ()
-                      }
-                      let language = match xml_language_attribute(element) {
-                        Some(value) => non_blank_text(value)
-                        None => entry_language
-                      }
-                      Some(AtomXhtmlCapture::new(language, references))
-                    } else {
-                      None
-                    }
-                    capture_line = event.span.start.line
-                    capture_column = event.span.start.column
+                let mode = atom_content_mode(
+                  atom_attribute_value(element, "type"),
+                )
+                if mode == "invalid" ||
+                  mode == "html" ||
+                  mode == "xhtml" ||
+                  atom_attribute_value(element, "type") == Some("text") {
+                  diagnostics.push({
+                    kind: UnsupportedAtomContent(
+                      "invalid external Atom media type",
+                    ),
+                    line: event.span.start.line,
+                    column: event.span.start.column,
+                  })
+                } else {
+                  match atom_external_content(element, entry_base_references) {
+                    Some(reference) =>
+                      entry_atom_body = Some(External(reference))
+                    None =>
+                      diagnostics.push({
+                        kind: UnsupportedAtomContent("empty external Atom src"),
+                        line: event.span.start.line,
+                        column: event.span.start.column,
+                      })
                   }
-                  None =>
-                    diagnostics.push({
-                      kind: UnsupportedAtomContent(
-                        "Atom content with unsupported type",
-                      ),
-                      line: event.span.start.line,
-                      column: event.span.start.column,
-                    })
                 }
+                capture_field = Some("content")
+                capture_in_entry = true
+                capture_depth = depth + 1
+                captured_text = ""
+                capture_has_nested_markup = false
+                capture_unsupported_type = false
+                capture_content_mode = "external"
+                capture_line = event.span.start.line
+                capture_column = event.span.start.column
+              }
+              None => {
+                let mode = atom_content_mode(
+                  atom_attribute_value(element, "type"),
+                )
+                if mode == "invalid" {
+                  diagnostics.push({
+                    kind: UnsupportedAtomContent(
+                      "invalid Atom content media type",
+                    ),
+                    line: event.span.start.line,
+                    column: event.span.start.column,
+                  })
+                } else {
+                  let kind = match mode {
+                    "html" => Html
+                    "xhtml" => Xhtml
+                    _ => Text
+                  }
+                  capture_field = Some("content")
+                  capture_in_entry = true
+                  capture_depth = depth + 1
+                  captured_text = ""
+                  capture_has_nested_markup = false
+                  capture_unsupported_type = false
+                  capture_text_kind = kind
+                  capture_content_mode = mode
+                  capture_media_type = atom_content_media_type(
+                    atom_attribute_value(element, "type"),
+                  )
+                  if mode == "binary" {
+                    entry_binary_content_location = Some(
+                      (event.span.start.line, event.span.start.column),
+                    )
+                  }
+                  entry_content_xhtml = None
+                  xhtml_capture = if kind == Xhtml {
+                    let references = xhtml_copy_references(
+                      entry_base_references,
+                    )
+                    match xml_base_attribute(element) {
+                      Some(value) => references.push(value)
+                      None => ()
+                    }
+                    let language = match xml_language_attribute(element) {
+                      Some(value) => non_blank_text(value)
+                      None => entry_language
+                    }
+                    Some(AtomXhtmlCapture::new(language, references))
+                  } else {
+                    None
+                  }
+                  xml_capture = if mode == "xml" {
+                    let references = xhtml_copy_references(
+                      entry_base_references,
+                    )
+                    match xml_base_attribute(element) {
+                      Some(value) => references.push(value)
+                      None => ()
+                    }
+                    let language = match xml_language_attribute(element) {
+                      Some(value) => non_blank_text(value)
+                      None => entry_language
+                    }
+                    Some(AtomXmlCapture::new(language, references))
+                  } else {
+                    None
+                  }
+                  capture_line = event.span.start.line
+                  capture_column = event.span.start.column
+                }
+              }
             }
           } else if capture_field is None &&
             !entry_open &&
@@ -638,7 +706,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           if capture_field is Some(_) && depth >= capture_depth {
             match xhtml_capture {
               Some(state) => state.node(element, depth == capture_depth, true)
-              None => capture_has_nested_markup = true
+              None =>
+                match xml_capture {
+                  Some(state) => state.node(element, true)
+                  None => capture_has_nested_markup = true
+                }
             }
           } else if !root_seen {
             root_seen = true
@@ -740,33 +812,114 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_content_media_type = atom_attribute_value(element, "type")
             entry_content_source = atom_attribute_value(element, "src")
             entry_external_content_location = None
+            entry_atom_body = None
             match entry_content_source {
               Some(_) => {
                 entry_external_content_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
+                let mode = atom_content_mode(
+                  atom_attribute_value(element, "type"),
+                )
+                if mode == "invalid" ||
+                  mode == "html" ||
+                  mode == "xhtml" ||
+                  atom_attribute_value(element, "type") == Some("text") {
+                  diagnostics.push({
+                    kind: UnsupportedAtomContent(
+                      "invalid external Atom media type",
+                    ),
+                    line: event.span.start.line,
+                    column: event.span.start.column,
+                  })
+                } else {
+                  match atom_external_content(element, entry_base_references) {
+                    Some(reference) =>
+                      entry_atom_body = Some(External(reference))
+                    None =>
+                      diagnostics.push({
+                        kind: UnsupportedAtomContent("empty external Atom src"),
+                        line: event.span.start.line,
+                        column: event.span.start.column,
+                      })
+                  }
+                }
               }
-              None =>
-                match atom_content_kind(element) {
-                  Some(Xhtml) =>
+              None => {
+                let mode = atom_content_mode(
+                  atom_attribute_value(element, "type"),
+                )
+                match mode {
+                  "xhtml" =>
                     diagnostics.push({
                       kind: UnsupportedAtomContent("invalid Atom XHTML div"),
                       line: event.span.start.line,
                       column: event.span.start.column,
                     })
-                  Some(kind) => {
+                  "text" | "text-mime" | "html" => {
                     entry_content = Some("")
-                    entry_content_kind = kind
+                    entry_content_kind = if mode == "html" {
+                      Html
+                    } else {
+                      Text
+                    }
+                    entry_atom_body = if mode == "html" {
+                      Some(InlineHtml(""))
+                    } else {
+                      Some(
+                        InlineText(
+                          "",
+                          atom_content_media_type(
+                            atom_attribute_value(element, "type"),
+                          ),
+                        ),
+                      )
+                    }
                   }
-                  None =>
+                  "xml" => {
+                    let references = xhtml_copy_references(
+                      entry_base_references,
+                    )
+                    match xml_base_attribute(element) {
+                      Some(value) => references.push(value)
+                      None => ()
+                    }
+                    let language = match xml_language_attribute(element) {
+                      Some(value) => non_blank_text(value)
+                      None => entry_language
+                    }
+                    entry_atom_body = Some(
+                      InlineXml(
+                        { markup: "", language, base_references: references, },
+                        atom_content_media_type(
+                          atom_attribute_value(element, "type"),
+                        ),
+                      ),
+                    )
+                  }
+                  "binary" => {
+                    entry_binary_content_location = Some(
+                      (event.span.start.line, event.span.start.column),
+                    )
+                    entry_atom_body = Some(
+                      InlineBinary(
+                        b"",
+                        atom_content_media_type(
+                          atom_attribute_value(element, "type"),
+                        ),
+                      ),
+                    )
+                  }
+                  _ =>
                     diagnostics.push({
                       kind: UnsupportedAtomContent(
-                        "Atom content with unsupported type",
+                        "invalid Atom content media type",
                       ),
                       line: event.span.start.line,
                       column: event.span.start.column,
                     })
                 }
+              }
             }
           } else if !entry_open &&
             depth == 1 &&
@@ -894,25 +1047,45 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           if capture_field is Some(_) {
             match xhtml_capture {
               Some(state) => state.text(text, depth > capture_depth)
-              None => captured_text = captured_text + text
+              None => {
+                captured_text = captured_text + text
+                match xml_capture {
+                  Some(state) => state.text(text)
+                  None => ()
+                }
+              }
             }
           }
         }
-        @xml.Comment(value) =>
+        @xml.Comment(value) => {
           match xhtml_capture {
             Some(state) => state.comment(value)
             None => ()
           }
-        @xml.PI(target~, data~) =>
+          match xml_capture {
+            Some(state) => state.comment(value)
+            None => ()
+          }
+        }
+        @xml.PI(target~, data~) => {
           match xhtml_capture {
             Some(state) => state.processing_instruction(target, data)
             None => ()
           }
+          match xml_capture {
+            Some(state) => state.processing_instruction(target, data)
+            None => ()
+          }
+        }
         @xml.End(name) => {
           if capture_field is Some(_) && depth > capture_depth {
             match xhtml_capture {
               Some(state) => state.end(name, depth == capture_depth + 1)
-              None => ()
+              None =>
+                match xml_capture {
+                  Some(state) => state.end(name)
+                  None => ()
+                }
             }
           }
           if author_child is Some(field) &&
@@ -966,7 +1139,41 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               Some(state) => state.fragment()
               None => None
             }
-            if capture_text_kind == Xhtml && xhtml_fragment is None {
+            if field == "content" && capture_content_mode == "external" {
+              if capture_has_nested_markup || !captured_text.is_empty() {
+                entry_atom_body = None
+                diagnostics.push({
+                  kind: UnsupportedAtomContent(
+                    "external Atom content must be empty",
+                  ),
+                  line: capture_line,
+                  column: capture_column,
+                })
+              }
+            } else if field == "content" && capture_content_mode == "xml" {
+              match xml_capture {
+                Some(state) =>
+                  entry_atom_body = Some(
+                    InlineXml(state.fragment(), capture_media_type),
+                  )
+                None => ()
+              }
+            } else if field == "content" &&
+              capture_content_mode == "binary" &&
+              !capture_has_nested_markup {
+              match atom_decode_base64(captured_text) {
+                Some(bytes) =>
+                  entry_atom_body = Some(
+                    InlineBinary(bytes, capture_media_type),
+                  )
+                None =>
+                  diagnostics.push({
+                    kind: UnsupportedAtomContent("invalid Atom Base64 content"),
+                    line: capture_line,
+                    column: capture_column,
+                  })
+              }
+            } else if capture_text_kind == Xhtml && xhtml_fragment is None {
               if field == "content" {
                 diagnostics.push({
                   kind: UnsupportedAtomContent("invalid Atom XHTML div"),
@@ -1016,6 +1223,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                         entry_content = Some(plain)
                         entry_content_kind = Xhtml
                         entry_content_xhtml = xhtml_fragment
+                        match xhtml_fragment {
+                          Some(fragment) =>
+                            entry_atom_body = Some(InlineXhtml(fragment))
+                          None => ()
+                        }
                       }
                     }
                   } else if field == "title" {
@@ -1042,6 +1254,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 "content" => {
                   entry_content = Some(captured_text)
                   entry_content_kind = capture_text_kind
+                  entry_atom_body = if capture_content_mode == "html" {
+                    Some(InlineHtml(captured_text))
+                  } else {
+                    Some(InlineText(captured_text, capture_media_type))
+                  }
                 }
                 _ => {
                   entry_summary = non_blank_text(captured_text)
@@ -1068,6 +1285,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             capture_unsupported_type = false
             capture_text_kind = Text
             xhtml_capture = None
+            xml_capture = None
+            capture_content_mode = ""
+            capture_media_type = ""
           }
           if entry_open && depth == entry_depth && is_atom_name(name, "entry") {
             let index = entries.length()
@@ -1086,6 +1306,15 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               Some((content_line, content_column)) if entry_summary is None =>
                 diagnostics.push({
                   kind: MissingSummaryForExternalContent(index),
+                  line: content_line,
+                  column: content_column,
+                })
+              _ => ()
+            }
+            match entry_binary_content_location {
+              Some((content_line, content_column)) if entry_summary is None =>
+                diagnostics.push({
+                  kind: MissingSummaryForBinaryContent(index),
                   line: content_line,
                   column: content_column,
                 })
@@ -1112,6 +1341,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               content_xhtml: entry_content_xhtml,
               content_source: entry_content_source,
               content_media_type: entry_content_media_type,
+              atom_body: entry_atom_body,
               authors,
               categories: entry_categories,
               attachments: entry_attachments,

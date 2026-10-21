@@ -94,6 +94,8 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
       "missing alternate link: " + index.to_string()
     MissingSummaryForExternalContent(index) =>
       "missing summary for external content: " + index.to_string()
+    MissingSummaryForBinaryContent(index) =>
+      "missing summary for Base64 content: " + index.to_string()
     InvalidAuthor(author) => "invalid author: " + author
     InvalidCategory(category) => "invalid category: " + category
     InvalidAttachment(message) => "invalid attachment: " + message
@@ -157,6 +159,34 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
       output.write_string(url)
       output.write_string("; media type: ")
       output.write_string(option_or_none(entry.content_media_type))
+    }
+    match entry.atom_body {
+      Some(InlineText(_, media_type)) => {
+        output.write_string("\n   Atom content: inline text; media type: ")
+        output.write_string(media_type)
+      }
+      Some(InlineHtml(_)) =>
+        output.write_string("\n   Atom content: inline HTML (unsanitized)")
+      Some(InlineXhtml(_)) => ()
+      Some(InlineXml(_, media_type)) => {
+        output.write_string(
+          "\n   Atom content: inline XML (unsanitized); media type: ",
+        )
+        output.write_string(media_type)
+      }
+      Some(InlineBinary(bytes, media_type)) => {
+        output.write_string("\n   Atom content: binary; media type: ")
+        output.write_string(media_type)
+        output.write_string("; bytes: ")
+        output.write_string(bytes.length().to_string())
+      }
+      Some(External(reference)) => {
+        output.write_string("\n   Atom content: external (not fetched); src: ")
+        output.write_string(reference.src)
+        output.write_string("; URL: ")
+        output.write_string(reference.url)
+      }
+      None => ()
     }
     if entry.external_url is Some(url) {
       output.write_string("\n   external URL: ")
@@ -246,6 +276,56 @@ fn xhtml_fragment_json(fragment : @feedlens.XhtmlFragment?) -> Json {
         "base_references": Json::array(
           value.base_references.map(fn(reference) { Json::string(reference) }),
         ),
+      })
+  }
+}
+
+///|
+fn atom_body_json(body : @feedlens.AtomBody?) -> Json {
+  match body {
+    None => Json::null()
+    Some(InlineText(value, media_type)) =>
+      Json::object({
+        "kind": "inline_text",
+        "value": Json::string(value),
+        "media_type": Json::string(media_type),
+      })
+    Some(InlineHtml(value)) =>
+      Json::object({
+        "kind": "inline_html",
+        "value": Json::string(value),
+        "media_type": "text/html",
+      })
+    Some(InlineXhtml(fragment)) =>
+      Json::object({
+        "kind": "inline_xhtml",
+        "fragment": xhtml_fragment_json(Some(fragment)),
+        "media_type": "application/xhtml+xml",
+      })
+    Some(InlineXml(fragment, media_type)) =>
+      Json::object({
+        "kind": "inline_xml",
+        "markup": Json::string(fragment.markup),
+        "language": optional_string_json(fragment.language),
+        "base_references": Json::array(
+          fragment.base_references.map(fn(reference) { Json::string(reference) }),
+        ),
+        "media_type": Json::string(media_type),
+      })
+    Some(InlineBinary(bytes, media_type)) =>
+      Json::object({
+        "kind": "inline_binary",
+        "base64": Json::string(@base64.encode(bytes.exact_view())),
+        "byte_length": Json(bytes.length()),
+        "media_type": Json::string(media_type),
+      })
+    Some(External(reference)) =>
+      Json::object({
+        "kind": "external",
+        "src": Json::string(reference.src),
+        "url": Json::string(reference.url),
+        "base_uri": optional_string_json(reference.base_uri),
+        "media_type": optional_string_json(reference.media_type),
       })
   }
 }
@@ -379,6 +459,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "MissingAlternateLink", "index": index }
     MissingSummaryForExternalContent(index) =>
       { "type": "MissingSummaryForExternalContent", "index": index }
+    MissingSummaryForBinaryContent(index) =>
+      { "type": "MissingSummaryForBinaryContent", "index": index }
     InvalidAuthor(author) => { "type": "InvalidAuthor", "message": author }
     InvalidCategory(category) =>
       { "type": "InvalidCategory", "message": category }
@@ -423,6 +505,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "content_xhtml": xhtml_fragment_json(entry.content_xhtml),
     "content_source": optional_string_json(entry.content_source),
     "content_media_type": optional_string_json(entry.content_media_type),
+    "atom_body": atom_body_json(entry.atom_body),
     "authors": Json::array(entry.authors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
     "attachments": Json::array(entry.attachments.map(attachment_json)),
