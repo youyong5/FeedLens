@@ -558,6 +558,8 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       content,
       content_kind,
       content_xhtml: None,
+      content_source: None,
+      content_media_type: None,
       authors,
       categories: json_tags(item, diagnostics, index),
       attachments: json_attachments(item, diagnostics, index),
