@@ -1,13 +1,15 @@
 # Compatibility samples and reference comparison
 
-These files are deliberately small, synthetic, and network-free. They exercise
-only FeedLens's documented RSS 2.0 / Atom 1.0 / JSON Feed surface; they are not copies of
-third-party feeds.
+These files are deliberately small and network-free: most are synthetic; the
+`real_wptavern_*` files are reduced, source-traceable projections rather than
+entire third-party feeds. They exercise only FeedLens's documented
+RSS 2.0 / Atom 1.0 / JSON Feed surface.
 
 | Sample | Purpose |
 | --- | --- |
 | `rss2_compat.xml` | RSS core fields, entities/CDATA, Content Module body, raw item author, categories, field reordering, and a wrong content URI. |
 | `atom1_compat.xml` | Prefixed Atom namespace, alternate/self links, inline text/HTML body, direct/feed/source author layers, categories, and CDATA. |
+| `atom1_xhtml.xml` | Fixed RFC 4287 XHTML acceptance document: feed/entry emphasized titles and entry paragraph/strong body. Mirrored byte-for-byte in `xhtml_test.mbt`. |
 | `rss2_boundaries.xml` | Changed Content Module prefix, wrong-URI lookalikes, blank values, and nested body markup. |
 | `atom1_boundaries.xml` | Wrong-namespace lookalikes, blank category, and invalid author. |
 | `invalid_rss.xml` | A fatal malformed-XML case. |
@@ -32,6 +34,7 @@ MoonBit test invokes it. Re-run the comparison with:
 
 ```powershell
 uv run --with feedparser==6.0.11 python tools/check_compatibility.py
+uv run --with feedparser==6.0.11 python tools/check_xhtml_reference.py
 ```
 
 It reads only the two primary local XML files and compares the explicitly
@@ -52,6 +55,22 @@ PASS rss2_compat.xml
 PASS atom1_compat.xml
 ```
 
+On 2026-10-21, the separate XHTML comparison used the installed
+`feedparser 6.0.11` and the byte-identical `samples/atom1_xhtml.xml` /
+`xhtml_test.mbt` mirror. All eight declared intersections agreed: feed id,
+display-title text and XHTML media type; entry id, display-title text and
+XHTML media type; entry body display text and XHTML media type. The script
+also confirmed FeedLens returned namespaced child XML fragments. Exact
+serialization was intentionally **not** compared because feedparser returns
+sanitized HTML-like values (`Plan <em>A</em> &amp; B` and
+`<p>Lap <strong>12</strong> &amp; rain.</p>`), whereas FeedLens returns
+canonical namespace-qualified XML (`h:` prefix) without sanitization.
+In an independent unsafe-attribute probe, feedparser removed `onclick` from
+`<span onclick="alert(1)">`, while FeedLens's MoonBit regression confirms
+the original XML attribute remains. Rendering FeedLens fragments therefore
+requires an application-level sanitizer/URI policy; no safety equivalence is
+claimed.
+
 A repeat run on 2026-10-19 with the same feedparser 6.0.11 also passed all
 five checked-in/embedded mirrors (the two original XML cases and three real
 projections) and both declared XML intersection comparisons. The script
@@ -68,6 +87,9 @@ performs no network request during the comparison.
 - FeedLens retains source-specific author/category metadata and HTML/body text
   kinds; those fields are intentionally outside this small cross-library
   intersection.
+- XHTML text/kind agrees on the safe acceptance fixture, but the serialized
+  markup differs by design: FeedLens retains resolved namespace semantics and
+  unsafe attributes; feedparser's default sanitizer may alter or remove them.
 - `jsonfeed11_compat.json` is a parser regression sample only. The independent
   `feedparser` reference intentionally covers its XML formats, not JSON Feed.
 

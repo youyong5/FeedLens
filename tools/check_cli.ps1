@@ -96,6 +96,15 @@ if ($displayModel.images.Count -ne 2 -or $displayModel.images[1].role -ne "json_
   throw "Display-metadata CLI output mixed distinct reader fields"
 }
 
+$xhtml = Invoke-FeedLensCli @("--json", "samples/atom1_xhtml.xml")
+if ($xhtml.ExitCode -ne 0 -or $xhtml.StandardError) {
+  throw "Atom XHTML CLI scenario failed"
+}
+$xhtmlModel = $xhtml.StandardOutput | ConvertFrom-Json
+if ($xhtmlModel.title -ne "Plan A & B" -or $xhtmlModel.title_kind -ne "xhtml" -or -not $xhtmlModel.title_xhtml.markup.Contains("<h:em xmlns:h=") -or $xhtmlModel.entries[0].title -ne "Race review" -or $xhtmlModel.entries[0].content_kind -ne "xhtml" -or -not $xhtmlModel.entries[0].content_xhtml.markup.Contains("<h:strong xmlns:h=")) {
+  throw "Atom XHTML CLI JSON lost text, kind, or namespaced markup"
+}
+
 $help = Invoke-FeedLensCli @("--", "--help")
 if ($help.ExitCode -ne 0 -or -not $help.StandardOutput.Contains("Usage: feedlens") -or $help.StandardError) {
   throw "Help CLI scenario failed"
@@ -126,5 +135,6 @@ Write-Output "PASS real RSS projection exit=$($realRss.ExitCode)"
 Write-Output "PASS real Atom projection JSON exit=$($realAtom.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS real JSON Feed projection JSON exit=$($realJson.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS display-metadata JSON exit=$($display.ExitCode), distinct roles and links verified"
+Write-Output "PASS Atom XHTML JSON exit=$($xhtml.ExitCode), ConvertFrom-Json accepted text and fragments"
 Write-Output "PASS help exit=$($help.ExitCode)"
 Write-Output "PASS fatal parse/read/argument errors exit=$($parseError.ExitCode)/$($readError.ExitCode)/$($argumentError.ExitCode)"

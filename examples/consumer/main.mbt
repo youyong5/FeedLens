@@ -22,4 +22,19 @@ fn main {
     }
     Err(_) => println("feed parse failed")
   }
+  let atom =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Plan <em>A</em></div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
+  match @feedlens.parse(atom) {
+    Ok(feed) =>
+      if feed.title_kind is @feedlens.Xhtml {
+        match feed.title_xhtml {
+          Some(fragment) => {
+            println("xhtml_title=" + feed.title.unwrap_or(""))
+            println("xhtml_markup=" + fragment.markup)
+          }
+          None => println("xhtml fragment unavailable")
+        }
+      }
+    Err(_) => println("Atom XHTML parse failed")
+  }
 }

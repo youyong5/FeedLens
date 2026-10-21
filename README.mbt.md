@@ -1,8 +1,13 @@
 # FeedLens — MoonBit 多格式 Feed 解析库
 
 `youyong5/feedlens` is a reusable MoonBit multi-format Feed parsing library
-for RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1. Diagnostics and the local-file
+for documented subsets of RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1, not a
+complete validator for every legal construct. Diagnostics and the local-file
 CLI are supporting tools, not the primary product.
+
+The test-linked [standard behavior matrix](docs/STANDARD_SCOPE.md) is the
+precise compatibility commitment, including supported input forms, output,
+diagnostics, and legal constructs that remain outside the mapped subset.
 
 It gives callers one source-aware, cross-format model for the common feed
 fields while preserving document order and distinguishing fatal parse failures
@@ -40,7 +45,13 @@ landing page; this document contains the full mapping and boundary specification
 format-specific public values, so the normalized fields cannot drift apart. `title_kind`
 and `description_kind` describe the associated string: `Unspecified` for RSS (which
 does not declare a text-construct type), `Text` for Atom omitted/`text` and JSON
-Feed title/summary/text content, and `Html` for Atom/JSON Feed HTML content. HTML
+Feed title/summary/text content, `Html` for Atom/JSON Feed HTML content, and
+`Xhtml` for supported Atom XHTML constructs. XHTML text fields expose a
+displayable plain-text string plus `title_xhtml`/`description_xhtml`/
+`content_xhtml` as appropriate. Each `XhtmlFragment` carries deterministic
+`markup`, effective `language`, and ordered raw `base_references` from Atom
+ancestors through the outer XHTML div; child `xml:base` remains in the markup.
+HTML
 values retain decoded source text for XML and JSON source strings for JSON Feed;
 FeedLens neither renders nor sanitizes them. `content_kind` follows the same rules.
 `description` is never copied into `content`: it remains a summary/RSS description
@@ -54,7 +65,7 @@ the entry declares its own. An explicit empty Atom `xml:lang` resets to
 its own; malformed or blank declarations are diagnosed and do not inherit.
 The 1.0 format does not declare a `language` field, so those keys are ignored.
 Language attributes on nested Atom text constructs are not projected into a
-single entry language.
+single entry language; XHTML fragments expose their own effective language.
 
 `Feed.images` is an ordered collection of `FeedImage` values with explicit
 `source` and `role`: `RssImage`, `AtomIcon`, `AtomLogo`, `JsonIcon`, or
@@ -202,9 +213,28 @@ that need the original references can continue using it.
 - Reads direct feed and entry `category` elements. Atom `term` is required; optional `scheme` and `label` stay distinct from RSS `domain`. Missing/blank terms receive an `InvalidCategory` at the category element.
 - Reads only direct Atom entry `link` elements with `rel="enclosure"` as attachments. This does not change alternate-link selection. Missing `href` skips the attachment; invalid optional `length` is diagnosed and omitted from an otherwise valid attachment.
 - An entry without a `content` element must have an alternate link. The parser tracks that presence separately from successful body extraction, so an unsupported or external content element does not incorrectly trigger `MissingAlternateLink`.
-- Supports inline Atom `content` with omitted/`text` type and `html` type as `Entry.content`. Values retain XML-decoded source text and original whitespace, and `content_kind` records `Text` or `Html`.
+- Supports inline Atom `content` with omitted/`text`, `html`, and `xhtml` types as `Entry.content`. Text/HTML values retain XML-decoded source text and original whitespace. For XHTML, `content` is the concatenated display text while `content_xhtml.markup` retains the XML child structure and whitespace; `content_kind = Xhtml` prevents mistaking it for HTML or plain text.
 - External Atom content (`src`) is never fetched or exposed as a body. It receives `UnsupportedAtomContent("external Atom content")`; when it lacks `summary`, it also receives the existing missing-summary diagnostic.
-- XHTML/other content media types and nested XML in inline content are diagnosed as unsupported; FeedLens never strips their markup and calls it supported content. The same text-construct boundary applies to title, subtitle, and summary.
+- Atom `title`, `subtitle`, `summary`, and inline `content` accept a single `div` in the exact XHTML namespace URI for `type="xhtml"`, regardless of prefix. The outer `div` is not part of `markup`; descendant elements/attributes/namespaces, mixed text, comments, processing instructions, and meaningful in-div whitespace are retained in deterministic XML serialization. `language` and `base_references` retain effective `xml:lang` and the inherited `xml:base` declaration chain even when declared on the removed div. Missing/wrong-namespace/multiple div roots or non-whitespace text outside div are diagnosed at the Atom field; no false complete value is exposed. Unhandled media types and nested XML inside `text`/`html` constructs remain diagnosed. The serialization preserves XML content semantics, not original byte spelling of entities, prefixes, quote style, or attribute order independent of the parser. It is **not sanitized**; callers must apply safe rendering, escaping, and URI policy themselves. Neither entry point rewrites links inside XHTML markup.
+
+For the fixed [Atom XHTML acceptance sample](samples/atom1_xhtml.xml), actual
+public values include:
+
+```text
+feed.title = Some("Plan A & B")
+feed.title_kind = Xhtml
+feed.title_xhtml.markup = "Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em> &amp; B"
+entry.title = Some("Race review")
+entry.content = Some("Lap 12 & rain.")
+entry.content_kind = Xhtml
+entry.content_xhtml.markup = "<h:p xmlns:h=\"http://www.w3.org/1999/xhtml\">Lap <h:strong xmlns:h=\"http://www.w3.org/1999/xhtml\">12</h:strong> &amp; rain.</h:p>"
+```
+
+`XhtmlFragment.base_references` retains raw scoped declarations rather than
+guessing an absolute base from a local filename. Even with `parse_with_source`,
+callers must combine that chain with the known source URL and nested child
+`xml:base` before interpreting relative links in the fragment. The removed
+outer div's non-inherited style/class attributes are not projected.
 
 ## JSON Feed 1.0 and 1.1
 
@@ -225,7 +255,7 @@ that need the original references can continue using it.
 
 - Attachment/image retrieval or verification; JSON Feed pagination following, author avatars, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
-- Atom XHTML serialization, external Atom-content retrieval, category hierarchy, and resolution inside HTML or unsupported constructs.
+- Atom external-content retrieval, other media-type decoding, full XHTML rendering/sanitization, and resolution inside HTML/XHTML or unsupported constructs.
 
 ## Example
 
@@ -249,6 +279,7 @@ of WP Tavern's three real public subscriptions:
 moon run --target native cmd/main samples/real_wptavern_rss.xml
 moon run --target native cmd/main samples/real_wptavern_atom.xml
 moon run --target native cmd/main --json samples/real_wptavern_json.json
+moon run --target native cmd/main --json samples/atom1_xhtml.xml
 moon run --target native cmd/main -- --help
 ```
 
@@ -271,7 +302,8 @@ Entries: 2
 ```
 
 `--json` writes exactly one JSON value to stdout. It contains the normalized
-`Feed`/`Entry` fields, text kinds, ordered author/category/attachment arrays, and ordered
+`Feed`/`Entry` fields, text kinds, XHTML fragment objects (or `null`), ordered
+author/category/attachment arrays, and ordered
 diagnostics with positions. Missing values are JSON `null`. This is FeedLens's
 normalized inspection format, **not** a conversion to a JSON Feed document.
 Errors (bad arguments, unreadable files, or fatal parse errors) go to stderr and
@@ -316,6 +348,9 @@ powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 
 For a development-only independent comparison, use
 `uv run --with feedparser==6.0.11 python tools/check_compatibility.py`.
+Run `uv run --with feedparser==6.0.11 python tools/check_xhtml_reference.py`
+for the separately declared Atom XHTML text/type intersection. Both scripts
+read local samples only; the XHTML script also runs the local Native CLI.
 The script checks the real-sample mirrors and compares the older independent
 XML reference only on the declared field intersection in
 `samples/reference_intersection.json`; it is not a MoonBit dependency. See

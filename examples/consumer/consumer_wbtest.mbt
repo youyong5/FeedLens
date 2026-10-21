@@ -22,3 +22,19 @@ test "a separate package can consume the public display and date API" {
   }
   assert_eq(date.utc, "2026-10-19T08:30:00Z")
 }
+
+///|
+test "a separate package can read Atom XHTML without importing XML internals" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Plan <em>A</em></div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
+  assert_eq(feed.title, Some("Plan A"))
+  assert_true(feed.title_kind is @feedlens.Xhtml)
+  guard feed.title_xhtml is Some(fragment) else {
+    fail("expected public XHTML fragment")
+  }
+  assert_eq(
+    fragment.markup,
+    "Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em>",
+  )
+}

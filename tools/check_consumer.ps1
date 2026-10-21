@@ -12,7 +12,9 @@ foreach ($expected in @(
   "permalink=https://example.test/posts/one",
   "outside=https://example.test/elsewhere/story",
   "featured=https://example.test/images/preview.png",
-  "published=2026-10-19T08:30:00Z"
+  "published=2026-10-19T08:30:00Z",
+  "xhtml_title=Plan A",
+  "xhtml_markup=Plan <h:em"
 )) {
   if (-not $text.Contains($expected)) {
     throw "Library consumer output missing: $expected"

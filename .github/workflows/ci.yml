@@ -69,10 +69,15 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/jsonfeed11_display.json > display.json
           python3 -c "import json; x=json.load(open('display.json', encoding='utf-8')); e=x['entries'][0]; assert x['language'] == 'en-US'; assert x['images'][1]['role'] == 'json_favicon'; assert e['link'] == 'posts/one'; assert e['external_url'] == 'https://outside.test/story'; assert [i['role'] for i in e['images']] == ['json_featured','json_banner']; assert e['attachments'] == []"
+      - name: Inspect Atom XHTML normalized JSON
+        run: |
+          moon run --target native cmd/main --json samples/atom1_xhtml.xml > atom-xhtml.json
+          python3 -c "import json; x=json.load(open('atom-xhtml.json', encoding='utf-8')); e=x['entries'][0]; assert x['title'] == 'Plan A & B' and x['title_kind'] == 'xhtml' and '<h:em' in x['title_xhtml']['markup']; assert e['title'] == 'Race review' and e['content_kind'] == 'xhtml' and '<h:strong' in e['content_xhtml']['markup']"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
           grep -q 'published=2026-10-19T08:30:00Z' consumer.txt
           grep -q 'featured=https://example.test/images/preview.png' consumer.txt
+          grep -q 'xhtml_title=Plan A' consumer.txt
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help
