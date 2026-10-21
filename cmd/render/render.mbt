@@ -152,6 +152,12 @@ pub fn render_human(feed : @feedlens.Feed) -> String {
         "\n   content kind: XHTML (unsanitized; see --json content_xhtml)",
       )
     }
+    if entry.content_source is Some(url) {
+      output.write_string("\n   content source: ")
+      output.write_string(url)
+      output.write_string("; media type: ")
+      output.write_string(option_or_none(entry.content_media_type))
+    }
     if entry.external_url is Some(url) {
       output.write_string("\n   external URL: ")
       output.write_string(url)
@@ -415,6 +421,8 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "content": optional_string_json(entry.content),
     "content_kind": text_kind_json(entry.content_kind),
     "content_xhtml": xhtml_fragment_json(entry.content_xhtml),
+    "content_source": optional_string_json(entry.content_source),
+    "content_media_type": optional_string_json(entry.content_media_type),
     "authors": Json::array(entry.authors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
     "attachments": Json::array(entry.attachments.map(attachment_json)),

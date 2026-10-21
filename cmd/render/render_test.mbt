@@ -298,3 +298,25 @@ test "render_human lists attachment URLs in order" {
     ),
   )
 }
+
+///|
+test "render_json exposes Atom content source and declared media type" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>A</name></author><entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>Abstract</summary><content type="application/pdf" src="issue.pdf"/></entry></feed>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
+  guard @json.parse(@render.render_json(feed))
+    is { "entries": Array(entries), .. } else {
+    fail("expected JSON entries")
+  }
+  guard entries[0]
+    is {
+      "content_source": String(source),
+      "content_media_type": String(media_type),
+      "content": Null,
+      ..
+    } else {
+    fail("expected external content fields")
+  }
+  assert_eq(source, "issue.pdf")
+  assert_eq(media_type, "application/pdf")
+}

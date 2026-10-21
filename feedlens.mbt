@@ -172,6 +172,12 @@ pub struct Entry {
   content_kind : TextKind
   /// Present only for a successfully captured inline Atom XHTML body.
   content_xhtml : XhtmlFragment?
+  /// Raw Atom content `src`, or resolved against its scoped xml:base by
+  /// `parse_with_source`. No external resource is fetched.
+  content_source : String?
+  /// Atom content `type` as declared (including media types); `None` when
+  /// omitted or for other feed formats.
+  content_media_type : String?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
@@ -228,6 +234,8 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     content: entry.content,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
+    content_source: entry.content_source,
+    content_media_type: entry.content_media_type,
     authors: entry.authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -754,6 +762,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content: None,
               content_kind: Unspecified,
               content_xhtml: None,
+      content_source: None,
+      content_media_type: None,
               authors: [],
               categories: [],
               attachments: [],
@@ -1002,6 +1012,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content: item_content,
               content_kind: Unspecified,
               content_xhtml: None,
+      content_source: None,
+      content_media_type: None,
               authors: item_authors,
               categories: item_categories,
               attachments: item_attachments,

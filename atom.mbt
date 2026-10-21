@@ -37,6 +37,18 @@ fn atom_text_kind(element : @xml.NamespaceElement) -> TextKind? {
 }
 
 ///|
+fn atom_content_kind(element : @xml.NamespaceElement) -> TextKind? {
+  match atom_text_kind(element) {
+    Some(kind) => Some(kind)
+    None =>
+      match atom_attribute_value(element, "type") {
+        Some(value) if value.to_lower().has_prefix("text/") => Some(Text)
+        _ => None
+      }
+  }
+}
+
+///|
 fn atom_non_blank_attribute(
   element : @xml.NamespaceElement,
   expected : String,
@@ -91,6 +103,8 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     content: entry.content,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
+    content_source: entry.content_source,
+    content_media_type: entry.content_media_type,
     authors,
     categories: entry.categories,
     attachments: entry.attachments,
@@ -229,6 +243,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_content_present = false
     let mut entry_external_content_location : (Int32, Int32)? = None
     let mut entry_content : String? = None
+    let mut entry_content_source : String? = None
+    let mut entry_content_media_type : String? = None
     let mut entry_title_kind = Text
     let mut entry_summary_kind = Text
     let mut entry_content_kind = Text
@@ -310,6 +326,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_content_present = false
             entry_external_content_location = None
             entry_content = None
+            entry_content_source = None
+            entry_content_media_type = None
             entry_title_kind = Text
             entry_summary_kind = Text
             entry_content_kind = Text
@@ -427,19 +445,17 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_content = None
             entry_content_kind = Text
             entry_content_xhtml = None
-            match atom_attribute_value(element, "src") {
+            entry_content_media_type = atom_attribute_value(element, "type")
+            entry_content_source = atom_attribute_value(element, "src")
+            entry_external_content_location = None
+            match entry_content_source {
               Some(_) => {
                 entry_external_content_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
-                diagnostics.push({
-                  kind: UnsupportedAtomContent("external Atom content"),
-                  line: event.span.start.line,
-                  column: event.span.start.column,
-                })
               }
               None =>
-                match atom_text_kind(element) {
+                match atom_content_kind(element) {
                   Some(kind) => {
                     capture_field = Some("content")
                     capture_in_entry = true
@@ -721,19 +737,17 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_content = None
             entry_content_kind = Text
             entry_content_xhtml = None
-            match atom_attribute_value(element, "src") {
+            entry_content_media_type = atom_attribute_value(element, "type")
+            entry_content_source = atom_attribute_value(element, "src")
+            entry_external_content_location = None
+            match entry_content_source {
               Some(_) => {
                 entry_external_content_location = Some(
                   (event.span.start.line, event.span.start.column),
                 )
-                diagnostics.push({
-                  kind: UnsupportedAtomContent("external Atom content"),
-                  line: event.span.start.line,
-                  column: event.span.start.column,
-                })
               }
               None =>
-                match atom_text_kind(element) {
+                match atom_content_kind(element) {
                   Some(Xhtml) =>
                     diagnostics.push({
                       kind: UnsupportedAtomContent("invalid Atom XHTML div"),
@@ -1096,6 +1110,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               content: entry_content,
               content_kind: entry_content_kind,
               content_xhtml: entry_content_xhtml,
+              content_source: entry_content_source,
+              content_media_type: entry_content_media_type,
               authors,
               categories: entry_categories,
               attachments: entry_attachments,

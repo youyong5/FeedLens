@@ -11,7 +11,7 @@ results; the library never fetches a feed or an attachment.
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
 | RSS 2.0 | Channel/item metadata, language, channel image, Content Module body, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; unsupported extensions |
-| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML/XHTML content, author inheritance, categories | External-content retrieval, other media types, XHTML rendering/sanitization, HTML-contained URLs |
+| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML/XHTML and text/* MIME content, external content source/type, author inheritance, categories | External-content retrieval, binary/XML media decoding, XHTML rendering/sanitization, HTML-contained URLs |
 | JSON Feed 1.0/1.1 | Feed/items, icon/favicon, item external URL and featured/banner images, text/HTML body choice, authors, tags, attachments; language in 1.1 | Pagination, author avatars, extension mapping, unsupported URI fields |
 
 The normalized model keeps summary/description separate from article content,
@@ -24,7 +24,7 @@ attachments. JSON Feed `external_url` stays separate from the item permalink.
 Raw publication/update dates remain available; a separate, cross-target API
 validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
 `parse_with_source(input, source_url)` optionally resolves documented links,
-image URLs, and attachment URLs; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
+image URLs, attachment URLs, and Atom external content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
@@ -67,6 +67,13 @@ its entry has `title = Some("Race review")` and `content_kind = Xhtml` with
 `div` is removed; namespace-qualified child markup and meaningful whitespace
 remain. This fragment is **untrusted XML**, not rendered or sanitized content.
 Callers must use context-appropriate safe handling before displaying it.
+
+Atom external `content src` is available as `Entry.content_source`, with its
+declared `type` in `content_media_type`; `content` remains `None` because
+the library never fetches external resources. Inline `text/*` MIME content
+is decoded into `content` as text. See the
+[offline content sample](samples/atom1_content_sources.xml) and the
+[scope matrix](docs/STANDARD_SCOPE.md) for the exact boundary.
 
 ## Local-file CLI
 
