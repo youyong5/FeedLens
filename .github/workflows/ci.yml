@@ -73,6 +73,10 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_xhtml.xml > atom-xhtml.json
           python3 -c "import json; x=json.load(open('atom-xhtml.json', encoding='utf-8')); e=x['entries'][0]; assert x['title'] == 'Plan A & B' and x['title_kind'] == 'xhtml' and '<h:em' in x['title_xhtml']['markup']; assert e['title'] == 'Race review' and e['content_kind'] == 'xhtml' and '<h:strong' in e['content_xhtml']['markup']"
+      - name: Inspect Atom external and text MIME content
+        run: |
+          moon run --target native cmd/main --json samples/atom1_content_sources.xml > atom-content.json
+          python3 -c "import json; x=json.load(open('atom-content.json', encoding='utf-8')); a,b=x['entries']; assert a['content'] is None and a['content_source'] == 'issue.pdf' and a['content_media_type'] == 'application/pdf'; assert b['content'] == 'Heading & details' and b['content_media_type'] == 'text/markdown'; assert x['diagnostics'] == []"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt

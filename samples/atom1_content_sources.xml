@@ -1,0 +1,11 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/">
+  <id>urn:feed:content</id><title>Content variants</title><updated>2026-10-21T00:00:00Z</updated><author><name>Editor</name></author>
+  <entry xml:base="posts/">
+    <id>urn:entry:external</id><title>External article</title><updated>2026-10-21T00:00:00Z</updated>
+    <summary>Downloadable article.</summary><content type="application/pdf" xml:base="../media/" src="issue.pdf"/>
+  </entry>
+  <entry>
+    <id>urn:entry:markdown</id><title>Markdown article</title><updated>2026-10-21T00:00:00Z</updated>
+    <content type="text/markdown">Heading &amp; details</content>
+  </entry>
+</feed>

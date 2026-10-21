@@ -70,6 +70,7 @@ fn uri_with_entry_urls(
   external_url : String?,
   attachments : Array[Attachment],
   images : Array[EntryImage],
+  content_source : String?,
 ) -> Entry {
   {
     identifier: entry.identifier,
@@ -85,6 +86,8 @@ fn uri_with_entry_urls(
     content: entry.content,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
+    content_source,
+    content_media_type: entry.content_media_type,
     authors: entry.authors,
     categories: entry.categories,
     attachments,
@@ -181,6 +184,7 @@ priv struct UriXmlState {
   mut feed_link : String?
   links : Array[String?]
   attachments : Array[Array[Attachment]]
+  content_sources : Array[String?]
   entry_link_locations : Array[(Int32, Int32)?]
   mut feed_link_location : (Int32, Int32)?
   mut channel_depth : Int32
@@ -196,6 +200,7 @@ priv struct UriXmlState {
 fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
   let links : Array[String?] = []
   let attachments : Array[Array[Attachment]] = []
+  let content_sources : Array[String?] = []
   let locations : Array[(Int32, Int32)?] = []
   for entry in feed.entries {
     links.push(entry.link)
@@ -204,6 +209,7 @@ fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
       copied.push(attachment)
     }
     attachments.push(copied)
+    content_sources.push(entry.content_source)
     locations.push(None)
   }
   {
@@ -213,6 +219,7 @@ fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
     feed_link: feed.link,
     links,
     attachments,
+    content_sources,
     entry_link_locations: locations,
     feed_link_location: None,
     channel_depth: 0,
@@ -305,6 +312,23 @@ fn UriXmlState::on_element(
     self.entry_open = !is_empty
     self.entry_alternate_seen = false
     self.attachment_index = 0
+  } else if self.entry_open &&
+    depth == self.entry_depth &&
+    is_atom_name(element.name, "content") {
+    match atom_attribute_value(element, "src") {
+      Some(raw) if self.content_sources[self.entry_index] == Some(raw) =>
+        self.content_sources[self.entry_index] = Some(
+          uri_at(
+            base,
+            raw,
+            "atom entry " + self.entry_index.to_string() + " content src",
+            line,
+            column,
+            self.diagnostics,
+          ),
+        )
+      _ => ()
+    }
   } else if !self.entry_open && depth == 1 && is_atom_name(element.name, "link") {
     if !self.feed_alternate_seen {
       match atom_alternate_link(element) {
@@ -413,6 +437,7 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
         feed.entries[index].external_url,
         self.attachments[index],
         feed.entries[index].images,
+        self.content_sources[index],
       ),
     )
   }
@@ -606,7 +631,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
       })
     }
     entries.push(
-      uri_with_entry_urls(entry, entry_link, external_url, attachments, images),
+      uri_with_entry_urls(entry, entry_link, external_url, attachments, images, entry.content_source),
     )
   }
   uri_with_feed_urls(with_feed_images(feed, images), link, entries)

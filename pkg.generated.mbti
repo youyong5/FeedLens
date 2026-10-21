@@ -124,6 +124,8 @@ pub struct Entry {
   content : String?
   content_kind : TextKind
   content_xhtml : XhtmlFragment?
+  content_source : String?
+  content_media_type : String?
   authors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]

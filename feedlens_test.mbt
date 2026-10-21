@@ -380,17 +380,14 @@ test "Atom external content requires a summary" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
-  assert_eq(feed.diagnostics.length(), 2)
+  assert_eq(feed.diagnostics.length(), 1)
   assert_true(
-    feed.diagnostics[0].kind
-    is @feedlens.UnsupportedAtomContent("external Atom content"),
-  )
-  assert_true(
-    feed.diagnostics[1].kind is @feedlens.MissingSummaryForExternalContent(0),
+    feed.diagnostics[0].kind is @feedlens.MissingSummaryForExternalContent(0),
   )
   assert_eq(feed.entries[0].content, None)
-  assert_true(feed.entries[0].content_kind is @feedlens.Text)
-  assert_eq((feed.diagnostics[1].line, feed.diagnostics[1].column), (3, 85))
+  assert_eq(feed.entries[0].content_source, Some("https://example.com/content"))
+  assert_eq(feed.entries[0].content_media_type, None)
+  assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (3, 85))
 }
 
 ///|
@@ -521,14 +518,11 @@ test "Atom XHTML title and external content have independent outcomes" {
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
   assert_eq(feed.title, Some("markup"))
   assert_true(feed.title_kind is @feedlens.Xhtml)
-  assert_eq(feed.diagnostics.length(), 2)
+  assert_eq(feed.diagnostics.length(), 1)
   assert_true(
-    feed.diagnostics[0].kind
-    is @feedlens.UnsupportedAtomContent("external Atom content"),
+    feed.diagnostics[0].kind is @feedlens.MissingSummaryForExternalContent(0),
   )
-  assert_true(
-    feed.diagnostics[1].kind is @feedlens.MissingSummaryForExternalContent(0),
-  )
+  assert_eq(feed.entries[0].content_source, Some("https://example.com/content"))
 }
 
 ///|
