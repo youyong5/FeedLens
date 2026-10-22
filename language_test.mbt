@@ -3,8 +3,8 @@ test "RSS channel language applies to earlier items without a guessed default" {
   let input =
     #|<rss version="2.0"><channel>
     #|<title>T</title><link>https://example.test</link><description>D</description>
-    #|<item><guid>first</guid></item>
-    #|<language>en-US</language><item><guid>second</guid></item>
+    #|<item><guid>first</guid><title>First</title></item>
+    #|<language>en-US</language><item><guid>second</guid><title>Second</title></item>
     #|</channel></rss>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected RSS") }
   assert_eq(feed.language, Some("en-US"))

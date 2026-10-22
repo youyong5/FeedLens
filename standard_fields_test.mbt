@@ -2,7 +2,7 @@
 test "RSS copyright generator comments and item source keep their roles" {
   let input =
     #|<rss version="2.0"><channel><title>News</title><link>https://example.test/</link><description>Updates</description><copyright>Copyright Editor</copyright><generator>Publisher 2</generator><pubDate>Wed, 21 Oct 2026 12:00:00 GMT</pubDate><lastBuildDate>Wed, 21 Oct 2026 12:30:00 GMT</lastBuildDate><ttl>45</ttl>
-    #|<item><guid>one</guid><comments>comments/one</comments><source url="sources/one.xml">Original publisher</source></item></channel></rss>
+    #|<item><guid>one</guid><title>One</title><comments>comments/one</comments><source url="sources/one.xml">Original publisher</source></item></channel></rss>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected RSS") }
   assert_eq(feed.rights, Some("Copyright Editor"))
   assert_eq(feed.generator, Some("Publisher 2"))

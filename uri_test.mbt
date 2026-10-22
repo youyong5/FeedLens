@@ -141,7 +141,7 @@ test "JSON Feed source URL resolves home, item, and attachment references" {
 test "URI failures leave raw fields, locate diagnostics, and reject invalid source" {
   let xml =
     #|<rss version="2.0"><channel><title>Feed</title><link>bad%2G</link><description>Desc</description>
-    #|<item><guid>one</guid><link>good</link><enclosure url="bad path" length="1" type="audio/mpeg"/></item></channel></rss>
+    #|<item><guid>one</guid><title>One</title><link>good</link><enclosure url="bad path" length="1" type="audio/mpeg"/></item></channel></rss>
   guard @feedlens.parse_with_source(xml, "https://example.test/feed.xml")
     is Ok(feed) else {
     fail("expected recoverable RSS")

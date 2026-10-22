@@ -27,7 +27,7 @@ test "RSS enclosure namespace and hierarchy collisions are ignored" {
   let xml =
     #|<rss version="2.0" xmlns:x="urn:other"><channel><title>Feed</title><link>https://example.test/</link><description>Desc</description>
     #|<enclosure url="https://example.test/channel" length="1" type="audio/mpeg"/>
-    #|<item><guid>one</guid><x:enclosure url="https://example.test/wrong" length="1" type="audio/mpeg"/>
+    #|<item><guid>one</guid><title>One</title><x:enclosure url="https://example.test/wrong" length="1" type="audio/mpeg"/>
     #|<wrapper><enclosure url="https://example.test/nested" length="1" type="audio/mpeg"/></wrapper>
     #|<enclosure url="https://example.test/right" length="2" type="audio/mpeg"/></item></channel></rss>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected RSS") }

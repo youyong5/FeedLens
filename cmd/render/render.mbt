@@ -85,6 +85,8 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     MissingChannelField(field) => "missing channel field: " + field
     MissingItemIdentifier(index) =>
       "missing item identifier: " + index.to_string()
+    MissingItemContent(index) =>
+      "missing item title or description: " + index.to_string()
     MissingFeedField(field) => "missing feed field: " + field
     MissingEntryField(index, field) =>
       "missing entry field " + index.to_string() + ": " + field
@@ -504,6 +506,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "MissingChannelField", "field": field }
     MissingItemIdentifier(index) =>
       { "type": "MissingItemIdentifier", "index": index }
+    MissingItemContent(index) =>
+      { "type": "MissingItemContent", "index": index }
     MissingFeedField(field) => { "type": "MissingFeedField", "field": field }
     MissingEntryField(index, field) =>
       { "type": "MissingEntryField", "index": index, "field": field }

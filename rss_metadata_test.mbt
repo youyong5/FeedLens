@@ -2,7 +2,7 @@
 test "RSS guid role, source credit, and channel contacts" {
   let input =
     #|<rss version="2.0"><channel><title>News</title><link>https://example.test/</link><description>Updates</description><managingEditor>editor@example.test</managingEditor><webMaster>ops@example.test</webMaster>
-    #|<item><guid isPermaLink="false">urn:story:1</guid><source url="../origin.xml">Original &amp; source</source></item><item><guid>https://example.test/second</guid></item></channel></rss>
+    #|<item><guid isPermaLink="false">urn:story:1</guid><title>First</title><source url="../origin.xml">Original &amp; source</source></item><item><guid>https://example.test/second</guid><title>Second</title></item></channel></rss>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected RSS") }
   assert_eq(feed.managing_editor, Some("editor@example.test"))
   assert_eq(feed.webmaster, Some("ops@example.test"))
