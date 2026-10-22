@@ -1,18 +1,20 @@
 # FeedLens — MoonBit 多格式 Feed 解析库
 
 FeedLens is a reusable [MoonBit](https://www.moonbitlang.com/) multi-format
-Feed parsing library. It extracts the documented, tested subsets of RSS 2.0,
-Atom 1.0, and JSON Feed 1.0/1.1 into one source-aware model; this is not a
-claim of full conformance with every legal construct. Diagnostics and a local-file CLI help inspect
+Feed parsing library. It extracts documented, tested common behavior of RSS 2.0,
+Atom 1.0, and JSON Feed 1.0/1.1 into one source-aware model. It supports both
+Atom Feed and stand-alone Atom Entry Documents through `parse_document`.
+The remaining standard gaps are recorded explicitly; this is not yet a full
+conformance claim. Diagnostics and a local-file CLI help inspect
 results; the library never fetches a feed or an attachment.
 
 ## What it covers
 
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
-| RSS 2.0 | Channel/item metadata, language, channel image, Content Module body, authors, categories, item enclosures | RSS versions other than 2.0; network retrieval; unsupported extensions |
-| Atom 1.0 | Feed/entry metadata, scoped language, icon/logo, alternate/enclosure links, inline text/HTML/XHTML, XML-media and Base64 bodies, external-content references, author inheritance, categories | External-content retrieval, XHTML/XML rendering or sanitization, HTML-contained URLs, unmapped optional metadata |
-| JSON Feed 1.0/1.1 | Feed/items, icon/favicon, item external URL and featured/banner images, text/HTML body choice, authors, tags, attachments; language in 1.1 | Pagination, author avatars, extension mapping, unsupported URI fields |
+| RSS 2.0 | Channel/item metadata and dates, TTL, copyright/generator, language, image, Content Module body, authors, categories, comments/source links, enclosures | Other RSS versions, uncommon optional constructs and extension modules |
+| Atom 1.0 | Feed and independent Entry documents, rights XHTML, contributors, all direct links and their common attributes, icon/logo, scoped language, body forms, author inheritance, categories | Some optional metadata and structural checks, external-content retrieval, fragment rendering or sanitization |
+| JSON Feed 1.0/1.1 | Feed/items, next URL and expired state, hubs, icons, external links, both item body representations, author avatars, tags and attachments; language in 1.1 | Pagination following, arbitrary extension mapping, additional version-specific checks |
 
 The normalized model keeps summary/description separate from article content,
 preserves author/category/attachment source semantics, retains document order,
@@ -26,6 +28,9 @@ validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
 `parse_with_source(input, source_url)` optionally resolves documented links,
 image URLs, attachment URLs, and external Atom content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.
+Atom `links` retain relations such as `self` and `related`; `link` remains the
+alternate convenience value. RSS and Atom rights and generator values and JSON
+Feed pagination/hub declarations are visible without following any network links.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
 diagnostic rules, XML namespace boundaries, and content-handling policy, see
@@ -47,6 +52,23 @@ match @feedlens.parse(input) {
   Err(_) => println("feed parsing failed")
 }
 ```
+
+An Atom Entry Document has an `entry` root and no enclosing feed. Use the new
+typed entry point while existing feed callers keep `parse` unchanged:
+
+```moonbit nocheck
+match @feedlens.parse_document(input) {
+  Ok(@feedlens.AtomEntryDocument(entry, diagnostics)) =>
+    println(entry.title.unwrap_or("(untitled)"))
+  Ok(@feedlens.FeedDocument(feed)) => println(feed.title.unwrap_or("(untitled)"))
+  Err(_) => println("document parsing failed")
+}
+```
+
+`parse_document_with_source(input, source_url)` also resolves independent
+entry links and external body references using the entry's `xml:base` scope.
+The [fixed entry sample](samples/atom1_entry_document.xml) exercises XHTML,
+author, alternate and enclosure links, and source resolution.
 
 When the caller knows the document's actual HTTP(S) URL, it can use
 `parse_with_source(input, source_url)` to resolve article, image, and attachment URLs,
@@ -164,6 +186,7 @@ powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1
 uv run --with feedparser==6.0.11 python tools/check_compatibility.py
 uv run --with feedparser==6.0.11 python tools/check_xhtml_reference.py
+uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
 ```
 
 `samples/` contains small checked-in inputs used by the cross-target tests.
@@ -174,16 +197,19 @@ script also checks that the cross-target embedded mirrors match these files.
 The optional Python command is an independent, local-only comparison against
 feedparser 6.0.11; its defined field intersection and observed results are in
 [samples/COMPATIBILITY.md](samples/COMPATIBILITY.md).
+The cross-format script independently checks the two saved real-world episodes
+against feedparser for XML and Python JSON/date parsing for JSON Feed. It also
+checks the independent Atom Entry with feedparser and verifies four new
+sample/test mirrors. It fetches no live subscriptions.
 The XHTML comparison checks eight declared intersection values and separately
 records feedparser's default sanitization; FeedLens intentionally returns
 unsanitized namespace-qualified XML. Its contribution is MoonBit-native,
 cross-target consumption with a source-aware model, explicit diagnostics and
 offline inspection—not a new XML algorithm or broader format coverage than feedparser.
 
-The GitHub-hosted Linux CI uses the latest official MoonBit toolchain. The
-locally verified `0.1.20260920` is retained for local validation, but its
-versioned Linux download returned HTTP 403 when the CI was prepared; the
-workflow therefore cannot honestly pin that unavailable Linux artifact.
+GitHub Actions checks Wasm, JS, and Native, Native CLI JSON, and the offline
+independent reference. The local toolchain used for this revision is recorded
+in the verification result; CI uses the latest downloadable MoonBit release.
 
 ## License
 

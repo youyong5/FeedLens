@@ -14,6 +14,9 @@ application form. It contains no private contact information.
 | Local inspection | `cmd/main`, `cmd/render`, `tools/check_cli.ps1` | Native CLI reads local files only; it is not a crawler or JSON Feed converter. |
 | Public-library consumer | `examples/consumer`, `tools/check_consumer.ps1` | Imports the library directly from this checkout; no published package or CLI runtime dependency. |
 | Independent reference | `tools/check_compatibility.py`, `samples/reference_intersection.json`, `samples/COMPATIBILITY.md` | feedparser 6.0.11 comparison covers a declared XML field intersection, not full semantic equivalence or JSON Feed. |
+| Independent Atom Entry | `parse_document`, `atom_document_test.mbt`, `samples/atom1_entry_document.xml` | `parse` remains feed-only; typed document API handles independent entries. |
+| Common standard fields and constraints | `standard_fields_test.mbt`, three `samples/*standard_fields*` files, `docs/STANDARD_SCOPE.md` | Remaining legal core/optional constructs and full validation gaps are recorded, not claimed complete. |
+| Cross-format independent result | `tools/check_real_cross_format.py`, `samples/REAL_WORLD.md` | Two editorially reduced episodes; feedparser XML and Python JSON/date intersections only, no live feed fetch. |
 
 For repeatable verification, run `moon fmt`, `moon info`, the Wasm/JS/Native
 `moon check` and `moon test` commands in the README, then
