@@ -27,6 +27,83 @@ fn atom_alternate_link(element : @xml.NamespaceElement) -> String? {
 }
 
 ///|
+fn atom_link(
+  element : @xml.NamespaceElement,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> AtomLink? {
+  let relation = atom_attribute_value(element, "rel").unwrap_or("alternate")
+  let href = match atom_non_blank_attribute(element, "href") {
+    Some(href) => href
+    None => {
+      if relation != "enclosure" {
+        diagnostics.push({
+          kind: InvalidAtomLink("missing href"),
+          line,
+          column,
+        })
+      }
+      return None
+    }
+  }
+  let length = match atom_attribute_value(element, "length") {
+    Some(raw) =>
+      match attachment_size(raw) {
+        Some(value) => Some(value)
+        None => {
+          if relation != "enclosure" {
+            diagnostics.push({
+              kind: InvalidAtomLink("invalid length"),
+              line,
+              column,
+            })
+          }
+          None
+        }
+      }
+    None => None
+  }
+  Some({
+    relation,
+    href,
+    media_type: atom_non_blank_attribute(element, "type"),
+    hreflang: atom_non_blank_attribute(element, "hreflang"),
+    title: atom_non_blank_attribute(element, "title"),
+    length,
+  })
+}
+
+///|
+fn atom_append_link(
+  links : Array[AtomLink],
+  element : @xml.NamespaceElement,
+  owner : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  match atom_link(element, line, column, diagnostics) {
+    Some(link) => {
+      if link.relation == "alternate" &&
+        links.any(fn(previous) {
+          previous.relation == "alternate" &&
+          previous.media_type == link.media_type &&
+          previous.hreflang == link.hreflang
+        }) {
+        diagnostics.push({
+          kind: DuplicateAtomField(owner + " alternate link"),
+          line,
+          column,
+        })
+      }
+      links.push(link)
+    }
+    None => ()
+  }
+}
+
+///|
 fn atom_text_kind(element : @xml.NamespaceElement) -> TextKind? {
   match atom_attribute_value(element, "type") {
     None | Some("text") => Some(Text)
@@ -89,12 +166,21 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     description_kind: entry.description_kind,
     description_xhtml: entry.description_xhtml,
     content: entry.content,
+    content_text: entry.content_text,
+    content_html: entry.content_html,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
     atom_body: entry.atom_body,
+    links: entry.links,
+    comments_url: entry.comments_url,
+    source_url: entry.source_url,
+    rights: entry.rights,
+    rights_kind: entry.rights_kind,
+    rights_xhtml: entry.rights_xhtml,
     authors,
+    contributors: entry.contributors,
     categories: entry.categories,
     attachments: entry.attachments,
     images: entry.images,
@@ -110,6 +196,59 @@ fn atom_location(
   entry_column : Int32,
 ) -> (Int32, Int32) {
   field_location.unwrap_or((entry_line, entry_column))
+}
+
+///|
+fn atom_singleton(
+  element : @xml.NamespaceElement,
+  seen : Array[String],
+  entry : Bool,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  let field = element.name.local_name
+  let unique = if entry {
+    field
+    is ("id"
+    | "title"
+    | "updated"
+    | "published"
+    | "summary"
+    | "content"
+    | "rights"
+    | "source")
+  } else {
+    field
+    is ("id"
+    | "title"
+    | "updated"
+    | "subtitle"
+    | "rights"
+    | "generator"
+    | "icon"
+    | "logo")
+  }
+  if !unique || !is_atom_name(element.name, field) {
+    return
+  }
+  for previous in seen {
+    if previous == field {
+      diagnostics.push({
+        kind: DuplicateAtomField(
+          if entry {
+            "entry " + field
+          } else {
+            "feed " + field
+          },
+        ),
+        line,
+        column,
+      })
+      return
+    }
+  }
+  seen.push(field)
 }
 
 ///|
@@ -172,7 +311,7 @@ fn add_missing_atom_entry_diagnostics(
 }
 
 ///|
-fn parse_atom(input : String) -> Result[Feed, ParseError] {
+fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
   let reader = @xml.NamespaceReader::from_string(input)
   try {
     let mut depth = 0
@@ -183,11 +322,17 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut feed_title : String? = None
     let mut feed_subtitle : String? = None
     let mut feed_updated : String? = None
+    let mut feed_rights : String? = None
+    let mut feed_rights_kind = Text
+    let mut feed_rights_xhtml : XhtmlFragment? = None
+    let mut feed_generator : String? = None
     let mut feed_link : String? = None
     let mut feed_language : String? = None
     let mut feed_base_references : Array[String] = []
     let feed_authors : Array[Author] = []
+    let feed_contributors : Array[Author] = []
     let feed_categories : Array[Category] = []
+    let feed_links : Array[AtomLink] = []
     let mut author_owner : String? = None
     let mut author_depth = 0
     let mut author_line = 1
@@ -209,7 +354,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let entries : Array[Entry] = []
     let diagnostics : Array[Diagnostic] = []
     let entry_needs_feed_authors : Array[Bool] = []
+    let entry_has_own_author : Array[Bool] = []
     let entry_locations : Array[(Int32, Int32)] = []
+    let feed_singletons : Array[String] = []
+    let mut entry_singletons : Array[String] = []
 
     let mut entry_open = false
     let mut entry_depth = 0
@@ -219,14 +367,19 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
     let mut entry_title : String? = None
     let mut entry_published : String? = None
     let mut entry_updated : String? = None
+    let mut entry_rights : String? = None
+    let mut entry_rights_kind = Text
+    let mut entry_rights_xhtml : XhtmlFragment? = None
     let mut entry_summary : String? = None
     let mut entry_link : String? = None
     let mut entry_language : String? = None
     let mut entry_base_references : Array[String] = []
     let mut entry_own_authors : Array[Author] = []
+    let mut entry_contributors : Array[Author] = []
     let mut entry_source_authors : Array[Author] = []
     let mut entry_categories : Array[Category] = []
     let mut entry_attachments : Array[Attachment] = []
+    let mut entry_links : Array[AtomLink] = []
     let mut source_open = false
     let mut source_depth = 0
     let mut entry_content_present = false
@@ -276,7 +429,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           }
           if !root_seen {
             root_seen = true
-            if !is_atom_name(element.name, "feed") {
+            if !is_atom_name(element.name, "feed") &&
+              !(standalone && is_atom_name(element.name, "entry")) {
               return Err(
                 UnsupportedRoot(
                   element.name.qualified_name,
@@ -286,17 +440,22 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             }
             feed_line = event.span.start.line
             feed_column = event.span.start.column
-            feed_language = match xml_language_attribute(element) {
-              Some(value) => non_blank_text(value)
-              None => None
+            if !standalone {
+              feed_language = match xml_language_attribute(element) {
+                Some(value) => non_blank_text(value)
+                None => None
+              }
+              feed_base_references = []
+              match xml_base_attribute(element) {
+                Some(value) => feed_base_references.push(value)
+                None => ()
+              }
             }
-            feed_base_references = []
-            match xml_base_attribute(element) {
-              Some(value) => feed_base_references.push(value)
-              None => ()
-            }
-          } else if depth == 1 && is_atom_name(element.name, "entry") {
+          }
+          if (depth == 1 || (standalone && depth == 0)) &&
+            is_atom_name(element.name, "entry") {
             entry_open = true
+            entry_singletons = []
             entry_depth = depth + 1
             entry_line = event.span.start.line
             entry_column = event.span.start.column
@@ -304,6 +463,9 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_title = None
             entry_published = None
             entry_updated = None
+            entry_rights = None
+            entry_rights_kind = Text
+            entry_rights_xhtml = None
             entry_summary = None
             entry_link = None
             entry_language = match xml_language_attribute(element) {
@@ -316,9 +478,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               None => ()
             }
             entry_own_authors = []
+            entry_contributors = []
             entry_source_authors = []
             entry_categories = []
             entry_attachments = []
+            entry_links = []
             source_open = false
             source_depth = 0
             entry_content_present = false
@@ -339,8 +503,17 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             entry_updated_location = None
           } else if !entry_open &&
             depth == 1 &&
-            is_atom_name(element.name, "author") {
-            author_owner = Some("feed")
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
+            author_owner = Some(
+              if is_atom_name(element.name, "author") {
+                "feed"
+              } else {
+                "feed_contributor"
+              },
+            )
             author_depth = depth + 1
             author_line = event.span.start.line
             author_column = event.span.start.column
@@ -351,8 +524,17 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             author_child_text = ""
           } else if entry_open &&
             depth == entry_depth &&
-            is_atom_name(element.name, "author") {
-            author_owner = Some("entry")
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
+            author_owner = Some(
+              if is_atom_name(element.name, "author") {
+                "entry"
+              } else {
+                "entry_contributor"
+              },
+            )
             author_depth = depth + 1
             author_line = event.span.start.line
             author_column = event.span.start.column
@@ -415,12 +597,28 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "link") {
+            atom_append_link(
+              feed_links,
+              element,
+              "feed",
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
             if feed_link is None {
               feed_link = atom_alternate_link(element)
             }
           } else if entry_open &&
             depth == entry_depth &&
             is_atom_name(element.name, "link") {
+            atom_append_link(
+              entry_links,
+              element,
+              "entry",
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
             if entry_link is None {
               entry_link = atom_alternate_link(element)
             }
@@ -569,6 +767,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               is_atom_name(element.name, "id") ||
               is_atom_name(element.name, "title") ||
               is_atom_name(element.name, "subtitle") ||
+              is_atom_name(element.name, "rights") ||
+              is_atom_name(element.name, "generator") ||
               is_atom_name(element.name, "updated")
             ) {
             capture_field = Some(element.name.local_name)
@@ -577,7 +777,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             captured_text = ""
             capture_has_nested_markup = false
             capture_text_kind = if element.name.local_name
-              is ("title" | "subtitle") {
+              is ("title" | "subtitle" | "rights") {
               atom_text_kind(element).unwrap_or(Text)
             } else {
               Text
@@ -591,10 +791,14 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 feed_subtitle = None
                 feed_subtitle_xhtml = None
               }
+              "rights" => {
+                feed_rights = None
+                feed_rights_xhtml = None
+              }
               _ => ()
             }
             xhtml_capture = if capture_text_kind == Xhtml &&
-              element.name.local_name is ("title" | "subtitle") {
+              element.name.local_name is ("title" | "subtitle" | "rights") {
               let references = xhtml_copy_references(feed_base_references)
               match xml_base_attribute(element) {
                 Some(value) => references.push(value)
@@ -609,7 +813,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               None
             }
             capture_unsupported_type = element.name.local_name
-              is ("title" | "subtitle") &&
+              is ("title" | "subtitle" | "rights") &&
               atom_text_kind(element) is None
             capture_line = event.span.start.line
             capture_column = event.span.start.column
@@ -638,7 +842,8 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               is_atom_name(element.name, "title") ||
               is_atom_name(element.name, "published") ||
               is_atom_name(element.name, "updated") ||
-              is_atom_name(element.name, "summary")
+              is_atom_name(element.name, "summary") ||
+              is_atom_name(element.name, "rights")
             ) {
             capture_field = Some(element.name.local_name)
             capture_in_entry = true
@@ -646,7 +851,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             captured_text = ""
             capture_has_nested_markup = false
             capture_text_kind = if element.name.local_name
-              is ("title" | "summary") {
+              is ("title" | "summary" | "rights") {
               atom_text_kind(element).unwrap_or(Text)
             } else {
               Text
@@ -660,10 +865,14 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 entry_summary = None
                 entry_summary_xhtml = None
               }
+              "rights" => {
+                entry_rights = None
+                entry_rights_xhtml = None
+              }
               _ => ()
             }
             xhtml_capture = if capture_text_kind == Xhtml &&
-              element.name.local_name is ("title" | "summary") {
+              element.name.local_name is ("title" | "summary" | "rights") {
               let references = xhtml_copy_references(entry_base_references)
               match xml_base_attribute(element) {
                 Some(value) => references.push(value)
@@ -678,7 +887,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               None
             }
             capture_unsupported_type = element.name.local_name
-              is ("title" | "summary") &&
+              is ("title" | "summary" | "rights") &&
               atom_text_kind(element) is None
             capture_line = event.span.start.line
             capture_column = event.span.start.column
@@ -700,9 +909,47 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               _ => ()
             }
           }
+          if entry_open && depth == entry_depth {
+            atom_singleton(
+              element,
+              entry_singletons,
+              true,
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
+          } else if !entry_open && depth == 1 {
+            atom_singleton(
+              element,
+              feed_singletons,
+              false,
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
+          }
           depth = depth + 1
         }
-        @xml.Empty(element) =>
+        @xml.Empty(element) => {
+          if entry_open && depth == entry_depth {
+            atom_singleton(
+              element,
+              entry_singletons,
+              true,
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
+          } else if !entry_open && depth == 1 {
+            atom_singleton(
+              element,
+              feed_singletons,
+              false,
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
+          }
           if capture_field is Some(_) && depth >= capture_depth {
             match xhtml_capture {
               Some(state) => state.node(element, depth == capture_depth, true)
@@ -730,17 +977,35 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             }
           } else if !entry_open &&
             depth == 1 &&
-            is_atom_name(element.name, "author") {
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
             diagnostics.push({
-              kind: InvalidAuthor("atom author missing name"),
+              kind: InvalidAuthor(
+                if is_atom_name(element.name, "author") {
+                  "atom author missing name"
+                } else {
+                  "atom contributor missing name"
+                },
+              ),
               line: event.span.start.line,
               column: event.span.start.column,
             })
           } else if entry_open &&
             depth == entry_depth &&
-            is_atom_name(element.name, "author") {
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
             diagnostics.push({
-              kind: InvalidAuthor("atom author missing name"),
+              kind: InvalidAuthor(
+                if is_atom_name(element.name, "author") {
+                  "atom author missing name"
+                } else {
+                  "atom contributor missing name"
+                },
+              ),
               line: event.span.start.line,
               column: event.span.start.column,
             })
@@ -779,12 +1044,28 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "link") {
+            atom_append_link(
+              feed_links,
+              element,
+              "feed",
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
             if feed_link is None {
               feed_link = atom_alternate_link(element)
             }
           } else if entry_open &&
             depth == entry_depth &&
             is_atom_name(element.name, "link") {
+            atom_append_link(
+              entry_links,
+              element,
+              "entry",
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
             if entry_link is None {
               entry_link = atom_alternate_link(element)
             }
@@ -927,9 +1208,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               is_atom_name(element.name, "id") ||
               is_atom_name(element.name, "title") ||
               is_atom_name(element.name, "subtitle") ||
+              is_atom_name(element.name, "rights") ||
+              is_atom_name(element.name, "generator") ||
               is_atom_name(element.name, "updated")
             ) {
-            if element.name.local_name is ("title" | "subtitle") &&
+            if element.name.local_name is ("title" | "subtitle" | "rights") &&
               atom_text_kind(element) is None {
               diagnostics.push({
                 kind: UnsupportedTextConstruct(
@@ -939,7 +1222,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 column: event.span.start.column,
               })
             }
-            if element.name.local_name is ("title" | "subtitle") &&
+            if element.name.local_name is ("title" | "subtitle" | "rights") &&
               atom_text_kind(element) == Some(Xhtml) {
               diagnostics.push({
                 kind: UnsupportedTextConstruct(
@@ -958,6 +1241,12 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 feed_title_xhtml = None
               }
               "updated" => feed_updated = None
+              "rights" => {
+                feed_rights = None
+                feed_rights_kind = kind
+                feed_rights_xhtml = None
+              }
+              "generator" => feed_generator = None
               _ => {
                 feed_subtitle = None
                 feed_subtitle_kind = kind
@@ -986,9 +1275,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               is_atom_name(element.name, "title") ||
               is_atom_name(element.name, "published") ||
               is_atom_name(element.name, "updated") ||
-              is_atom_name(element.name, "summary")
+              is_atom_name(element.name, "summary") ||
+              is_atom_name(element.name, "rights")
             ) {
-            if element.name.local_name is ("title" | "summary") &&
+            if element.name.local_name is ("title" | "summary" | "rights") &&
               atom_text_kind(element) is None {
               diagnostics.push({
                 kind: UnsupportedTextConstruct(
@@ -998,7 +1288,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 column: event.span.start.column,
               })
             }
-            if element.name.local_name is ("title" | "summary") &&
+            if element.name.local_name is ("title" | "summary" | "rights") &&
               atom_text_kind(element) == Some(Xhtml) {
               diagnostics.push({
                 kind: UnsupportedTextConstruct(
@@ -1018,6 +1308,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               }
               "published" => entry_published = None
               "updated" => entry_updated = None
+              "rights" => {
+                entry_rights = None
+                entry_rights_kind = kind
+                entry_rights_xhtml = None
+              }
               _ => {
                 entry_summary = None
                 entry_summary_kind = kind
@@ -1040,6 +1335,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               _ => ()
             }
           }
+        }
         @xml.Text(text) | @xml.CData(text) => {
           if author_child is Some(_) {
             author_child_text = author_child_text + text
@@ -1101,7 +1397,7 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
           }
           if author_owner is Some(_) &&
             author_depth == depth &&
-            is_atom_name(name, "author") {
+            (is_atom_name(name, "author") || is_atom_name(name, "contributor")) {
             match author_name {
               Some(author_name) => {
                 let author = {
@@ -1109,16 +1405,25 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                   name: Some(author_name),
                   uri: author_uri,
                   email: author_email,
+                  avatar: None,
                 }
                 match author_owner {
                   Some("feed") => feed_authors.push(author)
                   Some("source") => entry_source_authors.push(author)
+                  Some("feed_contributor") => feed_contributors.push(author)
+                  Some("entry_contributor") => entry_contributors.push(author)
                   _ => entry_own_authors.push(author)
                 }
               }
               None =>
                 diagnostics.push({
-                  kind: InvalidAuthor("atom author missing name"),
+                  kind: InvalidAuthor(
+                    if is_atom_name(name, "contributor") {
+                      "atom contributor missing name"
+                    } else {
+                      "atom author missing name"
+                    },
+                  ),
                   line: author_line,
                   column: author_column,
                 })
@@ -1219,6 +1524,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                         entry_summary_kind = Xhtml
                         entry_summary_xhtml = xhtml_fragment
                       }
+                      "rights" => {
+                        entry_rights = non_blank_text(plain)
+                        entry_rights_kind = Xhtml
+                        entry_rights_xhtml = xhtml_fragment
+                      }
                       _ => {
                         entry_content = Some(plain)
                         entry_content_kind = Xhtml
@@ -1234,6 +1544,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                     feed_title = non_blank_text(plain)
                     feed_title_kind = Xhtml
                     feed_title_xhtml = xhtml_fragment
+                  } else if field == "rights" {
+                    feed_rights = non_blank_text(plain)
+                    feed_rights_kind = Xhtml
+                    feed_rights_xhtml = xhtml_fragment
                   } else {
                     feed_subtitle = non_blank_text(plain)
                     feed_subtitle_kind = Xhtml
@@ -1251,6 +1565,10 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                 }
                 "published" => entry_published = non_blank_text(captured_text)
                 "updated" => entry_updated = non_blank_text(captured_text)
+                "rights" => {
+                  entry_rights = non_blank_text(captured_text)
+                  entry_rights_kind = capture_text_kind
+                }
                 "content" => {
                   entry_content = Some(captured_text)
                   entry_content_kind = capture_text_kind
@@ -1273,6 +1591,11 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
                   feed_title_kind = capture_text_kind
                 }
                 "updated" => feed_updated = non_blank_text(captured_text)
+                "rights" => {
+                  feed_rights = non_blank_text(captured_text)
+                  feed_rights_kind = capture_text_kind
+                }
+                "generator" => feed_generator = non_blank_text(captured_text)
                 _ => {
                   feed_subtitle = non_blank_text(captured_text)
                   feed_subtitle_kind = capture_text_kind
@@ -1337,12 +1660,21 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               description_kind: entry_summary_kind,
               description_xhtml: entry_summary_xhtml,
               content: entry_content,
+              content_text: None,
+              content_html: None,
               content_kind: entry_content_kind,
               content_xhtml: entry_content_xhtml,
               content_source: entry_content_source,
               content_media_type: entry_content_media_type,
               atom_body: entry_atom_body,
+              links: entry_links,
+              comments_url: None,
+              source_url: None,
+              rights: entry_rights,
+              rights_kind: entry_rights_kind,
+              rights_xhtml: entry_rights_xhtml,
               authors,
+              contributors: entry_contributors,
               categories: entry_categories,
               attachments: entry_attachments,
               images: [],
@@ -1353,16 +1685,30 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
               entry_own_authors.length() == 0 &&
               entry_source_authors.length() == 0,
             )
+            entry_has_own_author.push(entry_own_authors.length() > 0)
             entry_locations.push((entry_line, entry_column))
             entry_open = false
           }
           depth = depth - 1
         }
         @xml.Eof => {
-          add_missing_atom_feed_diagnostics(
-            feed_id, feed_title, feed_updated, feed_id_location, feed_title_location,
-            feed_updated_location, feed_line, feed_column, diagnostics,
-          )
+          if !standalone {
+            add_missing_atom_feed_diagnostics(
+              feed_id, feed_title, feed_updated, feed_id_location, feed_title_location,
+              feed_updated_location, feed_line, feed_column, diagnostics,
+            )
+            if feed_authors.is_empty() &&
+              (
+                entries.is_empty() ||
+                entry_has_own_author.any(fn(value) { !value })
+              ) {
+              diagnostics.push({
+                kind: MissingFeedField("author"),
+                line: feed_line,
+                column: feed_column,
+              })
+            }
+          }
           for index = 0
               index < entry_needs_feed_authors.length()
               index = index + 1 {
@@ -1394,7 +1740,18 @@ fn parse_atom(input : String) -> Result[Feed, ParseError] {
             description_kind: feed_subtitle_kind,
             description_xhtml: feed_subtitle_xhtml,
             updated_at: feed_updated,
+            published_at: None,
+            ttl_minutes: None,
+            rights: feed_rights,
+            rights_kind: feed_rights_kind,
+            rights_xhtml: feed_rights_xhtml,
+            generator: feed_generator,
+            next_url: None,
+            expired: None,
+            hubs: [],
+            links: feed_links,
             authors: feed_authors,
+            contributors: feed_contributors,
             categories: feed_categories,
             images: [],
             entries,

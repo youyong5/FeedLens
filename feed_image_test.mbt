@@ -83,10 +83,21 @@ test "Atom blank, duplicate, nested, and unresolvable visuals have located diagn
     #|</feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.images, [])
-  assert_true(feed.diagnostics[0].kind is @feedlens.InvalidFeedImage(_))
-  assert_true(feed.diagnostics[1].kind is @feedlens.InvalidFeedImage(_))
-  assert_true(feed.diagnostics[2].kind is @feedlens.UnsupportedNestedMarkup(_))
-  assert_eq(feed.diagnostics[0].line, 3)
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.DuplicateAtomField("feed icon") && d.line == 3
+    }),
+  )
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.InvalidFeedImage(_) && d.line == 3
+    }),
+  )
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.UnsupportedNestedMarkup(_) && d.line == 3
+    }),
+  )
   let bad_uri =
     #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated>
     #|<icon xml:base="http://[bad">relative.png</icon></feed>

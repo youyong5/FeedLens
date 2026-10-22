@@ -72,6 +72,10 @@ fn uri_with_entry_urls(
   images : Array[EntryImage],
   content_source : String?,
   atom_body : AtomBody?,
+  links : Array[AtomLink],
+  comments_url : String?,
+  source_url : String?,
+  authors : Array[Author],
 ) -> Entry {
   {
     identifier: entry.identifier,
@@ -85,12 +89,21 @@ fn uri_with_entry_urls(
     description_kind: entry.description_kind,
     description_xhtml: entry.description_xhtml,
     content: entry.content,
+    content_text: entry.content_text,
+    content_html: entry.content_html,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
     content_source,
     content_media_type: entry.content_media_type,
     atom_body,
-    authors: entry.authors,
+    links,
+    comments_url,
+    source_url,
+    rights: entry.rights,
+    rights_kind: entry.rights_kind,
+    rights_xhtml: entry.rights_xhtml,
+    authors,
+    contributors: entry.contributors,
     categories: entry.categories,
     attachments,
     images,
@@ -104,6 +117,10 @@ fn uri_with_feed_urls(
   feed : Feed,
   link : String?,
   entries : Array[Entry],
+  next_url : String?,
+  hubs : Array[Hub],
+  authors : Array[Author],
+  links : Array[AtomLink],
 ) -> Feed {
   {
     format: feed.format,
@@ -117,7 +134,18 @@ fn uri_with_feed_urls(
     description_kind: feed.description_kind,
     description_xhtml: feed.description_xhtml,
     updated_at: feed.updated_at,
-    authors: feed.authors,
+    published_at: feed.published_at,
+    ttl_minutes: feed.ttl_minutes,
+    rights: feed.rights,
+    rights_kind: feed.rights_kind,
+    rights_xhtml: feed.rights_xhtml,
+    generator: feed.generator,
+    next_url,
+    expired: feed.expired,
+    hubs,
+    links,
+    authors,
+    contributors: feed.contributors,
     categories: feed.categories,
     images: feed.images,
     entries,
@@ -181,11 +209,16 @@ fn rss_valid_enclosure(element : @xml.NamespaceElement) -> Bool {
 ///|
 priv struct UriXmlState {
   format : FeedFormat
+  standalone : Bool
   source_url : String
   diagnostics : Array[Diagnostic]
   mut feed_link : String?
   links : Array[String?]
   attachments : Array[Array[Attachment]]
+  feed_links : Array[AtomLink]
+  entry_links : Array[Array[AtomLink]]
+  mut feed_link_index : Int32
+  mut entry_link_index : Int32
   content_sources : Array[String?]
   bodies : Array[AtomBody?]
   entry_link_locations : Array[(Int32, Int32)?]
@@ -200,9 +233,18 @@ priv struct UriXmlState {
 }
 
 ///|
-fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
+fn UriXmlState::new(
+  feed : Feed,
+  source_url : String,
+  standalone : Bool,
+) -> UriXmlState {
   let links : Array[String?] = []
   let attachments : Array[Array[Attachment]] = []
+  let entry_links : Array[Array[AtomLink]] = []
+  let feed_links : Array[AtomLink] = []
+  for link in feed.links {
+    feed_links.push(link)
+  }
   let content_sources : Array[String?] = []
   let bodies : Array[AtomBody?] = []
   let locations : Array[(Int32, Int32)?] = []
@@ -213,17 +255,27 @@ fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
       copied.push(attachment)
     }
     attachments.push(copied)
+    let copied_links : Array[AtomLink] = []
+    for link in entry.links {
+      copied_links.push(link)
+    }
+    entry_links.push(copied_links)
     content_sources.push(entry.content_source)
     bodies.push(entry.atom_body)
     locations.push(None)
   }
   {
     format: feed.format,
+    standalone,
     source_url,
     diagnostics: feed.diagnostics,
     feed_link: feed.link,
     links,
     attachments,
+    feed_links,
+    entry_links,
+    feed_link_index: 0,
+    entry_link_index: 0,
     content_sources,
     bodies,
     entry_link_locations: locations,
@@ -235,6 +287,43 @@ fn UriXmlState::new(feed : Feed, source_url : String) -> UriXmlState {
     feed_alternate_seen: false,
     entry_alternate_seen: false,
     attachment_index: 0,
+  }
+}
+
+///|
+fn UriXmlState::resolve_atom_link(
+  self : UriXmlState,
+  raw : String,
+  base : String?,
+  line : Int32,
+  column : Int32,
+  entry : Bool,
+) -> Unit {
+  let links = if entry {
+    if self.entry_index < 0 || self.entry_index >= self.entry_links.length() {
+      return
+    }
+    self.entry_links[self.entry_index]
+  } else {
+    self.feed_links
+  }
+  let index = if entry { self.entry_link_index } else { self.feed_link_index }
+  if index >= links.length() || links[index].href != raw {
+    return
+  }
+  let link = links[index]
+  links[index] = {
+    relation: link.relation,
+    href: uri_at(base, raw, "atom link", line, column, self.diagnostics),
+    media_type: link.media_type,
+    hreflang: link.hreflang,
+    title: link.title,
+    length: link.length,
+  }
+  if entry {
+    self.entry_link_index = index + 1
+  } else {
+    self.feed_link_index = index + 1
   }
 }
 
@@ -312,12 +401,14 @@ fn UriXmlState::on_element(
     }
     return
   }
-  if depth == 1 && is_atom_name(element.name, "entry") {
+  if (depth == 1 || (self.standalone && depth == 0)) &&
+    is_atom_name(element.name, "entry") {
     self.entry_index = self.entry_index + 1
     self.entry_depth = depth + 1
     self.entry_open = !is_empty
     self.entry_alternate_seen = false
     self.attachment_index = 0
+    self.entry_link_index = 0
   } else if self.entry_open &&
     depth == self.entry_depth &&
     is_atom_name(element.name, "content") {
@@ -348,6 +439,10 @@ fn UriXmlState::on_element(
       _ => ()
     }
   } else if !self.entry_open && depth == 1 && is_atom_name(element.name, "link") {
+    match atom_non_blank_attribute(element, "href") {
+      Some(raw) => self.resolve_atom_link(raw, base, line, column, false)
+      None => ()
+    }
     if !self.feed_alternate_seen {
       match atom_alternate_link(element) {
         Some(href) => {
@@ -369,6 +464,10 @@ fn UriXmlState::on_element(
   } else if self.entry_open &&
     depth == self.entry_depth &&
     is_atom_name(element.name, "link") {
+    match atom_non_blank_attribute(element, "href") {
+      Some(raw) => self.resolve_atom_link(raw, base, line, column, true)
+      None => ()
+    }
     if !self.entry_alternate_seen {
       match atom_alternate_link(element) {
         Some(href) => {
@@ -457,10 +556,56 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
         feed.entries[index].images,
         self.content_sources[index],
         self.bodies[index],
+        self.entry_links[index],
+        if self.format == Rss2 {
+          match feed.entries[index].comments_url {
+            Some(raw) =>
+              Some(
+                uri_at(
+                  Some(self.source_url),
+                  raw,
+                  "rss item " + index.to_string() + " comments",
+                  1,
+                  1,
+                  self.diagnostics,
+                ),
+              )
+            None => None
+          }
+        } else {
+          feed.entries[index].comments_url
+        },
+        if self.format == Rss2 {
+          match feed.entries[index].source_url {
+            Some(raw) =>
+              Some(
+                uri_at(
+                  Some(self.source_url),
+                  raw,
+                  "rss item " + index.to_string() + " source",
+                  1,
+                  1,
+                  self.diagnostics,
+                ),
+              )
+            None => None
+          }
+        } else {
+          feed.entries[index].source_url
+        },
+        feed.entries[index].authors,
       ),
     )
   }
-  uri_with_feed_urls(feed, self.feed_link, entries)
+  uri_with_feed_urls(
+    feed,
+    self.feed_link,
+    entries,
+    feed.next_url,
+    feed.hubs,
+    feed.authors,
+    self.feed_links,
+  )
 }
 
 ///|
@@ -468,9 +613,10 @@ fn resolve_xml_feed(
   input : String,
   feed : Feed,
   source_url : String,
+  standalone : Bool,
 ) -> Result[Feed, ParseError] {
   let reader = @xml.NamespaceReader::from_string(input)
-  let state = UriXmlState::new(feed, source_url)
+  let state = UriXmlState::new(feed, source_url, standalone)
   let bases : Array[String?] = []
   let mut depth = 0
   try {
@@ -658,10 +804,78 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
         images,
         entry.content_source,
         entry.atom_body,
+        entry.links,
+        entry.comments_url,
+        entry.source_url,
+        resolve_json_authors(
+          entry.authors,
+          source_url,
+          diagnostics,
+          "json feed item " + index.to_string() + " author",
+        ),
       ),
     )
   }
-  uri_with_feed_urls(with_feed_images(feed, images), link, entries)
+  let next_url = match feed.next_url {
+    Some(raw) =>
+      Some(
+        uri_at(Some(source_url), raw, "json feed next_url", 1, 1, diagnostics),
+      )
+    None => None
+  }
+  let hubs : Array[Hub] = []
+  for hub in feed.hubs {
+    hubs.push({
+      transport_type: hub.transport_type,
+      url: uri_at(Some(source_url), hub.url, "json feed hub", 1, 1, diagnostics),
+    })
+  }
+  uri_with_feed_urls(
+    with_feed_images(feed, images),
+    link,
+    entries,
+    next_url,
+    hubs,
+    resolve_json_authors(
+      feed.authors,
+      source_url,
+      diagnostics,
+      "json feed author",
+    ),
+    feed.links,
+  )
+}
+
+///|
+fn resolve_json_authors(
+  authors : Array[Author],
+  source_url : String,
+  diagnostics : Array[Diagnostic],
+  field : String,
+) -> Array[Author] {
+  let resolved : Array[Author] = []
+  for author in authors {
+    let uri = match author.uri {
+      Some(raw) =>
+        Some(uri_at(Some(source_url), raw, field + " url", 1, 1, diagnostics))
+      None => None
+    }
+    let avatar = match author.avatar {
+      Some(raw) =>
+        Some(
+          uri_at(Some(source_url), raw, field + " avatar", 1, 1, diagnostics),
+        )
+      None => None
+    }
+    resolved.push({
+      source: author.source,
+      name: author.name,
+      uri,
+      email: author.email,
+      avatar,
+    })
+  }
+  resolved
 }
 
 ///|
@@ -683,11 +897,67 @@ pub fn parse_with_source(
       match feed.format {
         JsonFeed1 => Ok(resolve_json_feed(feed, source_url))
         Rss2 | Atom1 =>
-          match resolve_xml_feed(input, feed, source_url) {
+          match resolve_xml_feed(input, feed, source_url, false) {
             Ok(resolved) =>
               add_xml_feed_images(input, resolved, Some(source_url), false)
             Err(error) => Err(error)
           }
       }
+  }
+}
+
+///|
+/// Resolve links and external content in either document shape using the
+/// supplied HTTP(S) document URL and Atom xml:base scopes.
+pub fn parse_document_with_source(
+  input : String,
+  source_url : String,
+) -> Result[ParsedDocument, ParseError] {
+  if !uri_source_valid(source_url) {
+    return Err(InvalidSourceUrl(source_url))
+  }
+  match parse_document(input) {
+    Ok(FeedDocument(_)) =>
+      match parse_with_source(input, source_url) {
+        Ok(feed) => Ok(FeedDocument(feed))
+        Err(error) => Err(error)
+      }
+    Ok(AtomEntryDocument(entry, diagnostics)) => {
+      let feed : Feed = {
+        format: Atom1,
+        identifier: None,
+        title: None,
+        title_kind: Text,
+        title_xhtml: None,
+        link: None,
+        language: None,
+        description: None,
+        description_kind: Text,
+        description_xhtml: None,
+        updated_at: None,
+        published_at: None,
+        ttl_minutes: None,
+        rights: None,
+        rights_kind: Text,
+        rights_xhtml: None,
+        generator: None,
+        next_url: None,
+        expired: None,
+        hubs: [],
+        authors: [],
+        contributors: [],
+        categories: [],
+        images: [],
+        entries: [entry],
+        links: [],
+        diagnostics,
+      }
+      match resolve_xml_feed(input, feed, source_url, true) {
+        Ok(resolved) =>
+          Ok(AtomEntryDocument(resolved.entries[0], resolved.diagnostics))
+        Err(error) => Err(error)
+      }
+    }
+    Err(error) => Err(error)
   }
 }

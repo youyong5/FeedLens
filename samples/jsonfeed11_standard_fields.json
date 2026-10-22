@@ -1,0 +1,1 @@
+{"version":"https://jsonfeed.org/version/1.1","title":"News","feed_url":"https://example.test/feed.json","next_url":"older.json","expired":false,"hubs":[{"type":"WebSub","url":"hubs/main"}],"authors":[{"avatar":"avatars/editor.png"}],"items":[{"id":"one","content_html":"<b>One</b>","content_text":"One","authors":[{"name":"Writer","avatar":"avatars/writer.png"}]}]}

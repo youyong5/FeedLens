@@ -52,3 +52,19 @@ test "a separate package can use detailed Atom body variants" {
   assert_eq(bytes.length(), 3)
   assert_eq(bytes[2].to_int(), 3)
 }
+
+///|
+test "a separate package can read independent Atom Entry Documents" {
+  let input =
+    #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="posts/"><id>urn:e</id><title>Independent entry</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><link href="one"/></entry>
+  guard @feedlens.parse_document_with_source(
+      input, "https://example.test/news/entry.atom",
+    )
+    is Ok(@feedlens.AtomEntryDocument(entry, diagnostics)) else {
+    fail("expected public document variant")
+  }
+  assert_eq(entry.title, Some("Independent entry"))
+  assert_eq(entry.link, Some("https://example.test/news/posts/one"))
+  assert_eq(diagnostics, [])
+  assert_true(@feedlens.parse(input) is Err(@feedlens.UnsupportedRoot(_, _)))
+}

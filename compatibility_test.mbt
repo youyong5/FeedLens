@@ -213,7 +213,7 @@ test "compatibility boundary samples preserve diagnostics and locations" {
     ),
   )
   guard atom is Ok(atom_feed) else { fail("expected recovered boundary Atom") }
-  assert_eq(atom_feed.diagnostics.length(), 3)
+  assert_eq(atom_feed.diagnostics.length(), 4)
   assert_true(
     atom_feed.diagnostics[0].kind
     is @feedlens.InvalidCategory("atom category missing term"),
@@ -227,7 +227,10 @@ test "compatibility boundary samples preserve diagnostics and locations" {
     is @feedlens.InvalidAuthor("atom author missing name"),
   )
   assert_true(
-    atom_feed.diagnostics[2].kind is @feedlens.MissingEntryField(0, "author"),
+    atom_feed.diagnostics[2].kind is @feedlens.MissingFeedField("author"),
+  )
+  assert_true(
+    atom_feed.diagnostics[3].kind is @feedlens.MissingEntryField(0, "author"),
   )
 }
 
