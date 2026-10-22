@@ -72,6 +72,7 @@ fn uri_with_entry_urls(
   images : Array[EntryImage],
   content_source : String?,
   atom_body : AtomBody?,
+  atom_source : AtomSource?,
   links : Array[AtomLink],
   comments_url : String?,
   source_url : String?,
@@ -96,7 +97,7 @@ fn uri_with_entry_urls(
     content_source,
     content_media_type: entry.content_media_type,
     atom_body,
-    atom_source: entry.atom_source,
+    atom_source,
     links,
     comments_url,
     source_url,
@@ -124,6 +125,7 @@ fn uri_with_feed_urls(
   hubs : Array[Hub],
   authors : Array[Author],
   links : Array[AtomLink],
+  generator_uri : String?,
 ) -> Feed {
   {
     format: feed.format,
@@ -143,6 +145,8 @@ fn uri_with_feed_urls(
     rights_kind: feed.rights_kind,
     rights_xhtml: feed.rights_xhtml,
     generator: feed.generator,
+    generator_uri,
+    generator_version: feed.generator_version,
     managing_editor: feed.managing_editor,
     webmaster: feed.webmaster,
     next_url,
@@ -218,12 +222,27 @@ priv struct UriXmlState {
   source_url : String
   diagnostics : Array[Diagnostic]
   mut feed_link : String?
+  mut feed_generator_uri : String?
   links : Array[String?]
   attachments : Array[Array[Attachment]]
   feed_links : Array[AtomLink]
   entry_links : Array[Array[AtomLink]]
+  source_links : Array[Array[AtomLink]]
+  source_images : Array[Array[FeedImage]]
+  source_links_alt : Array[String?]
+  source_generators : Array[String?]
   mut feed_link_index : Int32
   mut entry_link_index : Int32
+  mut source_link_index : Int32
+  mut source_image_index : Int32
+  mut source_alternate_seen : Bool
+  mut source_open : Bool
+  mut source_depth : Int32
+  mut image_field : String?
+  mut image_text : String
+  mut image_base : String?
+  mut image_line : Int32
+  mut image_column : Int32
   content_sources : Array[String?]
   bodies : Array[AtomBody?]
   entry_link_locations : Array[(Int32, Int32)?]
@@ -246,6 +265,10 @@ fn UriXmlState::new(
   let links : Array[String?] = []
   let attachments : Array[Array[Attachment]] = []
   let entry_links : Array[Array[AtomLink]] = []
+  let source_links : Array[Array[AtomLink]] = []
+  let source_images : Array[Array[FeedImage]] = []
+  let source_links_alt : Array[String?] = []
+  let source_generators : Array[String?] = []
   let feed_links : Array[AtomLink] = []
   for link in feed.links {
     feed_links.push(link)
@@ -265,6 +288,26 @@ fn UriXmlState::new(
       copied_links.push(link)
     }
     entry_links.push(copied_links)
+    let copied_source_links : Array[AtomLink] = []
+    let copied_source_images : Array[FeedImage] = []
+    match entry.atom_source {
+      Some(source) => {
+        for link in source.links {
+          copied_source_links.push(link)
+        }
+        for image in source.images {
+          copied_source_images.push(image)
+        }
+        source_links_alt.push(source.link)
+        source_generators.push(source.generator_uri)
+      }
+      None => {
+        source_links_alt.push(None)
+        source_generators.push(None)
+      }
+    }
+    source_links.push(copied_source_links)
+    source_images.push(copied_source_images)
     content_sources.push(entry.content_source)
     bodies.push(entry.atom_body)
     locations.push(None)
@@ -275,12 +318,27 @@ fn UriXmlState::new(
     source_url,
     diagnostics: feed.diagnostics,
     feed_link: feed.link,
+    feed_generator_uri: feed.generator_uri,
     links,
     attachments,
     feed_links,
     entry_links,
+    source_links,
+    source_images,
+    source_links_alt,
+    source_generators,
     feed_link_index: 0,
     entry_link_index: 0,
+    source_link_index: 0,
+    source_image_index: 0,
+    source_alternate_seen: false,
+    source_open: false,
+    source_depth: 0,
+    image_field: None,
+    image_text: "",
+    image_base: None,
+    image_line: 1,
+    image_column: 1,
     content_sources,
     bodies,
     entry_link_locations: locations,
@@ -358,6 +416,80 @@ fn UriXmlState::resolve_attachment(
 }
 
 ///|
+fn uri_with_source_urls(
+  source : AtomSource?,
+  link : String?,
+  links : Array[AtomLink],
+  images : Array[FeedImage],
+  generator_uri : String?,
+) -> AtomSource? {
+  match source {
+    None => None
+    Some(source) =>
+      Some({
+        identifier: source.identifier,
+        title: source.title,
+        title_kind: source.title_kind,
+        title_xhtml: source.title_xhtml,
+        subtitle: source.subtitle,
+        subtitle_kind: source.subtitle_kind,
+        subtitle_xhtml: source.subtitle_xhtml,
+        updated_at: source.updated_at,
+        rights: source.rights,
+        rights_kind: source.rights_kind,
+        rights_xhtml: source.rights_xhtml,
+        generator: source.generator,
+        generator_uri,
+        generator_version: source.generator_version,
+        authors: source.authors,
+        contributors: source.contributors,
+        categories: source.categories,
+        link,
+        links,
+        images,
+      })
+  }
+}
+
+///|
+fn UriXmlState::finish_image(self : UriXmlState) -> Unit {
+  match (self.image_field, non_blank_text(self.image_text)) {
+    (Some(field), Some(raw)) if self.entry_index >= 0 &&
+      self.entry_index < self.source_images.length() => {
+      let images = self.source_images[self.entry_index]
+      let index = self.source_image_index
+      if index < images.length() &&
+        images[index].url == raw &&
+        images[index].role ==
+        (if field == "icon" { AtomIcon } else { AtomLogo }) {
+        let image = images[index]
+        images[index] = {
+          source: image.source,
+          role: image.role,
+          url: uri_at(
+            self.image_base,
+            raw,
+            "atom source " + field,
+            self.image_line,
+            self.image_column,
+            self.diagnostics,
+          ),
+          title: image.title,
+          link: image.link,
+          description: image.description,
+          width: image.width,
+          height: image.height,
+        }
+        self.source_image_index = index + 1
+      }
+    }
+    _ => ()
+  }
+  self.image_field = None
+  self.image_text = ""
+}
+
+///|
 fn UriXmlState::on_element(
   self : UriXmlState,
   element : @xml.NamespaceElement,
@@ -414,6 +546,105 @@ fn UriXmlState::on_element(
     self.entry_alternate_seen = false
     self.attachment_index = 0
     self.entry_link_index = 0
+    self.source_open = false
+  } else if self.entry_open &&
+    depth == self.entry_depth &&
+    is_atom_name(element.name, "source") {
+    self.source_open = !is_empty
+    self.source_depth = depth + 1
+    self.source_link_index = 0
+    self.source_image_index = 0
+    self.source_alternate_seen = false
+  } else if self.source_open &&
+    depth == self.source_depth &&
+    is_atom_name(element.name, "link") {
+    match atom_non_blank_attribute(element, "href") {
+      Some(raw) => {
+        let links = self.source_links[self.entry_index]
+        let index = self.source_link_index
+        if index < links.length() && links[index].href == raw {
+          let link = links[index]
+          links[index] = {
+            relation: link.relation,
+            href: uri_at(
+              base,
+              raw,
+              "atom source link",
+              line,
+              column,
+              self.diagnostics,
+            ),
+            media_type: link.media_type,
+            hreflang: link.hreflang,
+            title: link.title,
+            length: link.length,
+          }
+          self.source_link_index = index + 1
+        }
+      }
+      None => ()
+    }
+    if !self.source_alternate_seen {
+      match atom_alternate_link(element) {
+        Some(raw) => {
+          self.source_alternate_seen = true
+          self.source_links_alt[self.entry_index] = Some(
+            uri_at(
+              base,
+              raw,
+              "atom source alternate link",
+              line,
+              column,
+              self.diagnostics,
+            ),
+          )
+        }
+        None => ()
+      }
+    }
+  } else if self.source_open &&
+    depth == self.source_depth &&
+    is_atom_name(element.name, "generator") {
+    match atom_attribute_value(element, "uri") {
+      Some(raw) if self.source_generators[self.entry_index] == Some(raw) =>
+        self.source_generators[self.entry_index] = Some(
+          uri_at(
+            base,
+            raw,
+            "atom source generator uri",
+            line,
+            column,
+            self.diagnostics,
+          ),
+        )
+      _ => ()
+    }
+  } else if self.source_open &&
+    depth == self.source_depth &&
+    (is_atom_name(element.name, "icon") || is_atom_name(element.name, "logo")) &&
+    !is_empty {
+    self.image_field = Some(element.name.local_name)
+    self.image_text = ""
+    self.image_base = base
+    self.image_line = line
+    self.image_column = column
+  } else if !self.entry_open &&
+    depth == 1 &&
+    is_atom_name(element.name, "generator") {
+    match atom_attribute_value(element, "uri") {
+      Some(raw) if self.feed_generator_uri == Some(raw) =>
+        self.feed_generator_uri = Some(
+          uri_at(
+            base,
+            raw,
+            "atom feed generator uri",
+            line,
+            column,
+            self.diagnostics,
+          ),
+        )
+      _ => ()
+    }
   } else if self.entry_open &&
     depth == self.entry_depth &&
     is_atom_name(element.name, "content") {
@@ -561,6 +792,17 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
         feed.entries[index].images,
         self.content_sources[index],
         self.bodies[index],
+        if self.format == Atom1 {
+          uri_with_source_urls(
+            feed.entries[index].atom_source,
+            self.source_links_alt[index],
+            self.source_links[index],
+            self.source_images[index],
+            self.source_generators[index],
+          )
+        } else {
+          feed.entries[index].atom_source
+        },
         self.entry_links[index],
         if self.format == Rss2 {
           match feed.entries[index].comments_url {
@@ -610,6 +852,7 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
     feed.hubs,
     feed.authors,
     self.feed_links,
+    self.feed_generator_uri,
   )
 }
 
@@ -677,6 +920,17 @@ fn resolve_xml_feed(
           )
         }
         @xml.End(name) => {
+          if state.image_field is Some(field) &&
+            state.source_open &&
+            depth == state.source_depth + 1 &&
+            is_atom_name(name, field) {
+            state.finish_image()
+          }
+          if state.source_open &&
+            depth == state.source_depth &&
+            is_atom_name(name, "source") {
+            state.source_open = false
+          }
           if state.entry_open &&
             depth == state.entry_depth &&
             (
@@ -688,6 +942,10 @@ fn resolve_xml_feed(
           depth = depth - 1
           ignore(bases.pop())
         }
+        @xml.Text(value) | @xml.CData(value) =>
+          if state.image_field is Some(_) {
+            state.image_text = state.image_text + value
+          }
         @xml.Eof => return Ok(state.finish(feed))
         _ => ()
       }
@@ -809,6 +1067,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
         images,
         entry.content_source,
         entry.atom_body,
+        entry.atom_source,
         entry.links,
         entry.comments_url,
         entry.source_url,
@@ -848,6 +1107,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
       "json feed author",
     ),
     feed.links,
+    feed.generator_uri,
   )
 }
 
@@ -946,6 +1206,8 @@ pub fn parse_document_with_source(
         rights_kind: Text,
         rights_xhtml: None,
         generator: None,
+        generator_uri: None,
+        generator_version: None,
         managing_editor: None,
         webmaster: None,
         next_url: None,

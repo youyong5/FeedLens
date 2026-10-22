@@ -58,13 +58,22 @@ pub struct AtomSource {
   title : String?
   title_kind : TextKind
   title_xhtml : XhtmlFragment?
+  subtitle : String?
+  subtitle_kind : TextKind
+  subtitle_xhtml : XhtmlFragment?
   updated_at : String?
   rights : String?
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
+  generator : String?
+  generator_uri : String?
+  generator_version : String?
   authors : Array[Author]
   contributors : Array[Author]
   categories : Array[Category]
+  link : String?
+  links : Array[AtomLink]
+  images : Array[FeedImage]
 } derive(Eq, @debug.Debug)
 pub fn AtomSource::equal(Self, Self) -> Bool
 pub fn AtomSource::not_equal(Self, Self) -> Bool
@@ -245,6 +254,8 @@ pub struct Feed {
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
   generator : String?
+  generator_uri : String?
+  generator_version : String?
   managing_editor : String?
   webmaster : String?
   next_url : String?
