@@ -15,7 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: hustcer/setup-moonbit@v1
+      # Pin the setup action: the moving v1 tag currently requests a Nu
+      # release that its own asset resolver cannot install on some runners.
+      - uses: hustcer/setup-moonbit@v1.23
         with:
           version: latest
       - uses: astral-sh/setup-uv@v6
@@ -32,7 +34,7 @@ jobs:
         target: [wasm, js, native]
     steps:
       - uses: actions/checkout@v5
-      - uses: hustcer/setup-moonbit@v1
+      - uses: hustcer/setup-moonbit@v1.23
         with:
           # The local 0.1.20260920 toolchain has no downloadable Linux asset
           # (the official versioned URL returns 403); latest is verified
@@ -50,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: hustcer/setup-moonbit@v1
+      - uses: hustcer/setup-moonbit@v1.23
         with:
           version: latest
       - name: Refresh MoonBit registry
