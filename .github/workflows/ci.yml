@@ -15,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      # Pin the setup action: the moving v1 tag currently requests a Nu
-      # release that its own asset resolver cannot install on some runners.
-      - uses: hustcer/setup-moonbit@v1.23
-        with:
-          version: latest
+      - name: Install MoonBit from official script
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - uses: astral-sh/setup-uv@v6
       - run: moon update
       - name: Compare saved real projections and independent Atom Entry
@@ -34,12 +34,11 @@ jobs:
         target: [wasm, js, native]
     steps:
       - uses: actions/checkout@v5
-      - uses: hustcer/setup-moonbit@v1.23
-        with:
-          # The local 0.1.20260920 toolchain has no downloadable Linux asset
-          # (the official versioned URL returns 403); latest is verified
-          # downloadable for GitHub-hosted Linux runners.
-          version: latest
+      - name: Install MoonBit from official script
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Refresh MoonBit registry
         run: moon update
       - name: Check
@@ -52,9 +51,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: hustcer/setup-moonbit@v1.23
-        with:
-          version: latest
+      - name: Install MoonBit from official script
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Refresh MoonBit registry
         run: moon update
       - name: Render RSS and Atom summaries
