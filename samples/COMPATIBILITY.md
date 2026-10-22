@@ -22,7 +22,7 @@ RSS 2.0 / Atom 1.0 / JSON Feed surface.
 | `atom1_entry_document.xml` | Stand-alone Atom Entry Document with XHTML text/body, author, xml:base, alternate/enclosure links; independent feedparser and library regression. |
 | `rss2_standard_fields.xml`, `atom1_standard_fields.xml`, `jsonfeed11_standard_fields.json` | Synthetic, byte-mirrored regressions for additional common fields and CLI output; not portrayed as live sources. |
 | `rss2_metadata.xml` | Synthetic byte-mirrored RSS contacts, guid permalink role and source credit regression; independent feedparser intersection. |
-| `atom1_source_metadata.xml` | Synthetic byte-mirrored Atom aggregation source metadata with XHTML title, xml:lang/base and original author; independent feedparser intersection. |
+| `atom1_source_metadata.xml` | Synthetic byte-mirrored Atom aggregation source metadata with XHTML title, HTML subtitle, generator, links, icon/logo, xml:lang/base and original author; independent feedparser intersection. feedparser 6.0.11 overwrites source.title with icon text on this fixture; the comparison reads title_detail.value. Source images are fixture-only assertions because its icon representation is not comparable. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-
@@ -107,7 +107,7 @@ with Python's standard JSON/date libraries, then compares the declared
 intersection with Native CLI output: two ordered article permalinks, UTC
 publication instants, audio URLs and integer byte sizes. It separately uses
 feedparser's Atom Entry Document support to check the independent fixture's
-ID, XHTML display text, `xml:base` link references and enclosure. Four new
+ID, XHTML display text, `xml:base` link references and enclosure. Six new
 file/test mirrors are checked byte-for-byte. It does not compare omitted long
 bodies, claim equivalence of opaque XML/JSON IDs, or fetch live sources.
 The phase-11 display metadata and JSON Feed fixture are parser regressions,

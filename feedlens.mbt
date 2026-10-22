@@ -227,13 +227,22 @@ pub struct AtomSource {
   title : String?
   title_kind : TextKind
   title_xhtml : XhtmlFragment?
+  subtitle : String?
+  subtitle_kind : TextKind
+  subtitle_xhtml : XhtmlFragment?
   updated_at : String?
   rights : String?
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
+  generator : String?
+  generator_uri : String?
+  generator_version : String?
   authors : Array[Author]
   contributors : Array[Author]
   categories : Array[Category]
+  link : String?
+  links : Array[AtomLink]
+  images : Array[FeedImage]
 } derive(Debug, Eq)
 
 ///|
@@ -331,6 +340,8 @@ pub struct Feed {
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
   generator : String?
+  generator_uri : String?
+  generator_version : String?
   /// RSS contact addresses retain their distinct editorial and technical roles.
   managing_editor : String?
   webmaster : String?
@@ -1432,6 +1443,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             rights_kind: Unspecified,
             rights_xhtml: None,
             generator: channel_generator,
+            generator_uri: None,
+            generator_version: None,
             managing_editor: channel_managing_editor,
             webmaster: channel_webmaster,
             next_url: None,

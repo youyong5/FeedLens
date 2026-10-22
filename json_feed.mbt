@@ -668,6 +668,8 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     rights_kind: Unspecified,
     rights_xhtml: None,
     generator: None,
+    generator_uri: None,
+    generator_version: None,
     managing_editor: None,
     webmaster: None,
     next_url,

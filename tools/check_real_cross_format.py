@@ -154,7 +154,9 @@ def main() -> None:
     source = atom_source_cli["entries"][0]["atom_source"]
     reference = atom_source_reference.entries[0].source
     assert source["identifier"] == reference.id
-    assert source["title"] == visible_text(reference.title)
+    # feedparser 6.0.11 overwrites source.title with icon text in this fixture;
+    # title_detail.value still retains the actual XHTML title.
+    assert source["title"] == visible_text(reference.title_detail.value)
     assert source["title_kind"] == "xhtml" and reference.title_detail.type == "application/xhtml+xml"
     assert source["title_xhtml"]["language"] == reference.title_detail.language == "fr"
     assert source["updated_at"] == reference.updated
@@ -164,7 +166,18 @@ def main() -> None:
     assert source["categories"][0]["scheme"] == reference.tags[0].scheme
     assert source["rights"] == reference.rights
     assert source["rights_kind"] == "html" and reference.rights_detail.type == "text/html"
-    print("PASS independent Atom source identity, XHTML title, updated, people, category and rights")
+    assert source["subtitle"] == reference.subtitle
+    assert source["subtitle_kind"] == "html" and reference.subtitle_detail.type == "text/html"
+    assert source["generator"] == reference.generator_detail.name
+    assert source["generator_version"] == reference.generator_detail.version
+    assert source["generator_uri"] == "tool" and reference.generator_detail.href == "origins/tool"
+    assert source["link"] == "home" and reference.link == "origins/home"
+    assert [link["rel"] for link in source["links"]] == [link.rel for link in reference.links]
+    assert [link["href"] for link in source["links"]] == ["home", "index.atom"]
+    assert [link.href for link in reference.links] == ["origins/home", "origins/index.atom"]
+    assert atom_source_cli["generator"] == atom_source_reference.feed.generator
+    assert source["images"][0]["url"] == "icon.png" and source["images"][1]["url"] == "logo.png"
+    print("PASS independent Atom source identity, XHTML title_detail, subtitle, generator, links, updated, people, category and rights; images fixture-only")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 

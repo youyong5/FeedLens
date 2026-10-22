@@ -37,7 +37,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.content_source` | none | external `content src`, raw with `parse`, resolved with `parse_with_source` | none |
 | `Entry.content_media_type` | none | declared `content type` spelling, if present | none |
 | `Entry.atom_body` | none | detailed inline or external Atom body | none |
-| `Entry.atom_source` | none | original feed `source` id/title/updated, rights, people and categories, separately from the aggregated entry | none |
+| `Entry.atom_source` | none | original feed `source` id/title/subtitle/updated, rights, generator (including uri/version), links, images, people and categories, separately from the aggregated entry | none |
 | `Entry.content_text`, `Entry.content_html` | none | none | both item forms independently |
 | `Entry.comments_url`, `Entry.source_url`, `Entry.source_title` | item `comments`, `source/@url` and source channel title | none | none |
 | `Entry.guid_is_permalink` | `guid/@isPermaLink`, default true on a usable guid | none | none |

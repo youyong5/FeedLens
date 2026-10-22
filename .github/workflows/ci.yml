@@ -103,6 +103,10 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_standard_fields.xml > standard-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_standard_fields.json > standard-json.json
           python3 -c "import json; r=json.load(open('standard-rss.json')); a=json.load(open('standard-atom.json')); j=json.load(open('standard-json.json')); assert r['generator']=='Publisher 2' and r['entries'][0]['comments_url']=='comments/one'; assert a['rights_kind']=='xhtml' and a['rights_xhtml']['markup']; assert j['next_url']=='older.json' and j['expired'] is False and j['entries'][0]['content_text']=='One' and j['authors'][0]['avatar']=='avatars/editor.png'"
+      - name: Inspect Atom aggregation source metadata
+        run: |
+          moon run --target native cmd/main --json samples/atom1_source_metadata.xml > atom-source.json
+          python3 -c "import json; x=json.load(open('atom-source.json')); s=x['entries'][0]['atom_source']; assert x['diagnostics']==[]; assert x['generator_uri']=='tools/agg' and x['generator_version']=='3'; assert s['subtitle_kind']=='html' and s['generator_uri']=='tool'; assert [v['rel'] for v in s['links']]==['alternate','self']; assert [v['role'] for v in s['images']]==['atom_icon','atom_logo']"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
