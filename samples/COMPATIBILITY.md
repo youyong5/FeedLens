@@ -19,6 +19,8 @@ RSS 2.0 / Atom 1.0 / JSON Feed surface.
 | `jsonfeed11_attachments.json` | JSON Feed attachment title, size, fractional duration, and order; parser and CLI fixture only. |
 | `real_wptavern_rss.xml`, `real_wptavern_atom.xml`, `real_wptavern_json.json` | Editorially reduced projections of two corresponding podcast entries from live public subscriptions, with source URLs and capture hashes in `REAL_WORLD.md`; date, article link, and attachment regression cases. |
 | `jsonfeed11_display.json` | Synthetic JSON Feed 1.1 fixture for language, feed icon/favicon, distinct permalink/external URL, and featured/banner item-image roles; parser and CLI fixture only. |
+| `atom1_entry_document.xml` | Stand-alone Atom Entry Document with XHTML text/body, author, xml:base, alternate/enclosure links; independent feedparser and library regression. |
+| `rss2_standard_fields.xml`, `atom1_standard_fields.xml`, `jsonfeed11_standard_fields.json` | Synthetic, byte-mirrored regressions for additional common fields and CLI output; not portrayed as live sources. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-
@@ -96,11 +98,15 @@ performs no network request during the comparison.
 No parser defect was found by this reference comparison. The identified RSS
 identifier difference is documented, pre-existing FeedLens behavior.
 
-The real-feed projections are not treated as independent feedparser
-agreements. They are compared across FeedLens's three formats for the selected
-episode's normalized UTC instant and retained attachment URL/type/size. The
-reference script verifies that their embedded MoonBit mirrors byte-match the
-checked-in projections; it does not compare their long omitted bodies or
-claim equivalence of opaque publisher IDs across XML and JSON.
+The original `check_compatibility.py` does not compare real projections with
+feedparser. The new `tools/check_real_cross_format.py` independently parses
+their saved XML projections with feedparser 6.0.11 and their JSON projection
+with Python's standard JSON/date libraries, then compares the declared
+intersection with Native CLI output: two ordered article permalinks, UTC
+publication instants, audio URLs and integer byte sizes. It separately uses
+feedparser's Atom Entry Document support to check the independent fixture's
+ID, XHTML display text, `xml:base` link references and enclosure. Four new
+file/test mirrors are checked byte-for-byte. It does not compare omitted long
+bodies, claim equivalence of opaque XML/JSON IDs, or fetch live sources.
 The phase-11 display metadata and JSON Feed fixture are parser regressions,
 not part of the older feedparser XML intersection.

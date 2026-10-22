@@ -1,8 +1,9 @@
 # FeedLens — MoonBit 多格式 Feed 解析库
 
 `youyong5/feedlens` is a reusable MoonBit multi-format Feed parsing library
-for documented subsets of RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1, not a
-complete validator for every legal construct. Diagnostics and the local-file
+for tested common behavior of RSS 2.0, Atom 1.0, and JSON Feed 1.0/1.1,
+including independent Atom Entry Documents. The documented gaps still prevent
+a full standards conformance claim. Diagnostics and the local-file
 CLI are supporting tools, not the primary product.
 
 The test-linked [standard behavior matrix](docs/STANDARD_SCOPE.md) is the
@@ -26,17 +27,26 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.description` | channel `description` | feed `subtitle` | `description` |
 | `Feed.language` | channel `language` | feed `xml:lang` | `language` (1.1 only) |
 | `Entry.language` | inherited channel language | inherited feed `xml:lang`, or entry override/reset | inherited feed language, or item override (1.1 only) |
-| `Feed.updated_at` | none | feed `updated` | none |
+| `Feed.updated_at` | channel `lastBuildDate` | feed `updated` | none |
+| `Feed.published_at`, `Feed.ttl_minutes` | channel `pubDate`, `ttl` | none | none |
+| `Feed.rights`, `Feed.generator` | channel `copyright`, `generator` | feed `rights`, `generator` | none |
+| `Feed.next_url`, `Feed.expired`, `Feed.hubs` | none | none | `next_url`, `expired`, `hubs` |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
 | `Entry.description` | item `description` | entry `summary` | `summary` |
 | `Entry.content` | Content Module `content:encoded` | inline text/HTML/XHTML display string; not XML/binary/external bodies | `content_html`, otherwise `content_text` |
 | `Entry.content_source` | none | external `content src`, raw with `parse`, resolved with `parse_with_source` | none |
 | `Entry.content_media_type` | none | declared `content type` spelling, if present | none |
 | `Entry.atom_body` | none | detailed inline or external Atom body | none |
+| `Entry.content_text`, `Entry.content_html` | none | none | both item forms independently |
+| `Entry.comments_url`, `Entry.source_url` | item `comments`, `source/@url` | none | none |
+| `Entry.rights` | none | entry `rights` text construct | none |
 | `Entry.published_at` | item `pubDate` | entry `published` | `date_published` |
 | `Entry.updated_at` | none | entry `updated` | `date_modified` |
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
 | `Entry.authors` | direct item authors | effective entry authors | item `authors`/`author`, otherwise feed authors |
+| `Feed/Entry.contributors` | none | direct contributors, separate from author inheritance | none |
+| `Feed/Entry.links` | none | ordered Atom link relations and common attributes | none |
+| `Author.avatar` | none | none | author `avatar` URL |
 | `Feed.categories` | direct channel categories | direct feed categories | none in supported subset |
 | `Feed.images` | direct channel image | direct feed icon/logo | feed icon/favicon |
 | `Entry.categories` | direct item categories | direct entry categories | `tags` |
@@ -45,7 +55,9 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.images` | none in supported core | none in supported core | item `image` (featured preview), `banner_image` (detail banner) |
 
 `title` and `link` have the same meaning across supported formats. There are no duplicate
-format-specific public values, so the normalized fields cannot drift apart. `title_kind`
+format-specific public values for these convenience fields. Atom `links`
+add the full ordered link list, while `link` remains the first alternate.
+`title_kind`
 and `description_kind` describe the associated string: `Unspecified` for RSS (which
 does not declare a text-construct type), `Text` for Atom omitted/`text` and JSON
 Feed title/summary/text content, `Html` for Atom/JSON Feed HTML content, and
@@ -187,9 +199,9 @@ match @feedlens.parse_with_source(input, "https://example.org/feeds/news.atom") 
 }
 ```
 
-The new entry point resolves `Feed.link`, `Entry.link`,
+The opt-in source entry point resolves `Feed.link`, `Entry.link`,
 `Entry.attachments[].url`, feed-image URLs (and RSS image link), JSON item
-`external_url`, and JSON item-image URLs using RFC 3986 path, root-path, query,
+`external_url`, JSON item-image URLs, next/hub URLs and author avatars using RFC 3986 path, root-path, query,
 fragment, and dot-segment rules. RSS and JSON Feed use the caller-supplied document URL;
 Atom additionally applies the inherited `xml:base` on the feed, entry, link,
 and any intervening XML elements, matching the XML namespace URI rather than
@@ -201,11 +213,18 @@ whereas JSON semantic diagnostics are `(1, 1)`. An invalid explicit source URL
 is a fatal `InvalidSourceUrl` error. No URI is fetched.
 
 Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
-including the RSS link-fallback identifier. Author URIs, RSS category domains,
-Atom category schemes and URLs inside HTML are
-not resolved in this stage. Atom content `src` uses its own `xml:base` scope.
+including the RSS link-fallback identifier. JSON author URLs and avatars,
+RSS comments/source URLs and every direct Atom link are resolved; Atom author
+URIs, RSS category domains, Atom category schemes and URLs inside HTML are not.
+Atom content `src` uses its own `xml:base` scope.
 Existing `parse` callers are unaffected; callers
 that need the original references can continue using it.
+
+`parse_document(input)` adds a typed `FeedDocument(feed)` / `AtomEntryDocument(entry,
+diagnostics)` result for stand-alone Atom Entry Documents. It uses the same
+content and author logic as a feed entry, without inventing feed fields.
+`parse_document_with_source` applies source and entry `xml:base` to its links.
+The original `parse` and `parse_with_source` feed return types remain unchanged.
 
 ## RSS 2.0
 
@@ -215,6 +234,8 @@ that need the original references can continue using it.
   channel language; wrong-namespace lookalikes do not count.
 - A direct `<channel>` child of `<rss>`; channel metadata and `<item>` elements must be direct channel children.
 - Channel `title`, `link`, and `description`; item `guid`, `title`, `link`, `description`, and `pubDate`, retained in document order.
+- Channel `pubDate`, `lastBuildDate`, `copyright`, `generator` and nonnegative
+  `ttl`; item `comments` and source `url`. Invalid TTL gets a located diagnostic.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
 - XML errors, unsupported roots, unsupported RSS versions, and a missing channel are fatal `ParseError` values.
 - Missing or whitespace-only fields are recoverable and become `None`. `Feed.diagnostics` reports each missing required channel field and anonymous item. A blank channel field diagnostic points at that field; an absent one points at `<channel>`. An anonymous-item diagnostic points at `<item>`.
@@ -227,15 +248,15 @@ that need the original references can continue using it.
 
 ## Atom 1.0
 
-- Accepts only `<feed>` in the `http://www.w3.org/2005/Atom` namespace, whether declared as the default namespace or through a prefix.
+- Accepts both `<feed>` and independent `<entry>` roots in the `http://www.w3.org/2005/Atom` namespace, whether declared as the default namespace or through a prefix. The established `parse` API remains feed-only; `parse_document` accepts both.
 - Reads feed/entry `xml:lang` in the XML namespace, with feed-to-entry
   inheritance and explicit entry override/reset. Direct feed `icon` and
   `logo` remain separate image roles; each honors its own `xml:base` scope
   under `parse_with_source`.
 - Maps feed `id`, `title`, `subtitle`, `updated`, and alternate `link` to the normalized public model; maps direct `entry` children in document order from `id`, `title`, `published`, `updated`, `summary`, and alternate `link`.
-- A link with omitted `rel` or `rel="alternate"` is eligible; `rel="self"` is not. `parse` retains relative `href` values verbatim; `parse_with_source` resolves supported links with the applicable `xml:base` scope.
+- A link with omitted `rel` or `rel="alternate"` is eligible for the convenience `link`; all direct valid links are also kept in the ordered `links` array with relation, href, type, hreflang, title and length. `parse_with_source` resolves these links in their `xml:base` scope.
 - Required feed fields are `id`, `title`, and `updated`; required entry fields are `id`, `title`, and `updated`. Missing or blank values are recoverable diagnostics located at the field, or its feed/entry parent when absent.
-- Reads direct feed/entry `author` person constructs and their direct `name`, `uri`, and `email` children. Effective entry authors use the first available layer: entry authors, then direct `entry/source` authors, then feed authors. Layers are never combined. An author lacking a non-blank direct `name` gets `InvalidAuthor` at its element; if no valid layer exists, the entry gets `MissingEntryField(_, "author")`. A feed may omit authors when every entry has a valid own/source author.
+- Reads direct feed/entry `author` and `contributor` person constructs and their direct `name`, `uri`, and `email` children. Contributors remain separate from authors. Effective entry authors use the first available layer: entry authors, then direct `entry/source` authors, then feed authors. Layers are never combined. An author lacking a non-blank direct `name` gets `InvalidAuthor` at its element; if no valid layer exists, the entry gets `MissingEntryField(_, "author")`. A feed may omit authors only when every entry has an own valid author; a standalone entry may use its source author.
 - Reads direct feed and entry `category` elements. Atom `term` is required; optional `scheme` and `label` stay distinct from RSS `domain`. Missing/blank terms receive an `InvalidCategory` at the category element.
 - Reads only direct Atom entry `link` elements with `rel="enclosure"` as attachments. This does not change alternate-link selection. Missing `href` skips the attachment; invalid optional `length` is diagnosed and omitted from an otherwise valid attachment.
 - An entry without a `content` element must have an alternate link. The parser tracks that presence separately from successful body extraction, so an invalid or external content element does not incorrectly trigger `MissingAlternateLink`.
@@ -287,17 +308,18 @@ network access, or HTML rendering.
   page; a missing permalink is not replaced by the external URL. Featured and
   banner images are presentation hints, never attachments. JSON Feed 1.0
   does not define `language`, so 1.0 keys of that name are ignored.
-- Both content fields are legal. When both are valid strings, `content_html` deliberately wins because it preserves the richer declared representation; the unified model exposes one `Entry.content`. An item must have one valid content field. A malformed/missing item `id` or content discards that item with `InvalidJsonFeedItem`; a JSON number id is retained as its JSON spelling. Optional malformed item fields are diagnosed and become `None`.
-- Supports `authors` arrays and deprecated `author` objects at feed/item level. If `authors` is present it wins, even over `author`; undeclared item authors inherit feed authors. A JSON Feed author needs a non-blank `name` or `url`, and its URL is exposed through `Author.uri`.
+- Both content fields are legal and independently exposed as `Entry.content_html` and `Entry.content_text`; `Entry.content` remains the HTML-preferred convenience field. An item must have one valid content field. A malformed/missing item `id` or content discards that item with `InvalidJsonFeedItem`; a JSON number id is retained as its JSON spelling. Optional malformed item fields are diagnosed and become `None`.
+- Supports `authors` arrays and deprecated `author` objects at feed/item level. If `authors` is present it wins, even over `author`; undeclared item authors inherit feed authors. A JSON Feed author needs a non-blank `name`, `url`, or `avatar`; URL and avatar remain separate public fields.
+- `next_url`, `expired`, and ordered `hubs` are parsed but never followed or subscribed to. An equal `feed_url`/`next_url` is diagnosed.
 - Maps item `tags` to ordered categories. Empty tags and malformed optional fields are diagnosed and skipped. Unknown extension keys are ignored.
 - Maps each valid item `attachments` array element in order, preserving URL, MIME type, optional title, integer byte size, and floating-point duration. A malformed attachment is diagnosed without discarding its valid item. Invalid optional metadata is omitted; unknown attachment extension keys are ignored.
 - JSON syntax errors retain a parser position. The core JSON DOM does not retain semantic-field spans, so JSON Feed field/item diagnostics use document position `(1, 1)`; XML diagnostics continue to point to their source elements.
 
 ## Not supported
 
-- Attachment/image retrieval or verification; JSON Feed pagination following, author avatars, expired state, and extension fields; network retrieval and unscoped URI/IRI fields listed above.
+- Attachment/image retrieval or verification; JSON Feed pagination following and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
-- Atom external-content retrieval, comprehensive MIME-parameter validation, full XHTML/XML rendering or sanitization, and resolution inside HTML/XHTML or unsupported constructs. Atom's optional `rights`, `generator`, `contributor`, arbitrary link relations, and complete duplicate-field constraints remain outside the mapped subset.
+- Atom external-content retrieval, comprehensive MIME-parameter validation, full XHTML/XML rendering or sanitization, and resolution inside HTML/XHTML or unsupported constructs. Atom source non-author metadata, generator uri/version, and some full-document ordering/IRI/date constraints remain outside the mapped behavior.
 
 ## Example
 
@@ -410,8 +432,11 @@ XML reference only on the declared field intersection in
 `samples/reference_intersection.json`; it is not a MoonBit dependency. See
 `samples/COMPATIBILITY.md` for actual reference version/results and intentional
 normalization differences, including RSS link fallback for a missing guid.
+Run `uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py`
+for the two saved real-world entries across three formats and the independent
+Atom Entry fixture. The JSON side uses Python's standard JSON and date parsers;
+all inputs are local, editorially reduced samples.
 
-GitHub-hosted Linux CI uses the latest official MoonBit toolchain. The local
-toolchain remains `0.1.20260920`, but its versioned Linux download returned
-HTTP 403 during CI preparation; pinning CI to that unavailable artifact would
-make the workflow permanently fail.
+GitHub-hosted Linux CI uses the latest downloadable MoonBit toolchain and has
+an offline independent-reference job. Record the tested local MoonBit version
+alongside the relevant CI run for any submission.

@@ -10,6 +10,19 @@ permissions:
   contents: read
 
 jobs:
+  independent-reference:
+    name: Offline cross-format reference
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hustcer/setup-moonbit@v1
+        with:
+          version: latest
+      - uses: astral-sh/setup-uv@v6
+      - run: moon update
+      - name: Compare saved real projections and independent Atom Entry
+        run: uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
+
   library:
     name: ${{ matrix.target }} library checks
     runs-on: ubuntu-latest
@@ -81,6 +94,12 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_content_forms.xml > atom-content.json
           python3 -c "import json; x=json.load(open('atom-content.json', encoding='utf-8')); e=x['entries']; assert [v['atom_body']['kind'] for v in e] == ['external','inline_text','inline_xml','inline_binary']; assert e[0]['atom_body']['src'] == 'entry.xml'; assert e[1]['atom_body']['media_type'] == 'TEXT/MARKDOWN'; assert '<n0:root' in e[2]['atom_body']['markup']; assert e[3]['atom_body']['base64'] == 'AQID/w==' and e[3]['atom_body']['byte_length'] == 4"
+      - name: Inspect additional standard fields
+        run: |
+          moon run --target native cmd/main --json samples/rss2_standard_fields.xml > standard-rss.json
+          moon run --target native cmd/main --json samples/atom1_standard_fields.xml > standard-atom.json
+          moon run --target native cmd/main --json samples/jsonfeed11_standard_fields.json > standard-json.json
+          python3 -c "import json; r=json.load(open('standard-rss.json')); a=json.load(open('standard-atom.json')); j=json.load(open('standard-json.json')); assert r['generator']=='Publisher 2' and r['entries'][0]['comments_url']=='comments/one'; assert a['rights_kind']=='xhtml' and a['rights_xhtml']['markup']; assert j['next_url']=='older.json' and j['expired'] is False and j['entries'][0]['content_text']=='One' and j['authors'][0]['avatar']=='avatars/editor.png'"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
@@ -88,5 +107,6 @@ jobs:
           grep -q 'featured=https://example.test/images/preview.png' consumer.txt
           grep -q 'xhtml_title=Plan A' consumer.txt
           grep -q 'atom_binary_bytes=3' consumer.txt
+          grep -q 'atom_entry_link=https://example.test/news/posts/one' consumer.txt
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help
