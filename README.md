@@ -13,7 +13,7 @@ results; the library never fetches a feed or an attachment.
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
 | RSS 2.0 | Channel/item metadata and dates, TTL, copyright/generator, editor/webmaster contacts, guid permalink role, source credit, language, image, Content Module body, authors, categories and enclosures | Other RSS versions, uncommon optional constructs and extension modules |
-| Atom 1.0 | Feed and independent Entry documents, source identity/title/subtitle/updated, rights XHTML, generator attributes, contributors, feed/entry/source links and their common attributes, icon/logo, scoped language, body forms, author inheritance, categories | Some optional metadata and structural checks, external-content retrieval, fragment rendering or sanitization |
+| Atom 1.0 | Feed and independent Entry documents, source identity/title/subtitle/updated, rights XHTML, generator attributes, contributors, feed/entry/source links and their common attributes, icon/logo, scoped language and person URI references, body forms, author inheritance, categories | Some optional metadata and structural checks, external-content retrieval, fragment rendering or sanitization |
 | JSON Feed 1.0/1.1 | Feed/items, next URL and expired state, hubs, icons, external links, both item body representations, author avatars, tags and attachments; language in 1.1 | Pagination following, arbitrary extension mapping, additional version-specific checks |
 
 The normalized model keeps summary/description separate from article content,
@@ -31,8 +31,8 @@ raw references, and neither entry point fetches URLs.
 Atom feed/entry/source `links` retain relations such as `self` and `related`; `link` remains the
 alternate convenience value. Aggregated entries expose original feed metadata through
 `Entry.atom_source`, including its subtitle, generator, links and images.
-`parse_with_source` resolves source links, generator URI and images under nested `xml:base`;
-`parse` retains the original references. RSS and Atom rights and generator values and JSON
+`parse_with_source` resolves source links, generator URI, images and author/contributor
+URIs under nested `xml:base`; `parse` retains the original references. RSS and Atom rights and generator values and JSON
 Feed pagination/hub declarations are visible without following any network links.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
@@ -202,7 +202,7 @@ feedparser 6.0.11; its defined field intersection and observed results are in
 [samples/COMPATIBILITY.md](samples/COMPATIBILITY.md).
 The cross-format script independently checks the two saved real-world episodes
 against feedparser for XML and Python JSON/date parsing for JSON Feed. It also
-checks the independent Atom Entry with feedparser and verifies six new
+checks the independent Atom Entry with feedparser and verifies seven new
 sample/test mirrors. It fetches no live subscriptions.
 The XHTML comparison checks eight declared intersection values and separately
 records feedparser's default sanitization; FeedLens intentionally returns

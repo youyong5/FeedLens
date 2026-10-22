@@ -255,6 +255,30 @@ fn atom_singleton(
 }
 
 ///|
+fn atom_person_singleton(
+  element : @xml.NamespaceElement,
+  seen : Array[String],
+  owner : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  let field = element.name.local_name
+  if !is_atom_name(element.name, field) ||
+    !(field is ("name" | "uri" | "email")) {
+    return
+  }
+  if seen.any(fn(previous) { previous == field }) {
+    diagnostics.push({
+      kind: DuplicateAtomField(owner + " " + field),
+      line,
+      column,
+    })
+  }
+  seen.push(field)
+}
+
+///|
 fn add_missing_atom_feed_diagnostics(
   id : String?,
   title : String?,
@@ -348,6 +372,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
     let mut author_child : String? = None
     let mut author_child_depth = 0
     let mut author_child_text = ""
+    let mut author_children_seen : Array[String] = []
     let mut feed_title_kind = Text
     let mut feed_subtitle_kind = Text
     let mut feed_title_xhtml : XhtmlFragment? = None
@@ -552,6 +577,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_email = None
             author_child = None
             author_child_text = ""
+            author_children_seen = []
           } else if entry_open &&
             depth == entry_depth &&
             (
@@ -573,6 +599,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_email = None
             author_child = None
             author_child_text = ""
+            author_children_seen = []
           } else if entry_open &&
             depth == entry_depth &&
             is_atom_name(element.name, "source") {
@@ -631,6 +658,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_email = None
             author_child = None
             author_child_text = ""
+            author_children_seen = []
           } else if capture_field is None &&
             source_open &&
             depth == source_depth &&
@@ -758,6 +786,18 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               is_atom_name(element.name, "uri") ||
               is_atom_name(element.name, "email")
             ) {
+            atom_person_singleton(
+              element,
+              author_children_seen,
+              if author_owner.unwrap_or("").contains("contributor") {
+                "atom contributor"
+              } else {
+                "atom author"
+              },
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
             author_child = Some(element.name.local_name)
             author_child_depth = depth + 1
             author_child_text = ""
@@ -1119,6 +1159,20 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           depth = depth + 1
         }
         @xml.Empty(element) => {
+          if author_owner is Some(_) && depth == author_depth {
+            atom_person_singleton(
+              element,
+              author_children_seen,
+              if author_owner.unwrap_or("").contains("contributor") {
+                "atom contributor"
+              } else {
+                "atom author"
+              },
+              event.span.start.line,
+              event.span.start.column,
+              diagnostics,
+            )
+          }
           if entry_open && depth == entry_depth {
             atom_singleton(
               element,
