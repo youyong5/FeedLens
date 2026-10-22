@@ -263,6 +263,11 @@ pub struct Entry {
   /// RSS item comments/source and Atom rights retain their distinct roles.
   comments_url : String?
   source_url : String?
+  /// RSS source channel's declared title; separate from this item's title.
+  source_title : String?
+  /// RSS guid: true when isPermaLink is omitted or true, false when false;
+  /// None when there is no usable guid or for non-RSS entries.
+  guid_is_permalink : Bool?
   rights : String?
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
@@ -307,6 +312,9 @@ pub struct Feed {
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
   generator : String?
+  /// RSS contact addresses retain their distinct editorial and technical roles.
+  managing_editor : String?
+  webmaster : String?
   /// JSON Feed pagination is only a reference; the library never follows it.
   next_url : String?
   /// JSON Feed expired is tri-state: absent differs from explicit false.
@@ -353,6 +361,8 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     links: entry.links,
     comments_url: entry.comments_url,
     source_url: entry.source_url,
+    source_title: entry.source_title,
+    guid_is_permalink: entry.guid_is_permalink,
     rights: entry.rights,
     rights_kind: entry.rights_kind,
     rights_xhtml: entry.rights_xhtml,
@@ -712,6 +722,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_language : String? = None
     let mut channel_rights : String? = None
     let mut channel_generator : String? = None
+    let mut channel_managing_editor : String? = None
+    let mut channel_webmaster : String? = None
     let mut channel_published : String? = None
     let mut channel_updated : String? = None
     let mut channel_ttl : Int32? = None
@@ -727,6 +739,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut item_line = 1
     let mut item_column = 1
     let mut item_guid : String? = None
+    let mut item_guid_is_permalink : Bool? = None
     let mut item_title : String? = None
     let mut item_link : String? = None
     let mut item_description : String? = None
@@ -734,6 +747,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut item_published_at : String? = None
     let mut item_comments_url : String? = None
     let mut item_source_url : String? = None
+    let mut item_source_title : String? = None
     let mut item_authors : Array[Author] = []
     let mut item_categories : Array[Category] = []
     let mut item_attachments : Array[Attachment] = []
@@ -745,6 +759,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut capture_line = 1
     let mut capture_column = 1
     let mut capture_category_domain : String? = None
+    let mut capture_guid_is_permalink : Bool? = None
 
     for ;; {
       let event = reader.read_event()
@@ -783,6 +798,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             item_line = event.span.start.line
             item_column = event.span.start.column
             item_guid = None
+            item_guid_is_permalink = None
             item_title = None
             item_link = None
             item_description = None
@@ -790,6 +806,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             item_published_at = None
             item_comments_url = None
             item_source_url = None
+            item_source_title = None
             item_authors = []
             item_categories = []
             item_attachments = []
@@ -831,6 +848,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "language") ||
               is_rss_name(element.name, "copyright") ||
               is_rss_name(element.name, "generator") ||
+              is_rss_name(element.name, "managingEditor") ||
+              is_rss_name(element.name, "webMaster") ||
               is_rss_name(element.name, "pubDate") ||
               is_rss_name(element.name, "lastBuildDate") ||
               is_rss_name(element.name, "ttl")
@@ -887,10 +906,32 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             } else {
               None
             }
+            if is_rss_name(element.name, "guid") {
+              capture_guid_is_permalink = match
+                attribute_value(element, "isPermaLink") {
+                None | Some("true") => Some(true)
+                Some("false") => Some(false)
+                Some(_) => {
+                  diagnostics.push({
+                    kind: InvalidRssField("guid isPermaLink"),
+                    line: event.span.start.line,
+                    column: event.span.start.column,
+                  })
+                  None
+                }
+              }
+            }
             if is_rss_name(element.name, "source") {
               item_source_url = match attribute_value(element, "url") {
                 Some(value) => non_blank_text(value)
                 None => None
+              }
+              if item_source_url is None {
+                diagnostics.push({
+                  kind: InvalidRssField("source url"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
               }
             }
             capture_line = event.span.start.line
@@ -949,6 +990,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               links: [],
               comments_url: None,
               source_url: None,
+              source_title: None,
+              guid_is_permalink: None,
               rights: None,
               rights_kind: Unspecified,
               rights_xhtml: None,
@@ -984,6 +1027,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "language") ||
               is_rss_name(element.name, "copyright") ||
               is_rss_name(element.name, "generator") ||
+              is_rss_name(element.name, "managingEditor") ||
+              is_rss_name(element.name, "webMaster") ||
               is_rss_name(element.name, "pubDate") ||
               is_rss_name(element.name, "lastBuildDate") ||
               is_rss_name(element.name, "ttl")
@@ -1017,6 +1062,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               }
               "copyright" => channel_rights = None
               "generator" => channel_generator = None
+              "managingEditor" => channel_managing_editor = None
+              "webMaster" => channel_webmaster = None
               "pubDate" => channel_published = None
               "lastBuildDate" => channel_updated = None
               _ => {
@@ -1076,11 +1123,26 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 Some(value) => non_blank_text(value)
                 None => None
               }
+              diagnostics.push({
+                kind: InvalidRssField("source title"),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+              if item_source_url is None {
+                diagnostics.push({
+                  kind: InvalidRssField("source url"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
+              }
             } else if is_rss_name(element.name, "comments") {
               item_comments_url = None
             } else {
               match element.name.local_name {
-                "guid" => item_guid = None
+                "guid" => {
+                  item_guid = None
+                  item_guid_is_permalink = None
+                }
                 "title" => item_title = None
                 "link" => item_link = None
                 "description" => item_description = None
@@ -1107,7 +1169,10 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               })
               if item_open {
                 match field {
-                  "guid" => item_guid = None
+                  "guid" => {
+                    item_guid = None
+                    item_guid_is_permalink = None
+                  }
                   "title" => item_title = None
                   "link" => item_link = None
                   "description" => item_description = None
@@ -1115,7 +1180,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   "author" => ()
                   "category" => ()
                   "comments" => item_comments_url = None
-                  "source" => item_source_url = None
+                  "source" => item_source_title = None
                   _ => item_published_at = None
                 }
               } else {
@@ -1125,6 +1190,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   "description" => channel_description = None
                   "copyright" => channel_rights = None
                   "generator" => channel_generator = None
+                  "managingEditor" => channel_managing_editor = None
+                  "webMaster" => channel_webmaster = None
                   "pubDate" => channel_published = None
                   "lastBuildDate" => channel_updated = None
                   "ttl" => channel_ttl = None
@@ -1133,14 +1200,30 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               }
             } else if item_open {
               match field {
-                "guid" => item_guid = non_blank_text(captured_text)
+                "guid" => {
+                  item_guid = non_blank_text(captured_text)
+                  item_guid_is_permalink = if item_guid is Some(_) {
+                    capture_guid_is_permalink
+                  } else {
+                    None
+                  }
+                }
+                "source" => {
+                  item_source_title = non_blank_text(captured_text)
+                  if item_source_title is None {
+                    diagnostics.push({
+                      kind: InvalidRssField("source title"),
+                      line: capture_line,
+                      column: capture_column,
+                    })
+                  }
+                }
                 "title" => item_title = non_blank_text(captured_text)
                 "link" => item_link = non_blank_text(captured_text)
                 "description" =>
                   item_description = non_blank_text(captured_text)
                 "content:encoded" => item_content = Some(captured_text)
                 "comments" => item_comments_url = non_blank_text(captured_text)
-                "source" => ()
                 "author" =>
                   match non_blank_text(captured_text) {
                     Some(email) =>
@@ -1202,6 +1285,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   channel_description = non_blank_text(captured_text)
                 "copyright" => channel_rights = non_blank_text(captured_text)
                 "generator" => channel_generator = non_blank_text(captured_text)
+                "managingEditor" =>
+                  channel_managing_editor = non_blank_text(captured_text)
+                "webMaster" => channel_webmaster = non_blank_text(captured_text)
                 "pubDate" => channel_published = non_blank_text(captured_text)
                 "lastBuildDate" =>
                   channel_updated = non_blank_text(captured_text)
@@ -1231,6 +1317,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             captured_text = ""
             capture_has_nested_markup = false
             capture_category_domain = None
+            capture_guid_is_permalink = None
           }
           if item_open && depth == item_depth && is_rss_name(name, "item") {
             let item_index = entries.length()
@@ -1260,6 +1347,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               links: [],
               comments_url: item_comments_url,
               source_url: item_source_url,
+              source_title: item_source_title,
+              guid_is_permalink: item_guid_is_permalink,
               rights: None,
               rights_kind: Unspecified,
               rights_xhtml: None,
@@ -1315,6 +1404,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             rights_kind: Unspecified,
             rights_xhtml: None,
             generator: channel_generator,
+            managing_editor: channel_managing_editor,
+            webmaster: channel_webmaster,
             next_url: None,
             expired: None,
             hubs: [],

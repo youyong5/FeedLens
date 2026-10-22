@@ -544,6 +544,11 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "links": Json::array(entry.links.map(atom_link_json)),
     "comments_url": optional_string_json(entry.comments_url),
     "source_url": optional_string_json(entry.source_url),
+    "source_title": optional_string_json(entry.source_title),
+    "guid_is_permalink": match entry.guid_is_permalink {
+      Some(value) => Json::boolean(value)
+      None => Json::null()
+    },
     "rights": optional_string_json(entry.rights),
     "rights_kind": text_kind_json(entry.rights_kind),
     "rights_xhtml": xhtml_fragment_json(entry.rights_xhtml),
@@ -581,6 +586,8 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
       "rights_kind": text_kind_json(feed.rights_kind),
       "rights_xhtml": xhtml_fragment_json(feed.rights_xhtml),
       "generator": optional_string_json(feed.generator),
+      "managing_editor": optional_string_json(feed.managing_editor),
+      "webmaster": optional_string_json(feed.webmaster),
       "next_url": optional_string_json(feed.next_url),
       "expired": match feed.expired {
         Some(value) => Json(value)

@@ -21,6 +21,7 @@ RSS 2.0 / Atom 1.0 / JSON Feed surface.
 | `jsonfeed11_display.json` | Synthetic JSON Feed 1.1 fixture for language, feed icon/favicon, distinct permalink/external URL, and featured/banner item-image roles; parser and CLI fixture only. |
 | `atom1_entry_document.xml` | Stand-alone Atom Entry Document with XHTML text/body, author, xml:base, alternate/enclosure links; independent feedparser and library regression. |
 | `rss2_standard_fields.xml`, `atom1_standard_fields.xml`, `jsonfeed11_standard_fields.json` | Synthetic, byte-mirrored regressions for additional common fields and CLI output; not portrayed as live sources. |
+| `rss2_metadata.xml` | Synthetic byte-mirrored RSS contacts, guid permalink role and source credit regression; independent feedparser intersection. |
 
 `compatibility_test.mbt` embeds the primary and boundary XML text so every
 MoonBit target can run without filesystem access. The reference script byte-
