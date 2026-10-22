@@ -406,14 +406,15 @@ test "an empty Atom author does not satisfy entry author inheritance" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
-  assert_eq(feed.diagnostics.length(), 2)
+  assert_eq(feed.diagnostics.length(), 3)
   assert_true(
     feed.diagnostics[0].kind
     is @feedlens.InvalidAuthor("atom author missing name"),
   )
   assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (2, 76))
+  assert_true(feed.diagnostics[1].kind is @feedlens.MissingFeedField("author"))
   assert_true(
-    feed.diagnostics[1].kind is @feedlens.MissingEntryField(0, "author"),
+    feed.diagnostics[2].kind is @feedlens.MissingEntryField(0, "author"),
   )
 }
 
@@ -428,13 +429,14 @@ test "an Atom author without a name does not satisfy inheritance" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
-  assert_eq(feed.diagnostics.length(), 2)
+  assert_eq(feed.diagnostics.length(), 3)
   assert_true(
     feed.diagnostics[0].kind
     is @feedlens.InvalidAuthor("atom author missing name"),
   )
+  assert_true(feed.diagnostics[1].kind is @feedlens.MissingFeedField("author"))
   assert_true(
-    feed.diagnostics[1].kind is @feedlens.MissingEntryField(0, "author"),
+    feed.diagnostics[2].kind is @feedlens.MissingEntryField(0, "author"),
   )
 }
 
@@ -639,7 +641,7 @@ test "Atom invalid authors and categories have element diagnostics" {
   assert_eq(feed.entries[0].authors, [])
   assert_eq(feed.categories, [])
   assert_eq(feed.entries[0].categories, [])
-  assert_eq(feed.diagnostics.length(), 3)
+  assert_eq(feed.diagnostics.length(), 4)
   assert_true(
     feed.diagnostics[0].kind
     is @feedlens.InvalidCategory("atom category missing term"),
@@ -649,8 +651,9 @@ test "Atom invalid authors and categories have element diagnostics" {
     feed.diagnostics[1].kind
     is @feedlens.InvalidAuthor("atom author missing name"),
   )
+  assert_true(feed.diagnostics[2].kind is @feedlens.MissingFeedField("author"))
   assert_true(
-    feed.diagnostics[2].kind is @feedlens.MissingEntryField(0, "author"),
+    feed.diagnostics[3].kind is @feedlens.MissingEntryField(0, "author"),
   )
 }
 
@@ -666,11 +669,12 @@ test "Atom entry with no available author has a missing-author diagnostic" {
   )
   guard result is Ok(feed) else { fail("expected recovered Atom feed") }
   assert_eq(feed.entries[0].authors, [])
-  assert_eq(feed.diagnostics.length(), 1)
+  assert_eq(feed.diagnostics.length(), 2)
+  assert_true(feed.diagnostics[0].kind is @feedlens.MissingFeedField("author"))
   assert_true(
-    feed.diagnostics[0].kind is @feedlens.MissingEntryField(0, "author"),
+    feed.diagnostics[1].kind is @feedlens.MissingEntryField(0, "author"),
   )
-  assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (3, 1))
+  assert_eq((feed.diagnostics[1].line, feed.diagnostics[1].column), (3, 1))
 }
 
 ///|

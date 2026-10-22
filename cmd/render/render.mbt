@@ -50,6 +50,7 @@ pub fn parse_error_text(error : @feedlens.ParseError) -> String {
       "unsupported RSS version " + version.unwrap_or("(missing)")
     MissingChannel => "RSS feed has no channel"
     InvalidRssStructure(message) => "invalid RSS structure: " + message
+    InvalidAtomStructure(message) => "invalid Atom structure: " + message
     InvalidJson(message, line, column) =>
       "invalid JSON at " +
       line.to_string() +
@@ -96,11 +97,14 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
       "missing summary for external content: " + index.to_string()
     MissingSummaryForBinaryContent(index) =>
       "missing summary for Base64 content: " + index.to_string()
+    DuplicateAtomField(field) => "duplicate Atom field: " + field
     InvalidAuthor(author) => "invalid author: " + author
     InvalidCategory(category) => "invalid category: " + category
     InvalidAttachment(message) => "invalid attachment: " + message
     InvalidLanguage(message) => "invalid language: " + message
     InvalidFeedImage(message) => "invalid feed image: " + message
+    InvalidRssField(field) => "invalid RSS field: " + field
+    InvalidAtomLink(message) => "invalid Atom link: " + message
     UnresolvedUri(field) => "unresolved URI: " + field
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
@@ -359,6 +363,7 @@ fn author_json(author : @feedlens.Author) -> Json {
     "name": optional_string_json(author.name),
     "uri": optional_string_json(author.uri),
     "email": optional_string_json(author.email),
+    "avatar": optional_string_json(author.avatar),
   })
 }
 
@@ -440,6 +445,29 @@ fn entry_image_json(image : @feedlens.EntryImage) -> Json {
 }
 
 ///|
+fn hub_json(hub : @feedlens.Hub) -> Json {
+  Json::object({
+    "type": Json::string(hub.transport_type),
+    "url": Json::string(hub.url),
+  })
+}
+
+///|
+fn atom_link_json(link : @feedlens.AtomLink) -> Json {
+  Json::object({
+    "rel": Json::string(link.relation),
+    "href": Json::string(link.href),
+    "type": optional_string_json(link.media_type),
+    "hreflang": optional_string_json(link.hreflang),
+    "title": optional_string_json(link.title),
+    "length": match link.length {
+      Some(value) => Json(value)
+      None => Json::null()
+    },
+  })
+}
+
+///|
 fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
   match kind {
     MissingChannelField(field) =>
@@ -461,6 +489,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "MissingSummaryForExternalContent", "index": index }
     MissingSummaryForBinaryContent(index) =>
       { "type": "MissingSummaryForBinaryContent", "index": index }
+    DuplicateAtomField(field) =>
+      { "type": "DuplicateAtomField", "field": field }
     InvalidAuthor(author) => { "type": "InvalidAuthor", "message": author }
     InvalidCategory(category) =>
       { "type": "InvalidCategory", "message": category }
@@ -470,6 +500,9 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "InvalidLanguage", "message": message }
     InvalidFeedImage(message) =>
       { "type": "InvalidFeedImage", "message": message }
+    InvalidRssField(field) => { "type": "InvalidRssField", "field": field }
+    InvalidAtomLink(message) =>
+      { "type": "InvalidAtomLink", "message": message }
     UnresolvedUri(field) => { "type": "UnresolvedUri", "field": field }
     InvalidJsonFeedField(field) =>
       { "type": "InvalidJsonFeedField", "field": field }
@@ -501,12 +534,21 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "description_kind": text_kind_json(entry.description_kind),
     "description_xhtml": xhtml_fragment_json(entry.description_xhtml),
     "content": optional_string_json(entry.content),
+    "content_text": optional_string_json(entry.content_text),
+    "content_html": optional_string_json(entry.content_html),
     "content_kind": text_kind_json(entry.content_kind),
     "content_xhtml": xhtml_fragment_json(entry.content_xhtml),
     "content_source": optional_string_json(entry.content_source),
     "content_media_type": optional_string_json(entry.content_media_type),
     "atom_body": atom_body_json(entry.atom_body),
+    "links": Json::array(entry.links.map(atom_link_json)),
+    "comments_url": optional_string_json(entry.comments_url),
+    "source_url": optional_string_json(entry.source_url),
+    "rights": optional_string_json(entry.rights),
+    "rights_kind": text_kind_json(entry.rights_kind),
+    "rights_xhtml": xhtml_fragment_json(entry.rights_xhtml),
     "authors": Json::array(entry.authors.map(author_json)),
+    "contributors": Json::array(entry.contributors.map(author_json)),
     "categories": Json::array(entry.categories.map(category_json)),
     "attachments": Json::array(entry.attachments.map(attachment_json)),
     "images": Json::array(entry.images.map(entry_image_json)),
@@ -530,7 +572,24 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
       "description_kind": text_kind_json(feed.description_kind),
       "description_xhtml": xhtml_fragment_json(feed.description_xhtml),
       "updated_at": optional_string_json(feed.updated_at),
+      "published_at": optional_string_json(feed.published_at),
+      "ttl_minutes": match feed.ttl_minutes {
+        Some(value) => Json(value)
+        None => Json::null()
+      },
+      "rights": optional_string_json(feed.rights),
+      "rights_kind": text_kind_json(feed.rights_kind),
+      "rights_xhtml": xhtml_fragment_json(feed.rights_xhtml),
+      "generator": optional_string_json(feed.generator),
+      "next_url": optional_string_json(feed.next_url),
+      "expired": match feed.expired {
+        Some(value) => Json(value)
+        None => Json::null()
+      },
+      "hubs": Json::array(feed.hubs.map(hub_json)),
+      "links": Json::array(feed.links.map(atom_link_json)),
       "authors": Json::array(feed.authors.map(author_json)),
+      "contributors": Json::array(feed.contributors.map(author_json)),
       "categories": Json::array(feed.categories.map(category_json)),
       "images": Json::array(feed.images.map(feed_image_json)),
       "entries": Json::array(feed.entries.map(entry_json)),

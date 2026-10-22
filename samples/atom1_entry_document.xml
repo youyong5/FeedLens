@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entry xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xml:lang="en" xml:base="posts/">
+  <id>urn:feedlens:standalone:1</id>
+  <title type="xhtml"><h:div>One <h:em>entry</h:em></h:div></title>
+  <updated>2026-10-21T12:00:00Z</updated>
+  <author><name>Editor</name><uri>https://example.test/editor</uri></author>
+  <link rel="alternate" href="one"/>
+  <link rel="enclosure" href="audio/one.mp3" type="audio/mpeg" length="12"/>
+  <content type="xhtml"><h:div><h:p>Body &amp; context.</h:p></h:div></content>
+</entry>

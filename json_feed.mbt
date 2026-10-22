@@ -130,6 +130,42 @@ fn json_feed_images(
 }
 
 ///|
+fn json_hubs(
+  object : Map[String, Json],
+  diagnostics : Array[Diagnostic],
+) -> Array[Hub] {
+  let hubs : Array[Hub] = []
+  match json_field(object, "hubs") {
+    None => ()
+    Some(Array(values)) =>
+      for value in values {
+        match value {
+          Object(hub) => {
+            let transport_type = match
+              json_optional_string(hub, "type", diagnostics, None) {
+              Some(raw) => non_blank_text(raw)
+              None => None
+            }
+            let url = match
+              json_optional_string(hub, "url", diagnostics, None) {
+              Some(raw) => non_blank_text(raw)
+              None => None
+            }
+            match (transport_type, url) {
+              (Some(transport_type), Some(url)) =>
+                hubs.push({ transport_type, url, })
+              _ => add_json_diagnostic(diagnostics, None, "hubs entry")
+            }
+          }
+          _ => add_json_diagnostic(diagnostics, None, "hubs entry")
+        }
+      }
+    Some(_) => add_json_diagnostic(diagnostics, None, "hubs")
+  }
+  hubs
+}
+
+///|
 fn json_item_url(
   item : Map[String, Json],
   field : String,
@@ -193,8 +229,13 @@ fn json_author(
         Some(value) => non_blank_text(value)
         None => None
       }
-      match (name, uri) {
-        (None, None) => {
+      let avatar = match
+        json_optional_string(object, "avatar", diagnostics, item_index) {
+        Some(value) => non_blank_text(value)
+        None => None
+      }
+      match (name, uri, avatar) {
+        (None, None, None) => {
           diagnostics.push({
             kind: InvalidAuthor("json feed author missing name or url"),
             line: 1,
@@ -202,7 +243,7 @@ fn json_author(
           })
           None
         }
-        _ => Some({ source: JsonFeed, name, uri, email: None, })
+        _ => Some({ source: JsonFeed, name, uri, email: None, avatar, })
       }
     }
     _ => {
@@ -461,6 +502,23 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
   )
   let link = json_optional_string(object, "home_page_url", diagnostics, None)
   let identifier = json_optional_string(object, "feed_url", diagnostics, None)
+  let next_url = match
+    json_optional_string(object, "next_url", diagnostics, None) {
+    Some(url) if Some(url) == identifier => {
+      add_json_diagnostic(diagnostics, None, "next_url equals feed_url")
+      None
+    }
+    value => value
+  }
+  let expired = match json_field(object, "expired") {
+    Some(True) => Some(true)
+    Some(False) => Some(false)
+    Some(_) => {
+      add_json_diagnostic(diagnostics, None, "expired")
+      None
+    }
+    None => None
+  }
   let feed_language = if version == JSON_FEED_1_1 {
     json_language(object, diagnostics, None).1
   } else {
@@ -468,6 +526,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
   }
   let (_, feed_authors) = json_authors(object, diagnostics, None)
   let images = json_feed_images(object, diagnostics)
+  let hubs = json_hubs(object, diagnostics)
   let entries : Array[Entry] = []
 
   for index = 0; index < items.length(); index = index + 1 {
@@ -556,12 +615,21 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       description_kind: Text,
       description_xhtml: None,
       content,
+      content_text: text,
+      content_html: html,
       content_kind,
       content_xhtml: None,
       content_source: None,
       content_media_type: None,
       atom_body: None,
+      links: [],
+      comments_url: None,
+      source_url: None,
+      rights: None,
+      rights_kind: Unspecified,
+      rights_xhtml: None,
       authors,
+      contributors: [],
       categories: json_tags(item, diagnostics, index),
       attachments: json_attachments(item, diagnostics, index),
       images: json_entry_images(item, diagnostics, index),
@@ -591,7 +659,18 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     description_kind: Text,
     description_xhtml: None,
     updated_at: None,
+    published_at: None,
+    ttl_minutes: None,
+    rights: None,
+    rights_kind: Unspecified,
+    rights_xhtml: None,
+    generator: None,
+    next_url,
+    expired,
+    hubs,
+    links: [],
     authors: feed_authors,
+    contributors: [],
     categories: [],
     images,
     entries,

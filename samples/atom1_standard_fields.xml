@@ -1,0 +1,3 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:feed</id><title>Feed</title><updated>2026-10-21T00:00:00Z</updated><author><name>Editor</name></author>
+<generator>Feed machine</generator><rights type="xhtml"><h:div>Shared <h:b>rights</h:b></h:div></rights><contributor><name>Feed helper</name></contributor>
+<entry><id>urn:entry</id><title>One</title><updated>2026-10-21T00:00:00Z</updated><content>Body</content><rights type="html">&lt;b&gt;CC BY&lt;/b&gt;</rights><contributor><name>Entry helper</name></contributor></entry></feed>

@@ -10,6 +10,10 @@ pub fn normalize_date(FeedFormat, String?) -> Result[NormalizedDate?, DateError]
 
 pub fn parse(String) -> Result[Feed, ParseError]
 
+pub fn parse_document(String) -> Result[ParsedDocument, ParseError]
+
+pub fn parse_document_with_source(String, String) -> Result[ParsedDocument, ParseError]
+
 pub fn parse_with_source(String, String) -> Result[Feed, ParseError]
 
 // Errors
@@ -37,6 +41,18 @@ pub fn AtomExternalContent::equal(Self, Self) -> Bool
 pub fn AtomExternalContent::not_equal(Self, Self) -> Bool
 pub fn AtomExternalContent::to_repr(Self) -> @debug.Repr
 
+pub struct AtomLink {
+  relation : String
+  href : String
+  media_type : String?
+  hreflang : String?
+  title : String?
+  length : Int64?
+} derive(Eq, @debug.Debug)
+pub fn AtomLink::equal(Self, Self) -> Bool
+pub fn AtomLink::not_equal(Self, Self) -> Bool
+pub fn AtomLink::to_repr(Self) -> @debug.Repr
+
 pub struct Attachment {
   source : FeedFormat
   url : String
@@ -54,6 +70,7 @@ pub struct Author {
   name : String?
   uri : String?
   email : String?
+  avatar : String?
 } derive(Eq, @debug.Debug)
 pub fn Author::equal(Self, Self) -> Bool
 pub fn Author::not_equal(Self, Self) -> Bool
@@ -94,7 +111,7 @@ pub fn DateError::to_repr(Self) -> @debug.Repr
 pub enum DatePrecision {
   Minute
   Second
-  Fraction(Int)
+  Fraction(Int32)
 } derive(Eq, @debug.Debug)
 pub fn DatePrecision::equal(Self, Self) -> Bool
 pub fn DatePrecision::not_equal(Self, Self) -> Bool
@@ -102,8 +119,8 @@ pub fn DatePrecision::to_repr(Self) -> @debug.Repr
 
 pub struct Diagnostic {
   kind : DiagnosticKind
-  line : Int
-  column : Int
+  line : Int32
+  column : Int32
 } derive(Eq, @debug.Debug)
 pub fn Diagnostic::equal(Self, Self) -> Bool
 pub fn Diagnostic::not_equal(Self, Self) -> Bool
@@ -111,23 +128,26 @@ pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 
 pub enum DiagnosticKind {
   MissingChannelField(String)
-  MissingItemIdentifier(Int)
+  MissingItemIdentifier(Int32)
   MissingFeedField(String)
-  MissingEntryField(Int, String)
+  MissingEntryField(Int32, String)
   UnsupportedNestedMarkup(String)
   UnsupportedTextConstruct(String)
   UnsupportedAtomContent(String)
-  MissingAlternateLink(Int)
-  MissingSummaryForExternalContent(Int)
-  MissingSummaryForBinaryContent(Int)
+  MissingAlternateLink(Int32)
+  MissingSummaryForExternalContent(Int32)
+  MissingSummaryForBinaryContent(Int32)
+  DuplicateAtomField(String)
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
   InvalidLanguage(String)
   InvalidFeedImage(String)
+  InvalidRssField(String)
+  InvalidAtomLink(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
-  InvalidJsonFeedItem(Int, String)
+  InvalidJsonFeedItem(Int32, String)
 } derive(Eq, @debug.Debug)
 pub fn DiagnosticKind::equal(Self, Self) -> Bool
 pub fn DiagnosticKind::not_equal(Self, Self) -> Bool
@@ -145,12 +165,21 @@ pub struct Entry {
   description_kind : TextKind
   description_xhtml : XhtmlFragment?
   content : String?
+  content_text : String?
+  content_html : String?
   content_kind : TextKind
   content_xhtml : XhtmlFragment?
   content_source : String?
   content_media_type : String?
   atom_body : AtomBody?
+  links : Array[AtomLink]
+  comments_url : String?
+  source_url : String?
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
   authors : Array[Author]
+  contributors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
   images : Array[EntryImage]
@@ -190,7 +219,18 @@ pub struct Feed {
   description_kind : TextKind
   description_xhtml : XhtmlFragment?
   updated_at : String?
+  published_at : String?
+  ttl_minutes : Int32?
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
+  generator : String?
+  next_url : String?
+  expired : Bool?
+  hubs : Array[Hub]
+  links : Array[AtomLink]
   authors : Array[Author]
+  contributors : Array[Author]
   categories : Array[Category]
   images : Array[FeedImage]
   entries : Array[Entry]
@@ -216,8 +256,8 @@ pub struct FeedImage {
   title : String?
   link : String?
   description : String?
-  width : Int?
-  height : Int?
+  width : Int32?
+  height : Int32?
 } derive(Eq, @debug.Debug)
 pub fn FeedImage::equal(Self, Self) -> Bool
 pub fn FeedImage::not_equal(Self, Self) -> Bool
@@ -234,11 +274,19 @@ pub fn FeedImageRole::equal(Self, Self) -> Bool
 pub fn FeedImageRole::not_equal(Self, Self) -> Bool
 pub fn FeedImageRole::to_repr(Self) -> @debug.Repr
 
+pub struct Hub {
+  transport_type : String
+  url : String
+} derive(Eq, @debug.Debug)
+pub fn Hub::equal(Self, Self) -> Bool
+pub fn Hub::not_equal(Self, Self) -> Bool
+pub fn Hub::to_repr(Self) -> @debug.Repr
+
 pub struct NormalizedDate {
   utc : String
   unix_seconds : Int64
-  nanosecond : Int
-  offset_minutes : Int
+  nanosecond : Int32
+  offset_minutes : Int32
   precision : DatePrecision
 } derive(Eq, @debug.Debug)
 pub fn NormalizedDate::equal(Self, Self) -> Bool
@@ -246,12 +294,13 @@ pub fn NormalizedDate::not_equal(Self, Self) -> Bool
 pub fn NormalizedDate::to_repr(Self) -> @debug.Repr
 
 pub enum ParseError {
-  InvalidXml(String, Int, Int)
+  InvalidXml(String, Int32, Int32)
   UnsupportedRoot(String, String?)
   UnsupportedRssVersion(String?)
   MissingChannel
   InvalidRssStructure(String)
-  InvalidJson(String, Int, Int)
+  InvalidAtomStructure(String)
+  InvalidJson(String, Int32, Int32)
   InvalidJsonFeed(String)
   UnsupportedJsonFeedVersion(String?)
   InvalidSourceUrl(String)
@@ -259,6 +308,14 @@ pub enum ParseError {
 pub fn ParseError::equal(Self, Self) -> Bool
 pub fn ParseError::not_equal(Self, Self) -> Bool
 pub fn ParseError::to_repr(Self) -> @debug.Repr
+
+pub enum ParsedDocument {
+  FeedDocument(Feed)
+  AtomEntryDocument(Entry, Array[Diagnostic])
+} derive(Eq, @debug.Debug)
+pub fn ParsedDocument::equal(Self, Self) -> Bool
+pub fn ParsedDocument::not_equal(Self, Self) -> Bool
+pub fn ParsedDocument::to_repr(Self) -> @debug.Repr
 
 pub enum TextKind {
   Unspecified

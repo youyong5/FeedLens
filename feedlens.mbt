@@ -21,11 +21,14 @@ pub enum DiagnosticKind {
   MissingAlternateLink(Int32)
   MissingSummaryForExternalContent(Int32)
   MissingSummaryForBinaryContent(Int32)
+  DuplicateAtomField(String)
   InvalidAuthor(String)
   InvalidCategory(String)
   InvalidAttachment(String)
   InvalidLanguage(String)
   InvalidFeedImage(String)
+  InvalidRssField(String)
+  InvalidAtomLink(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
@@ -126,6 +129,8 @@ pub struct Author {
   name : String?
   uri : String?
   email : String?
+  /// JSON Feed author avatar URL; not a feed or entry image.
+  avatar : String?
 } derive(Debug, Eq)
 
 ///|
@@ -195,6 +200,25 @@ pub struct EntryImage {
 } derive(Debug, Eq)
 
 ///|
+/// JSON Feed hub declaration. Parsing does not subscribe or send notifications.
+pub struct Hub {
+  transport_type : String
+  url : String
+} derive(Debug, Eq)
+
+///|
+/// An Atom link, including relations beyond the convenience alternate link
+/// and enclosure attachment fields. A missing rel is represented as alternate.
+pub struct AtomLink {
+  relation : String
+  href : String
+  media_type : String?
+  hreflang : String?
+  title : String?
+  length : Int64?
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed entry. Fields retain decoded source text without HTML
 /// rendering or sanitization.
 pub struct Entry {
@@ -220,6 +244,10 @@ pub struct Entry {
   /// `content_html`/`content_text`. External Atom content is not fetched and
   /// therefore remains `None`.
   content : String?
+  /// JSON Feed can supply both representations; `content` remains the
+  /// established HTML-preferred convenience field.
+  content_text : String?
+  content_html : String?
   content_kind : TextKind
   /// Present only for a successfully captured inline Atom XHTML body.
   content_xhtml : XhtmlFragment?
@@ -231,7 +259,15 @@ pub struct Entry {
   content_media_type : String?
   /// Detailed Atom body; `None` for RSS/JSON Feed and failed Atom extraction.
   atom_body : AtomBody?
+  links : Array[AtomLink]
+  /// RSS item comments/source and Atom rights retain their distinct roles.
+  comments_url : String?
+  source_url : String?
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
   authors : Array[Author]
+  contributors : Array[Author]
   categories : Array[Category]
   attachments : Array[Attachment]
   images : Array[EntryImage]
@@ -261,14 +297,36 @@ pub struct Feed {
   description_kind : TextKind
   /// Present only for a successfully captured Atom XHTML subtitle.
   description_xhtml : XhtmlFragment?
-  /// Atom feed `updated`; RSS and JSON Feed have no corresponding feed-level
-  /// core field in the supported subset.
+  /// Atom feed updated, or RSS channel lastBuildDate, preserved verbatim.
   updated_at : String?
+  /// RSS channel pubDate and ttl; absent on other formats.
+  published_at : String?
+  ttl_minutes : Int32?
+  /// RSS copyright / Atom rights, and RSS / Atom generator text.
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
+  generator : String?
+  /// JSON Feed pagination is only a reference; the library never follows it.
+  next_url : String?
+  /// JSON Feed expired is tri-state: absent differs from explicit false.
+  expired : Bool?
+  hubs : Array[Hub]
+  links : Array[AtomLink]
   authors : Array[Author]
+  contributors : Array[Author]
   categories : Array[Category]
   images : Array[FeedImage]
   entries : Array[Entry]
   diagnostics : Array[Diagnostic]
+} derive(Debug, Eq)
+
+///|
+/// A complete feed or a stand-alone Atom Entry Document. An entry document
+/// has its own diagnostics and does not invent enclosing feed metadata.
+pub enum ParsedDocument {
+  FeedDocument(Feed)
+  AtomEntryDocument(Entry, Array[Diagnostic])
 } derive(Debug, Eq)
 
 ///|
@@ -285,12 +343,21 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     description_kind: entry.description_kind,
     description_xhtml: entry.description_xhtml,
     content: entry.content,
+    content_text: entry.content_text,
+    content_html: entry.content_html,
     content_kind: entry.content_kind,
     content_xhtml: entry.content_xhtml,
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
     atom_body: entry.atom_body,
+    links: entry.links,
+    comments_url: entry.comments_url,
+    source_url: entry.source_url,
+    rights: entry.rights,
+    rights_kind: entry.rights_kind,
+    rights_xhtml: entry.rights_xhtml,
     authors: entry.authors,
+    contributors: entry.contributors,
     categories: entry.categories,
     attachments: entry.attachments,
     images: entry.images,
@@ -307,6 +374,7 @@ pub enum ParseError {
   UnsupportedRssVersion(String?)
   MissingChannel
   InvalidRssStructure(String)
+  InvalidAtomStructure(String)
   InvalidJson(String, Int32, Int32)
   InvalidJsonFeed(String)
   UnsupportedJsonFeedVersion(String?)
@@ -392,6 +460,18 @@ pub extend EntryImage with @moonbitlang/core/debug.Debug::{to_repr}
 pub extend EntryImage with Eq::{not_equal, equal}
 
 ///|
+pub extend Hub with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend Hub with Eq::{not_equal, equal}
+
+///|
+pub extend AtomLink with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AtomLink with Eq::{not_equal, equal}
+
+///|
 pub extend Entry with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
@@ -402,6 +482,12 @@ pub extend Feed with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Feed with Eq::{not_equal, equal}
+
+///|
+pub extend ParsedDocument with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend ParsedDocument with Eq::{not_equal, equal}
 
 ///|
 pub extend ParseError with @moonbitlang/core/debug.Debug::{to_repr}
@@ -481,6 +567,23 @@ fn attachment_size(text : String) -> Int64? {
     value = value * 10L + digit.to_int64()
   }
   Some(value)
+}
+
+///|
+fn rss_ttl_minutes(raw : String) -> Int32? {
+  let raw = raw.trim()
+  if raw.is_empty() {
+    return None
+  }
+  let mut minutes = 0
+  for character in raw {
+    let digit = character.to_int() - 48
+    if digit < 0 || digit > 9 || minutes > (2147483647 - digit) / 10 {
+      return None
+    }
+    minutes = minutes * 10 + digit
+  }
+  Some(minutes)
 }
 
 ///|
@@ -607,6 +710,11 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_link : String? = None
     let mut channel_description : String? = None
     let mut channel_language : String? = None
+    let mut channel_rights : String? = None
+    let mut channel_generator : String? = None
+    let mut channel_published : String? = None
+    let mut channel_updated : String? = None
+    let mut channel_ttl : Int32? = None
     let mut channel_title_location : (Int32, Int32)? = None
     let mut channel_link_location : (Int32, Int32)? = None
     let mut channel_description_location : (Int32, Int32)? = None
@@ -624,6 +732,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut item_description : String? = None
     let mut item_content : String? = None
     let mut item_published_at : String? = None
+    let mut item_comments_url : String? = None
+    let mut item_source_url : String? = None
     let mut item_authors : Array[Author] = []
     let mut item_categories : Array[Category] = []
     let mut item_attachments : Array[Attachment] = []
@@ -678,6 +788,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             item_description = None
             item_content = None
             item_published_at = None
+            item_comments_url = None
+            item_source_url = None
             item_authors = []
             item_categories = []
             item_attachments = []
@@ -716,7 +828,12 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "title") ||
               is_rss_name(element.name, "link") ||
               is_rss_name(element.name, "description") ||
-              is_rss_name(element.name, "language")
+              is_rss_name(element.name, "language") ||
+              is_rss_name(element.name, "copyright") ||
+              is_rss_name(element.name, "generator") ||
+              is_rss_name(element.name, "pubDate") ||
+              is_rss_name(element.name, "lastBuildDate") ||
+              is_rss_name(element.name, "ttl")
             ) {
             capture_field = Some(element.name.local_name)
             capture_depth = depth + 1
@@ -751,6 +868,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "pubDate") ||
               is_rss_name(element.name, "author") ||
               is_rss_name(element.name, "category") ||
+              is_rss_name(element.name, "comments") ||
+              is_rss_name(element.name, "source") ||
               is_rss_content_encoded(element.name)
             ) {
             capture_field = Some(
@@ -767,6 +886,12 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               attribute_value(element, "domain")
             } else {
               None
+            }
+            if is_rss_name(element.name, "source") {
+              item_source_url = match attribute_value(element, "url") {
+                Some(value) => non_blank_text(value)
+                None => None
+              }
             }
             capture_line = event.span.start.line
             capture_column = event.span.start.column
@@ -814,12 +939,21 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               description_kind: Unspecified,
               description_xhtml: None,
               content: None,
+              content_text: None,
+              content_html: None,
               content_kind: Unspecified,
               content_xhtml: None,
               content_source: None,
               content_media_type: None,
               atom_body: None,
+              links: [],
+              comments_url: None,
+              source_url: None,
+              rights: None,
+              rights_kind: Unspecified,
+              rights_xhtml: None,
               authors: [],
+              contributors: [],
               categories: [],
               attachments: [],
               images: [],
@@ -847,7 +981,12 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "title") ||
               is_rss_name(element.name, "link") ||
               is_rss_name(element.name, "description") ||
-              is_rss_name(element.name, "language")
+              is_rss_name(element.name, "language") ||
+              is_rss_name(element.name, "copyright") ||
+              is_rss_name(element.name, "generator") ||
+              is_rss_name(element.name, "pubDate") ||
+              is_rss_name(element.name, "lastBuildDate") ||
+              is_rss_name(element.name, "ttl")
             ) {
             match element.name.local_name {
               "title" => {
@@ -868,10 +1007,22 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   (event.span.start.line, event.span.start.column),
                 )
               }
-              _ => {
+              "language" => {
                 channel_language = None
                 diagnostics.push({
                   kind: InvalidLanguage("rss channel language blank"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
+              }
+              "copyright" => channel_rights = None
+              "generator" => channel_generator = None
+              "pubDate" => channel_published = None
+              "lastBuildDate" => channel_updated = None
+              _ => {
+                channel_ttl = None
+                diagnostics.push({
+                  kind: InvalidRssField("ttl"),
                   line: event.span.start.line,
                   column: event.span.start.column,
                 })
@@ -902,6 +1053,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "pubDate") ||
               is_rss_name(element.name, "author") ||
               is_rss_name(element.name, "category") ||
+              is_rss_name(element.name, "comments") ||
+              is_rss_name(element.name, "source") ||
               is_rss_content_encoded(element.name)
             ) {
             if is_rss_content_encoded(element.name) {
@@ -918,6 +1071,13 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 line: event.span.start.line,
                 column: event.span.start.column,
               })
+            } else if is_rss_name(element.name, "source") {
+              item_source_url = match attribute_value(element, "url") {
+                Some(value) => non_blank_text(value)
+                None => None
+              }
+            } else if is_rss_name(element.name, "comments") {
+              item_comments_url = None
             } else {
               match element.name.local_name {
                 "guid" => item_guid = None
@@ -954,6 +1114,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   "content:encoded" => item_content = None
                   "author" => ()
                   "category" => ()
+                  "comments" => item_comments_url = None
+                  "source" => item_source_url = None
                   _ => item_published_at = None
                 }
               } else {
@@ -961,6 +1123,11 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   "title" => channel_title = None
                   "link" => channel_link = None
                   "description" => channel_description = None
+                  "copyright" => channel_rights = None
+                  "generator" => channel_generator = None
+                  "pubDate" => channel_published = None
+                  "lastBuildDate" => channel_updated = None
+                  "ttl" => channel_ttl = None
                   _ => channel_language = None
                 }
               }
@@ -972,6 +1139,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 "description" =>
                   item_description = non_blank_text(captured_text)
                 "content:encoded" => item_content = Some(captured_text)
+                "comments" => item_comments_url = non_blank_text(captured_text)
+                "source" => ()
                 "author" =>
                   match non_blank_text(captured_text) {
                     Some(email) =>
@@ -980,6 +1149,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                         name: None,
                         uri: None,
                         email: Some(email),
+                        avatar: None,
                       })
                     None =>
                       diagnostics.push({
@@ -1030,6 +1200,21 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   }
                 "description" =>
                   channel_description = non_blank_text(captured_text)
+                "copyright" => channel_rights = non_blank_text(captured_text)
+                "generator" => channel_generator = non_blank_text(captured_text)
+                "pubDate" => channel_published = non_blank_text(captured_text)
+                "lastBuildDate" =>
+                  channel_updated = non_blank_text(captured_text)
+                "ttl" => {
+                  channel_ttl = rss_ttl_minutes(captured_text)
+                  if channel_ttl is None {
+                    diagnostics.push({
+                      kind: InvalidRssField("ttl"),
+                      line: capture_line,
+                      column: capture_column,
+                    })
+                  }
+                }
                 _ => {
                   channel_language = non_blank_text(captured_text)
                   if channel_language is None {
@@ -1065,12 +1250,21 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               description_kind: Unspecified,
               description_xhtml: None,
               content: item_content,
+              content_text: None,
+              content_html: None,
               content_kind: Unspecified,
               content_xhtml: None,
               content_source: None,
               content_media_type: None,
               atom_body: None,
+              links: [],
+              comments_url: item_comments_url,
+              source_url: item_source_url,
+              rights: None,
+              rights_kind: Unspecified,
+              rights_xhtml: None,
               authors: item_authors,
+              contributors: [],
               categories: item_categories,
               attachments: item_attachments,
               images: [],
@@ -1114,8 +1308,19 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             description: channel_description,
             description_kind: Unspecified,
             description_xhtml: None,
-            updated_at: None,
+            updated_at: channel_updated,
+            published_at: channel_published,
+            ttl_minutes: channel_ttl,
+            rights: channel_rights,
+            rights_kind: Unspecified,
+            rights_xhtml: None,
+            generator: channel_generator,
+            next_url: None,
+            expired: None,
+            hubs: [],
+            links: [],
             authors: [],
+            contributors: [],
             categories: channel_categories,
             images: [],
             entries,
@@ -1156,7 +1361,7 @@ pub fn parse(input : String) -> Result[Feed, ParseError] {
             }
           }
           if is_atom_name(element.name, "feed") {
-            return match parse_atom(input) {
+            return match parse_atom(input, false) {
               Ok(feed) => add_xml_feed_images(input, feed, None, true)
               Err(error) => Err(error)
             }
@@ -1176,5 +1381,27 @@ pub fn parse(input : String) -> Result[Feed, ParseError] {
   } catch {
     @xml.At(error~, span~) =>
       Err(InvalidXml(error.to_string(), span.start.line, span.start.column))
+  }
+}
+
+///|
+/// Parse a feed or an independent Atom Entry Document. The established
+/// `parse` function remains feed-only and keeps its Result[Feed, ParseError]
+/// signature. Stand-alone entries use the same Atom field, content, and
+/// diagnostic rules as entries inside feeds.
+pub fn parse_document(input : String) -> Result[ParsedDocument, ParseError] {
+  match parse(input) {
+    Ok(feed) => Ok(FeedDocument(feed))
+    Err(UnsupportedRoot(_, Some("http://www.w3.org/2005/Atom"))) =>
+      match parse_atom(input, true) {
+        Ok(feed) =>
+          if feed.entries.length() == 1 {
+            Ok(AtomEntryDocument(feed.entries[0], feed.diagnostics))
+          } else {
+            Err(InvalidAtomStructure("entry document has no entry"))
+          }
+        Err(error) => Err(error)
+      }
+    Err(error) => Err(error)
   }
 }

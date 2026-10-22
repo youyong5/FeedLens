@@ -50,4 +50,16 @@ fn main {
       }
     Err(_) => println("Atom binary parse failed")
   }
+  let standalone =
+    #|<entry xmlns="http://www.w3.org/2005/Atom" xml:base="posts/"><id>urn:e</id><title>Independent entry</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><link href="one"/></entry>
+  match
+    @feedlens.parse_document_with_source(
+      standalone, "https://example.test/news/entry.atom",
+    ) {
+    Ok(@feedlens.AtomEntryDocument(entry, _)) => {
+      println("atom_entry=" + entry.title.unwrap_or(""))
+      println("atom_entry_link=" + entry.link.unwrap_or(""))
+    }
+    _ => println("Atom Entry Document parse failed")
+  }
 }
