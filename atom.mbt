@@ -173,6 +173,7 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
     atom_body: entry.atom_body,
+    atom_source: entry.atom_source,
     links: entry.links,
     comments_url: entry.comments_url,
     source_url: entry.source_url,
@@ -379,6 +380,20 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
     let mut entry_own_authors : Array[Author] = []
     let mut entry_contributors : Array[Author] = []
     let mut entry_source_authors : Array[Author] = []
+    let mut entry_atom_source : AtomSource? = None
+    let mut source_id : String? = None
+    let mut source_title : String? = None
+    let mut source_title_kind = Text
+    let mut source_title_xhtml : XhtmlFragment? = None
+    let mut source_updated : String? = None
+    let mut source_rights : String? = None
+    let mut source_rights_kind = Text
+    let mut source_rights_xhtml : XhtmlFragment? = None
+    let mut source_contributors : Array[Author] = []
+    let mut source_categories : Array[Category] = []
+    let mut source_language : String? = None
+    let mut source_base_references : Array[String] = []
+    let mut source_singletons : Array[String] = []
     let mut entry_categories : Array[Category] = []
     let mut entry_attachments : Array[Attachment] = []
     let mut entry_links : Array[AtomLink] = []
@@ -403,6 +418,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
 
     let mut capture_field : String? = None
     let mut capture_in_entry = false
+    let mut capture_in_source = false
     let mut capture_depth = 0
     let mut captured_text = ""
     let mut capture_has_nested_markup = false
@@ -482,6 +498,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             entry_own_authors = []
             entry_contributors = []
             entry_source_authors = []
+            entry_atom_source = None
             entry_categories = []
             entry_attachments = []
             entry_links = []
@@ -550,10 +567,42 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             is_atom_name(element.name, "source") {
             source_open = true
             source_depth = depth + 1
+            source_id = None
+            source_title = None
+            source_title_kind = Text
+            source_title_xhtml = None
+            source_updated = None
+            source_rights = None
+            source_rights_kind = Text
+            source_rights_xhtml = None
+            source_contributors = []
+            source_categories = []
+            entry_source_authors = []
+            source_singletons = []
+            source_language = match xml_language_attribute(element) {
+              Some(value) => non_blank_text(value)
+              None => entry_language
+            }
+            source_base_references = xhtml_copy_references(
+              entry_base_references,
+            )
+            match xml_base_attribute(element) {
+              Some(value) => source_base_references.push(value)
+              None => ()
+            }
           } else if source_open &&
             depth == source_depth &&
-            is_atom_name(element.name, "author") {
-            author_owner = Some("source")
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
+            author_owner = Some(
+              if is_atom_name(element.name, "author") {
+                "source"
+              } else {
+                "source_contributor"
+              },
+            )
             author_depth = depth + 1
             author_line = event.span.start.line
             author_column = event.span.start.column
@@ -562,6 +611,81 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_email = None
             author_child = None
             author_child_text = ""
+          } else if capture_field is None &&
+            source_open &&
+            depth == source_depth &&
+            element.name.local_name is ("id" | "title" | "updated" | "rights") &&
+            is_atom_name(element.name, element.name.local_name) {
+            let field = element.name.local_name
+            if source_singletons.any(fn(previous) { previous == field }) {
+              diagnostics.push({
+                kind: DuplicateAtomField("source " + field),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+            source_singletons.push(field)
+            match field {
+              "id" => source_id = None
+              "title" => {
+                source_title = None
+                source_title_xhtml = None
+              }
+              "rights" => {
+                source_rights = None
+                source_rights_xhtml = None
+              }
+              _ => source_updated = None
+            }
+            capture_field = Some(field)
+            capture_in_source = true
+            capture_in_entry = false
+            capture_depth = depth + 1
+            captured_text = ""
+            capture_has_nested_markup = false
+            capture_text_kind = if field is ("title" | "rights") {
+              atom_text_kind(element).unwrap_or(Text)
+            } else {
+              Text
+            }
+            capture_unsupported_type = field is ("title" | "rights") &&
+              atom_text_kind(element) is None
+            capture_line = event.span.start.line
+            capture_column = event.span.start.column
+            if capture_unsupported_type {
+              diagnostics.push({
+                kind: UnsupportedTextConstruct("atom source " + field),
+                line: capture_line,
+                column: capture_column,
+              })
+            }
+            xhtml_capture = if field is ("title" | "rights") &&
+              capture_text_kind == Xhtml {
+              let references = xhtml_copy_references(source_base_references)
+              match xml_base_attribute(element) {
+                Some(value) => references.push(value)
+                None => ()
+              }
+              let language = match xml_language_attribute(element) {
+                Some(value) => non_blank_text(value)
+                None => source_language
+              }
+              Some(AtomXhtmlCapture::new(language, references))
+            } else {
+              None
+            }
+          } else if source_open &&
+            depth == source_depth &&
+            is_atom_name(element.name, "category") {
+            match atom_category(element) {
+              Some(category) => source_categories.push(category)
+              None =>
+                diagnostics.push({
+                  kind: InvalidCategory("atom category missing term"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
+            }
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "category") {
@@ -1011,14 +1135,87 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               line: event.span.start.line,
               column: event.span.start.column,
             })
+          } else if entry_open &&
+            depth == entry_depth &&
+            is_atom_name(element.name, "source") {
+            entry_atom_source = Some({
+              identifier: None,
+              title: None,
+              title_kind: Text,
+              title_xhtml: None,
+              updated_at: None,
+              rights: None,
+              rights_kind: Text,
+              rights_xhtml: None,
+              authors: [],
+              contributors: [],
+              categories: [],
+            })
           } else if source_open &&
             depth == source_depth &&
-            is_atom_name(element.name, "author") {
+            (
+              is_atom_name(element.name, "author") ||
+              is_atom_name(element.name, "contributor")
+            ) {
             diagnostics.push({
-              kind: InvalidAuthor("atom author missing name"),
+              kind: InvalidAuthor(
+                if is_atom_name(element.name, "author") {
+                  "atom author missing name"
+                } else {
+                  "atom contributor missing name"
+                },
+              ),
               line: event.span.start.line,
               column: event.span.start.column,
             })
+          } else if source_open &&
+            depth == source_depth &&
+            element.name.local_name is ("id" | "title" | "updated" | "rights") &&
+            is_atom_name(element.name, element.name.local_name) {
+            let field = element.name.local_name
+            if source_singletons.any(fn(previous) { previous == field }) {
+              diagnostics.push({
+                kind: DuplicateAtomField("source " + field),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+            source_singletons.push(field)
+            if field is ("title" | "rights") {
+              let kind = atom_text_kind(element).unwrap_or(Text)
+              if field == "title" {
+                source_title = None
+                source_title_kind = kind
+                source_title_xhtml = None
+              } else {
+                source_rights = None
+                source_rights_kind = kind
+                source_rights_xhtml = None
+              }
+              if atom_text_kind(element) is None || kind == Xhtml {
+                diagnostics.push({
+                  kind: UnsupportedTextConstruct("atom source " + field),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
+              }
+            } else if field == "id" {
+              source_id = None
+            } else {
+              source_updated = None
+            }
+          } else if source_open &&
+            depth == source_depth &&
+            is_atom_name(element.name, "category") {
+            match atom_category(element) {
+              Some(category) => source_categories.push(category)
+              None =>
+                diagnostics.push({
+                  kind: InvalidCategory("atom category missing term"),
+                  line: event.span.start.line,
+                  column: event.span.start.column,
+                })
+            }
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "category") {
@@ -1412,6 +1609,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 match author_owner {
                   Some("feed") => feed_authors.push(author)
                   Some("source") => entry_source_authors.push(author)
+                  Some("source_contributor") => source_contributors.push(author)
                   Some("feed_contributor") => feed_contributors.push(author)
                   Some("entry_contributor") => entry_contributors.push(author)
                   _ => entry_own_authors.push(author)
@@ -1437,6 +1635,19 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           if source_open &&
             source_depth == depth &&
             is_atom_name(name, "source") {
+            entry_atom_source = Some({
+              identifier: source_id,
+              title: source_title,
+              title_kind: source_title_kind,
+              title_xhtml: source_title_xhtml,
+              updated_at: source_updated,
+              rights: source_rights,
+              rights_kind: source_rights_kind,
+              rights_xhtml: source_rights_xhtml,
+              authors: copy_authors(entry_source_authors),
+              contributors: source_contributors,
+              categories: source_categories,
+            })
             source_open = false
           }
           if capture_field is Some(field) &&
@@ -1514,7 +1725,17 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               match xhtml_capture {
                 Some(state) => {
                   let plain = state.plain_text
-                  if capture_in_entry {
+                  if capture_in_source {
+                    if field == "title" {
+                      source_title = non_blank_text(plain)
+                      source_title_kind = Xhtml
+                      source_title_xhtml = xhtml_fragment
+                    } else {
+                      source_rights = non_blank_text(plain)
+                      source_rights_kind = Xhtml
+                      source_rights_xhtml = xhtml_fragment
+                    }
+                  } else if capture_in_entry {
                     match field {
                       "title" => {
                         entry_title = non_blank_text(plain)
@@ -1557,6 +1778,19 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   }
                 }
                 None => ()
+              }
+            } else if capture_in_source {
+              match field {
+                "id" => source_id = non_blank_text(captured_text)
+                "title" => {
+                  source_title = non_blank_text(captured_text)
+                  source_title_kind = capture_text_kind
+                }
+                "rights" => {
+                  source_rights = non_blank_text(captured_text)
+                  source_rights_kind = capture_text_kind
+                }
+                _ => source_updated = non_blank_text(captured_text)
               }
             } else if capture_in_entry {
               match field {
@@ -1605,6 +1839,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
             }
             capture_field = None
+            capture_in_source = false
             captured_text = ""
             capture_has_nested_markup = false
             capture_unsupported_type = false
@@ -1669,6 +1904,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               content_source: entry_content_source,
               content_media_type: entry_content_media_type,
               atom_body: entry_atom_body,
+              atom_source: entry_atom_source,
               links: entry_links,
               comments_url: None,
               source_url: None,
