@@ -175,6 +175,8 @@ pub struct Entry {
   links : Array[AtomLink]
   comments_url : String?
   source_url : String?
+  source_title : String?
+  guid_is_permalink : Bool?
   rights : String?
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
@@ -225,6 +227,8 @@ pub struct Feed {
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?
   generator : String?
+  managing_editor : String?
+  webmaster : String?
   next_url : String?
   expired : Bool?
   hubs : Array[Hub]

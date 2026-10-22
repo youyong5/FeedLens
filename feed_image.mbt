@@ -55,6 +55,8 @@ fn with_feed_images(feed : Feed, images : Array[FeedImage]) -> Feed {
     rights_kind: feed.rights_kind,
     rights_xhtml: feed.rights_xhtml,
     generator: feed.generator,
+    managing_editor: feed.managing_editor,
+    webmaster: feed.webmaster,
     next_url: feed.next_url,
     expired: feed.expired,
     hubs: feed.hubs,

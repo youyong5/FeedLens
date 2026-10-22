@@ -100,6 +100,7 @@ def main() -> None:
         "rss2_standard_fields.xml": ("standard_fields_test.mbt", "RSS copyright generator comments and item source keep their roles"),
         "atom1_standard_fields.xml": ("standard_fields_test.mbt", "Atom rights text constructs and generator preserve usable output"),
         "jsonfeed11_standard_fields.json": ("standard_fields_test.mbt", "JSON Feed retains both bodies, avatar-only authors, and pagination status"),
+        "rss2_metadata.xml": ("rss_metadata_test.mbt", "RSS guid role, source credit, and channel contacts"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -127,6 +128,21 @@ def main() -> None:
     assert entry.enclosures[0].href == "posts/audio/one.mp3"
     assert entry.enclosures[0].type == "audio/mpeg"
     print("PASS independent Atom Entry Document reference: ID, XHTML text, xml:base links and enclosure")
+    rss_metadata = feedparser.parse((SAMPLES / "rss2_metadata.xml").read_bytes())
+    assert not rss_metadata.bozo and len(rss_metadata.entries) == 2
+    rss_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(SAMPLES / "rss2_metadata.xml")],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert rss_cli["diagnostics"] == []
+    assert rss_cli["managing_editor"] == "editor@example.test"
+    assert rss_cli["webmaster"] == "ops@example.test"
+    for reference, actual in zip(rss_metadata.entries, rss_cli["entries"], strict=True):
+        assert actual["identifier"] == reference.id
+        assert actual["guid_is_permalink"] == reference.guidislink
+    assert rss_cli["entries"][0]["source_title"] == rss_metadata.entries[0].source.title
+    assert rss_cli["entries"][0]["source_url"] == rss_metadata.entries[0].source.href
+    print("PASS independent RSS guid permalink role and source credit; channel contacts checked against fixture")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 

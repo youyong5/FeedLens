@@ -38,7 +38,9 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.content_media_type` | none | declared `content type` spelling, if present | none |
 | `Entry.atom_body` | none | detailed inline or external Atom body | none |
 | `Entry.content_text`, `Entry.content_html` | none | none | both item forms independently |
-| `Entry.comments_url`, `Entry.source_url` | item `comments`, `source/@url` | none | none |
+| `Entry.comments_url`, `Entry.source_url`, `Entry.source_title` | item `comments`, `source/@url` and source channel title | none | none |
+| `Entry.guid_is_permalink` | `guid/@isPermaLink`, default true on a usable guid | none | none |
+| `Feed.managing_editor`, `Feed.webmaster` | channel editorial and technical contact text | none | none |
 | `Entry.rights` | none | entry `rights` text construct | none |
 | `Entry.published_at` | item `pubDate` | entry `published` | `date_published` |
 | `Entry.updated_at` | none | entry `updated` | `date_modified` |
@@ -239,7 +241,8 @@ The original `parse` and `parse_with_source` feed return types remain unchanged.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
 - XML errors, unsupported roots, unsupported RSS versions, and a missing channel are fatal `ParseError` values.
 - Missing or whitespace-only fields are recoverable and become `None`. `Feed.diagnostics` reports each missing required channel field and anonymous item. A blank channel field diagnostic points at that field; an absent one points at `<channel>`. An anonymous-item diagnostic points at `<item>`.
-- An item's `identifier` is its non-blank `guid`, falling back to its non-blank `link`. The `guid` value is never interpreted as a URL, including when `isPermaLink` is present.
+- An item's `identifier` is its non-blank `guid`, falling back to its non-blank `link`. The `guid` value remains opaque; `guid_is_permalink` preserves the declared `isPermaLink` role (default true for a usable guid), without fetching or resolving the identifier. Unknown attribute values receive `InvalidRssField`.
+- RSS item source credit keeps the source channel title separately from its required `url`. The channel's `managingEditor` and `webMaster` contact texts remain separate from entry authors.
 - RSS core fields containing nested XML markup are not flattened: their value becomes `None` and `UnsupportedNestedMarkup` identifies the field location. Plain text, XML entities, and CDATA remain supported.
 - Supports a direct item child named `content:encoded` only when its resolved namespace URI is exactly `http://purl.org/rss/1.0/modules/content/`. Its XML-decoded text or CDATA is exposed as `Entry.content` with `content_kind = Unspecified`; it is independent from `description`. Nested XML is rejected with the same explicit nested-markup diagnostic policy.
 - Reads direct channel and item `category` elements in document order. A category's non-blank text is its term and its optional `domain` remains RSS-specific. Reads direct item `author` text as an unparsed raw email value. Blank authors/categories receive source-located `InvalidAuthor`/`InvalidCategory` diagnostics; namespaced lookalikes are ignored.
