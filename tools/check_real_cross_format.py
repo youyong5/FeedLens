@@ -15,6 +15,7 @@ import os
 import subprocess
 from html.parser import HTMLParser
 from pathlib import Path
+from urllib.parse import urljoin
 
 import feedparser
 
@@ -102,6 +103,7 @@ def main() -> None:
         "jsonfeed11_standard_fields.json": ("standard_fields_test.mbt", "JSON Feed retains both bodies, avatar-only authors, and pagination status"),
         "rss2_metadata.xml": ("rss_metadata_test.mbt", "RSS guid role, source credit, and channel contacts"),
         "atom1_source_metadata.xml": ("atom_source_test.mbt", "aggregated Atom entry retains source identity and XHTML title"),
+        "atom1_person_uris.xml": ("atom_person_uri_test.mbt", "Atom person URI scopes and inheritance across feed, entry and source"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -178,6 +180,25 @@ def main() -> None:
     assert atom_source_cli["generator"] == atom_source_reference.feed.generator
     assert source["images"][0]["url"] == "icon.png" and source["images"][1]["url"] == "logo.png"
     print("PASS independent Atom source identity, XHTML title_detail, subtitle, generator, links, updated, people, category and rights; images fixture-only")
+    people_ref = feedparser.parse((SAMPLES / "atom1_person_uris.xml").read_bytes())
+    assert not people_ref.bozo and len(people_ref.entries) == 3
+    people_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(SAMPLES / "atom1_person_uris.xml")],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert people_cli["diagnostics"] == []
+    base = "https://example.test/feeds/"
+    assert urljoin(base + "staff/", people_cli["authors"][0]["uri"]) == people_ref.feed.authors[0].href
+    assert urljoin(base, people_cli["contributors"][0]["uri"]) == people_ref.feed.contributors[0].href
+    first = people_cli["entries"][0]
+    first_ref = people_ref.entries[0]
+    assert urljoin(base + "people/", first["authors"][0]["uri"]) == first_ref.authors[0].href
+    assert urljoin(base + "posts/", first["contributors"][0]["uri"]) == first_ref.contributors[0].href
+    assert urljoin(base + "origin/", first["atom_source"]["authors"][0]["uri"]) == first_ref.source.authors[0].href
+    assert urljoin(base + "origin/staff/", first["atom_source"]["contributors"][0]["uri"]) == first_ref.source.contributors[0].href
+    second = people_cli["entries"][1]
+    assert urljoin(base + "origin/people/", second["atom_source"]["authors"][0]["uri"]) == people_ref.entries[1].source.authors[0].href
+    print("PASS independent Atom person URI intersection: feed, entry and source scopes; inherited entry authors library-only")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 

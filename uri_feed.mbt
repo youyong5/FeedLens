@@ -77,6 +77,7 @@ fn uri_with_entry_urls(
   comments_url : String?,
   source_url : String?,
   authors : Array[Author],
+  contributors : Array[Author],
 ) -> Entry {
   {
     identifier: entry.identifier,
@@ -107,7 +108,7 @@ fn uri_with_entry_urls(
     rights_kind: entry.rights_kind,
     rights_xhtml: entry.rights_xhtml,
     authors,
-    contributors: entry.contributors,
+    contributors,
     categories: entry.categories,
     attachments,
     images,
@@ -124,6 +125,7 @@ fn uri_with_feed_urls(
   next_url : String?,
   hubs : Array[Hub],
   authors : Array[Author],
+  contributors : Array[Author],
   links : Array[AtomLink],
   generator_uri : String?,
 ) -> Feed {
@@ -154,7 +156,7 @@ fn uri_with_feed_urls(
     hubs,
     links,
     authors,
-    contributors: feed.contributors,
+    contributors,
     categories: feed.categories,
     images: feed.images,
     entries,
@@ -231,6 +233,18 @@ priv struct UriXmlState {
   source_images : Array[Array[FeedImage]]
   source_links_alt : Array[String?]
   source_generators : Array[String?]
+  person_lists : Array[Array[Author]]
+  person_indexes : Array[Int32]
+  entry_own_authors : Array[Bool]
+  mut person_group : Int32
+  mut person_depth : Int32
+  mut person_name : String?
+  mut person_uri : String?
+  mut person_uri_base : String?
+  mut person_uri_line : Int32
+  mut person_uri_column : Int32
+  mut person_field : String?
+  mut person_text : String
   mut feed_link_index : Int32
   mut entry_link_index : Int32
   mut source_link_index : Int32
@@ -270,6 +284,12 @@ fn UriXmlState::new(
   let source_links_alt : Array[String?] = []
   let source_generators : Array[String?] = []
   let feed_links : Array[AtomLink] = []
+  let person_lists : Array[Array[Author]] = [
+    copy_authors(feed.authors),
+    copy_authors(feed.contributors),
+  ]
+  let person_indexes : Array[Int32] = [0, 0]
+  let entry_own_authors : Array[Bool] = []
   for link in feed.links {
     feed_links.push(link)
   }
@@ -308,6 +328,22 @@ fn UriXmlState::new(
     }
     source_links.push(copied_source_links)
     source_images.push(copied_source_images)
+    person_lists.push(copy_authors(entry.authors))
+    person_lists.push(copy_authors(entry.contributors))
+    match entry.atom_source {
+      Some(source) => {
+        person_lists.push(copy_authors(source.authors))
+        person_lists.push(copy_authors(source.contributors))
+      }
+      None => {
+        person_lists.push([])
+        person_lists.push([])
+      }
+    }
+    for person_slot = 0; person_slot < 4; person_slot = person_slot + 1 {
+      person_indexes.push(0)
+    }
+    entry_own_authors.push(false)
     content_sources.push(entry.content_source)
     bodies.push(entry.atom_body)
     locations.push(None)
@@ -327,6 +363,18 @@ fn UriXmlState::new(
     source_images,
     source_links_alt,
     source_generators,
+    person_lists,
+    person_indexes,
+    entry_own_authors,
+    person_group: -1,
+    person_depth: 0,
+    person_name: None,
+    person_uri: None,
+    person_uri_base: None,
+    person_uri_line: 1,
+    person_uri_column: 1,
+    person_field: None,
+    person_text: "",
     feed_link_index: 0,
     entry_link_index: 0,
     source_link_index: 0,
@@ -422,6 +470,8 @@ fn uri_with_source_urls(
   links : Array[AtomLink],
   images : Array[FeedImage],
   generator_uri : String?,
+  authors : Array[Author],
+  contributors : Array[Author],
 ) -> AtomSource? {
   match source {
     None => None
@@ -441,8 +491,8 @@ fn uri_with_source_urls(
         generator: source.generator,
         generator_uri,
         generator_version: source.generator_version,
-        authors: source.authors,
-        contributors: source.contributors,
+        authors,
+        contributors,
         categories: source.categories,
         link,
         links,
@@ -487,6 +537,49 @@ fn UriXmlState::finish_image(self : UriXmlState) -> Unit {
   }
   self.image_field = None
   self.image_text = ""
+}
+
+///|
+fn UriXmlState::finish_person(self : UriXmlState) -> Unit {
+  let group = self.person_group
+  if group >= 0 && group < self.person_lists.length() {
+    let people = self.person_lists[group]
+    let mut index = self.person_indexes[group]
+    while index < people.length() {
+      let person = people[index]
+      if person.name == self.person_name && person.uri == self.person_uri {
+        match self.person_uri {
+          Some(raw) =>
+            people[index] = {
+              source: person.source,
+              name: person.name,
+              uri: Some(
+                uri_at(
+                  self.person_uri_base,
+                  raw,
+                  "atom person uri",
+                  self.person_uri_line,
+                  self.person_uri_column,
+                  self.diagnostics,
+                ),
+              ),
+              email: person.email,
+              avatar: person.avatar,
+            }
+          None => ()
+        }
+        self.person_indexes[group] = index + 1
+        if group >= 2 && (group - 2) % 4 == 0 {
+          self.entry_own_authors[(group - 2) / 4] = true
+        }
+        break
+      }
+      index = index + 1
+    }
+  }
+  self.person_group = -1
+  self.person_field = None
+  self.person_text = ""
 }
 
 ///|
@@ -537,6 +630,42 @@ fn UriXmlState::on_element(
       }
     }
     return
+  }
+  if self.person_group >= 0 &&
+    depth == self.person_depth &&
+    (is_atom_name(element.name, "name") || is_atom_name(element.name, "uri")) &&
+    !is_empty {
+    self.person_field = Some(element.name.local_name)
+    self.person_text = ""
+    if is_atom_name(element.name, "uri") {
+      self.person_uri_base = base
+      self.person_uri_line = line
+      self.person_uri_column = column
+    }
+  } else if self.person_group < 0 &&
+    !is_empty &&
+    (
+      is_atom_name(element.name, "author") ||
+      is_atom_name(element.name, "contributor")
+    ) {
+    let offset = if is_atom_name(element.name, "author") { 0 } else { 1 }
+    let group = if self.source_open && depth == self.source_depth {
+      2 + self.entry_index * 4 + 2 + offset
+    } else if self.entry_open && depth == self.entry_depth {
+      2 + self.entry_index * 4 + offset
+    } else if !self.entry_open && depth == 1 {
+      offset
+    } else {
+      -1
+    }
+    if group >= 0 {
+      self.person_group = group
+      self.person_depth = depth + 1
+      self.person_name = None
+      self.person_uri = None
+      self.person_field = None
+      self.person_text = ""
+    }
   }
   if (depth == 1 || (self.standalone && depth == 0)) &&
     is_atom_name(element.name, "entry") {
@@ -783,6 +912,18 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
   }
   let entries : Array[Entry] = []
   for index = 0; index < feed.entries.length(); index = index + 1 {
+    let person_group = 2 + index * 4
+    let effective_authors = if self.format != Atom1 {
+      feed.entries[index].authors
+    } else if self.entry_own_authors[index] {
+      self.person_lists[person_group]
+    } else if !self.person_lists[person_group + 2].is_empty() {
+      self.person_lists[person_group + 2]
+    } else if !self.person_lists[0].is_empty() {
+      self.person_lists[0]
+    } else {
+      feed.entries[index].authors
+    }
     entries.push(
       uri_with_entry_urls(
         feed.entries[index],
@@ -799,6 +940,8 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
             self.source_links[index],
             self.source_images[index],
             self.source_generators[index],
+            self.person_lists[person_group + 2],
+            self.person_lists[person_group + 3],
           )
         } else {
           feed.entries[index].atom_source
@@ -840,7 +983,12 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
         } else {
           feed.entries[index].source_url
         },
-        feed.entries[index].authors,
+        effective_authors,
+        if self.format == Atom1 {
+          self.person_lists[person_group + 1]
+        } else {
+          feed.entries[index].contributors
+        },
       ),
     )
   }
@@ -850,7 +998,16 @@ fn UriXmlState::finish(self : UriXmlState, feed : Feed) -> Feed {
     entries,
     feed.next_url,
     feed.hubs,
-    feed.authors,
+    if self.format == Atom1 {
+      self.person_lists[0]
+    } else {
+      feed.authors
+    },
+    if self.format == Atom1 {
+      self.person_lists[1]
+    } else {
+      feed.contributors
+    },
     self.feed_links,
     self.feed_generator_uri,
   )
@@ -920,6 +1077,23 @@ fn resolve_xml_feed(
           )
         }
         @xml.End(name) => {
+          if state.person_group >= 0 &&
+            state.person_field is Some(field) &&
+            depth == state.person_depth + 1 &&
+            is_atom_name(name, field) {
+            if field == "name" {
+              state.person_name = non_blank_text(state.person_text)
+            } else {
+              state.person_uri = non_blank_text(state.person_text)
+            }
+            state.person_field = None
+            state.person_text = ""
+          }
+          if state.person_group >= 0 &&
+            depth == state.person_depth &&
+            (is_atom_name(name, "author") || is_atom_name(name, "contributor")) {
+            state.finish_person()
+          }
           if state.image_field is Some(field) &&
             state.source_open &&
             depth == state.source_depth + 1 &&
@@ -942,10 +1116,14 @@ fn resolve_xml_feed(
           depth = depth - 1
           ignore(bases.pop())
         }
-        @xml.Text(value) | @xml.CData(value) =>
+        @xml.Text(value) | @xml.CData(value) => {
           if state.image_field is Some(_) {
             state.image_text = state.image_text + value
           }
+          if state.person_field is Some(_) {
+            state.person_text = state.person_text + value
+          }
+        }
         @xml.Eof => return Ok(state.finish(feed))
         _ => ()
       }
@@ -1077,6 +1255,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
           diagnostics,
           "json feed item " + index.to_string() + " author",
         ),
+        entry.contributors,
       ),
     )
   }
@@ -1106,6 +1285,7 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
       diagnostics,
       "json feed author",
     ),
+    feed.contributors,
     feed.links,
     feed.generator_uri,
   )

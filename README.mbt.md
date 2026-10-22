@@ -38,6 +38,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.content_media_type` | none | declared `content type` spelling, if present | none |
 | `Entry.atom_body` | none | detailed inline or external Atom body | none |
 | `Entry.atom_source` | none | original feed `source` id/title/subtitle/updated, rights, generator (including uri/version), links, images, people and categories, separately from the aggregated entry | none |
+| `Author.uri` | none | feed/entry/source author or contributor `uri`; raw in `parse`, scoped by `xml:base` in `parse_with_source` | author `url` |
 | `Entry.content_text`, `Entry.content_html` | none | none | both item forms independently |
 | `Entry.comments_url`, `Entry.source_url`, `Entry.source_title` | item `comments`, `source/@url` and source channel title | none | none |
 | `Entry.guid_is_permalink` | `guid/@isPermaLink`, default true on a usable guid | none | none |
@@ -217,8 +218,8 @@ is a fatal `InvalidSourceUrl` error. No URI is fetched.
 
 Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
 including the RSS link-fallback identifier. JSON author URLs and avatars,
-RSS comments/source URLs and every direct Atom link are resolved; Atom author
-URIs, RSS category domains, Atom category schemes and URLs inside HTML are not.
+RSS comments/source URLs and every direct Atom link are resolved; Atom author/contributor URIs use their own element-scoped `xml:base`;
+RSS category domains, Atom category schemes and URLs inside HTML are not resolved.
 Atom content `src` uses its own `xml:base` scope.
 Existing `parse` callers are unaffected; callers
 that need the original references can continue using it.
@@ -324,7 +325,7 @@ network access, or HTML rendering.
 
 - Attachment/image retrieval or verification; JSON Feed pagination following and extension fields; network retrieval and unscoped URI/IRI fields listed above.
 - RSS versions other than 2.0, and RSS core elements placed in a namespace.
-- Atom external-content retrieval, comprehensive MIME-parameter validation, full XHTML/XML rendering or sanitization, and resolution inside HTML/XHTML or unsupported constructs. Atom source links, subtitle, generator and images; generator uri/version; and some full-document ordering/IRI/date constraints remain outside the mapped behavior.
+- Atom external-content retrieval, comprehensive MIME-parameter validation, full XHTML/XML rendering or sanitization, and resolution inside HTML/XHTML or unsupported constructs. Some full-document ordering constraints, IRI/date grammar checks, and optional extension metadata remain outside the mapped behavior.
 
 ## Example
 

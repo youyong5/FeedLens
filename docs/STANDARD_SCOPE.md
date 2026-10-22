@@ -17,7 +17,7 @@ FeedLens 增加格式层级、映射和诊断，并不取代 XML 解析器。
 | RSS 作者、类别、image、enclosure、language | 来源明确的 Author/Category/FeedImage/Attachment 和语言；编辑与站点管理员联系方式单独保留 | 空值/非法附件定位诊断；不下载 | `attachments_test.mbt`, `language_test.mbt`, `feed_image_test.mbt`, `samples/rss2_attachments.xml` | iTunes/Media RSS 扩展、图片实际尺寸验证 |
 | Atom 1.0 命名空间 `feed > entry` 及独立 `entry` 文档 | `parse` 保留 feed 返回类型；`parse_document` 返回 FeedDocument 或 AtomEntryDocument(entry, diagnostics)；通用 Atom 条目字段和 XHTML；source 的 id/title/subtitle/updated、rights、generator、链接、icon/logo、作者、贡献者、类别单独保留 | 不合法 XML/根致命；缺必需字段与作者、重复单值字段、重复相同 type/hreflang 的 alternate 链接定位诊断 | `atom_document_test.mbt`, `atom_source_test.mbt`, `samples/atom1_source_metadata.xml` | Atom source 中其他扩展元数据、完整 IRI/日期语法及所有顺序/重复约束的验证尚未覆盖 |
 | Atom rights、generator、contributor 与多关系链接 | rights 的 text/html/xhtml 文本构造，generator 文本及 uri/version 属性，独立贡献者；`links` 保留 self/related/alternate/enclosure 等关系及常用属性；`link` 为首个 alternate 的便捷取值 | 缺 href、非法 length 与重复 alternate 组合诊断；不下载链接 | `standard_fields_test.mbt`, `samples/atom1_standard_fields.xml` | Atom source 的未映射扩展、链接的完整 IRI 校验 |
-| Atom 作者、类别、图片、附件、xml:lang/xml:base | entry→source→feed 作者优先层；source 身份、text/html/xhtml 标题/subtitle/rights、generator、链接、icon/logo 及时间单独保留；term/scheme/label；icon/logo；enclosure；显式 URI 入口 | 无效作者/类别/附件定位诊断；source 重复单值字段和不合法标题定位诊断；不猜文档来源 URI | `atom_source_test.mbt`, `language_test.mbt`, `uri_test.mbt`, `attachments_test.mbt`, `feed_image_test.mbt` | Person 的更多扩展、source 其他扩展、内容内 URI 自动改写 |
+| Atom 作者、类别、图片、附件、xml:lang/xml:base | entry→source→feed 作者优先层；source 身份、text/html/xhtml 标题/subtitle/rights、generator、链接、icon/logo 及时间单独保留；term/scheme/label；icon/logo；enclosure；显式 URI 入口 | 无效作者/类别/附件定位诊断；Person 的 name/uri/email 重复字段、source 重复单值字段和不合法标题定位诊断；不猜文档来源 URI | `atom_source_test.mbt`, `atom_person_uri_test.mbt`, `samples/atom1_person_uris.xml`, `language_test.mbt`, `uri_test.mbt`, `attachments_test.mbt`, `feed_image_test.mbt` | Person 的未映射扩展与完整 IRI/email 语法校验、source 其他扩展、内容内 URI 自动改写 |
 | Atom `type=text`/省略、`type=html` 标题/摘要/内联正文 | XML 解码原值与 `Text`/`Html` 标记；原空白 | 子元素不被剥标签拼接，给 `UnsupportedTextConstruct`/`UnsupportedAtomContent` | `feedlens_test.mbt` | HTML 渲染、清洗、其中的相对链接解析 |
 | Atom `type=xhtml` 的 feed/entry title、subtitle/summary、entry/content | 纯文本展示值、`Xhtml` 标记和 `XhtmlFragment`（无外层 div 的确定性 XML 片段、语言、xml:base 链） | 必须有单个正确 XHTML 命名空间的 div；缺失、错误 URI、多根或非空游离文本给定位诊断；合法片段不清洗 | `xhtml_test.mbt`, `samples/atom1_xhtml.xml`, `tools/check_xhtml_reference.py` | XHTML 显示/安全清洗、字节级实体/前缀还原、外层 div 非继承类样式属性的投影 |
 | Atom `content src`（外链） | `Entry.content_source`/`content_media_type` 便捷取值及 `Entry.atom_body = External`：原始 `src`、URL、声明类型、已知绝对基准 URI；不写入内联 `Entry.content` | 非空内容、空 `src` 或非法类型定位诊断；缺 summary 另诊断；有 content 元素不误报缺 alternate | `atom_content_test.mbt`, `atom_body_test.mbt`, `samples/atom1_content_sources.xml`, `samples/atom1_content_forms.xml` | 下载/验证外链资源；`src` 的完整 IRI 语法校验 |
@@ -29,10 +29,13 @@ FeedLens 增加格式层级、映射和诊断，并不取代 XML 解析器。
 
 共同边界：`parse(String)` 不知道文档 URL，保留原始相对引用；
 `parse_with_source(String,String)` 只解析已承诺的 URI 字段，包括 Atom
-外链 `content src`；Atom 结构化
+外链 `content src`，以及 feed/entry/source 作者与贡献者 `uri` 的元素级 `xml:base`；Atom 结构化
 XHTML 内部 URI 仍由调用方依据 `base_references`/内部 `xml:base` 自行处理。
 `parse_document_with_source` 对独立 Atom Entry 应用相同的来源语义。
 Atom 外链正文只交付引用和声明类型，不下载或解码其资源。
+Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/rfc4287#section-3.2.2)
+和 [XML Base §4.3](https://www.w3.org/TR/xmlbase/#matching)。合法 person URI 的完整 IRI 语法
+尚未由本库验证；无法解析时原值保留并给定位诊断。
 日期原文保留，`normalize_date` 仅校验文档化的 RSS/RFC 3339 子集。
 可恢复诊断不是完整的标准校验器；JSON DOM 无字段源 span，其语义诊断为 `(1,1)`。
 
