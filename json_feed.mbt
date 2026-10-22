@@ -622,6 +622,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       content_source: None,
       content_media_type: None,
       atom_body: None,
+      atom_source: None,
       links: [],
       comments_url: None,
       source_url: None,

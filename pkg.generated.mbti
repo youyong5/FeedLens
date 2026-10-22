@@ -53,6 +53,23 @@ pub fn AtomLink::equal(Self, Self) -> Bool
 pub fn AtomLink::not_equal(Self, Self) -> Bool
 pub fn AtomLink::to_repr(Self) -> @debug.Repr
 
+pub struct AtomSource {
+  identifier : String?
+  title : String?
+  title_kind : TextKind
+  title_xhtml : XhtmlFragment?
+  updated_at : String?
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
+  authors : Array[Author]
+  contributors : Array[Author]
+  categories : Array[Category]
+} derive(Eq, @debug.Debug)
+pub fn AtomSource::equal(Self, Self) -> Bool
+pub fn AtomSource::not_equal(Self, Self) -> Bool
+pub fn AtomSource::to_repr(Self) -> @debug.Repr
+
 pub struct Attachment {
   source : FeedFormat
   url : String
@@ -172,6 +189,7 @@ pub struct Entry {
   content_source : String?
   content_media_type : String?
   atom_body : AtomBody?
+  atom_source : AtomSource?
   links : Array[AtomLink]
   comments_url : String?
   source_url : String?

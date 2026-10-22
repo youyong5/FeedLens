@@ -468,6 +468,27 @@ fn atom_link_json(link : @feedlens.AtomLink) -> Json {
 }
 
 ///|
+fn atom_source_json(source : @feedlens.AtomSource?) -> Json {
+  match source {
+    Some(source) =>
+      Json::object({
+        "identifier": optional_string_json(source.identifier),
+        "title": optional_string_json(source.title),
+        "title_kind": text_kind_json(source.title_kind),
+        "title_xhtml": xhtml_fragment_json(source.title_xhtml),
+        "updated_at": optional_string_json(source.updated_at),
+        "rights": optional_string_json(source.rights),
+        "rights_kind": text_kind_json(source.rights_kind),
+        "rights_xhtml": xhtml_fragment_json(source.rights_xhtml),
+        "authors": Json::array(source.authors.map(author_json)),
+        "contributors": Json::array(source.contributors.map(author_json)),
+        "categories": Json::array(source.categories.map(category_json)),
+      })
+    None => Json::null()
+  }
+}
+
+///|
 fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
   match kind {
     MissingChannelField(field) =>
@@ -541,6 +562,7 @@ fn entry_json(entry : @feedlens.Entry) -> Json {
     "content_source": optional_string_json(entry.content_source),
     "content_media_type": optional_string_json(entry.content_media_type),
     "atom_body": atom_body_json(entry.atom_body),
+    "atom_source": atom_source_json(entry.atom_source),
     "links": Json::array(entry.links.map(atom_link_json)),
     "comments_url": optional_string_json(entry.comments_url),
     "source_url": optional_string_json(entry.source_url),

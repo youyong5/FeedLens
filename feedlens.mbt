@@ -219,6 +219,24 @@ pub struct AtomLink {
 } derive(Debug, Eq)
 
 ///|
+/// Metadata retained from an Atom entry's original feed when it is copied
+/// into another feed. Missing members remain absent: atom:source may carry
+/// only some of its original feed's metadata.
+pub struct AtomSource {
+  identifier : String?
+  title : String?
+  title_kind : TextKind
+  title_xhtml : XhtmlFragment?
+  updated_at : String?
+  rights : String?
+  rights_kind : TextKind
+  rights_xhtml : XhtmlFragment?
+  authors : Array[Author]
+  contributors : Array[Author]
+  categories : Array[Category]
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed entry. Fields retain decoded source text without HTML
 /// rendering or sanitization.
 pub struct Entry {
@@ -259,6 +277,7 @@ pub struct Entry {
   content_media_type : String?
   /// Detailed Atom body; `None` for RSS/JSON Feed and failed Atom extraction.
   atom_body : AtomBody?
+  atom_source : AtomSource?
   links : Array[AtomLink]
   /// RSS item comments/source and Atom rights retain their distinct roles.
   comments_url : String?
@@ -358,6 +377,7 @@ fn with_entry_language(entry : Entry, language : String?) -> Entry {
     content_source: entry.content_source,
     content_media_type: entry.content_media_type,
     atom_body: entry.atom_body,
+    atom_source: entry.atom_source,
     links: entry.links,
     comments_url: entry.comments_url,
     source_url: entry.source_url,
@@ -480,6 +500,12 @@ pub extend AtomLink with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend AtomLink with Eq::{not_equal, equal}
+
+///|
+pub extend AtomSource with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend AtomSource with Eq::{not_equal, equal}
 
 ///|
 pub extend Entry with @moonbitlang/core/debug.Debug::{to_repr}
@@ -987,6 +1013,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content_source: None,
               content_media_type: None,
               atom_body: None,
+              atom_source: None,
               links: [],
               comments_url: None,
               source_url: None,
@@ -1344,6 +1371,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               content_source: None,
               content_media_type: None,
               atom_body: None,
+              atom_source: None,
               links: [],
               comments_url: item_comments_url,
               source_url: item_source_url,

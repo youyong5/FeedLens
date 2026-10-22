@@ -101,6 +101,7 @@ def main() -> None:
         "atom1_standard_fields.xml": ("standard_fields_test.mbt", "Atom rights text constructs and generator preserve usable output"),
         "jsonfeed11_standard_fields.json": ("standard_fields_test.mbt", "JSON Feed retains both bodies, avatar-only authors, and pagination status"),
         "rss2_metadata.xml": ("rss_metadata_test.mbt", "RSS guid role, source credit, and channel contacts"),
+        "atom1_source_metadata.xml": ("atom_source_test.mbt", "aggregated Atom entry retains source identity and XHTML title"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -143,6 +144,27 @@ def main() -> None:
     assert rss_cli["entries"][0]["source_title"] == rss_metadata.entries[0].source.title
     assert rss_cli["entries"][0]["source_url"] == rss_metadata.entries[0].source.href
     print("PASS independent RSS guid permalink role and source credit; channel contacts checked against fixture")
+    atom_source_reference = feedparser.parse((SAMPLES / "atom1_source_metadata.xml").read_bytes())
+    assert not atom_source_reference.bozo and len(atom_source_reference.entries) == 1
+    atom_source_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(SAMPLES / "atom1_source_metadata.xml")],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert atom_source_cli["diagnostics"] == []
+    source = atom_source_cli["entries"][0]["atom_source"]
+    reference = atom_source_reference.entries[0].source
+    assert source["identifier"] == reference.id
+    assert source["title"] == visible_text(reference.title)
+    assert source["title_kind"] == "xhtml" and reference.title_detail.type == "application/xhtml+xml"
+    assert source["title_xhtml"]["language"] == reference.title_detail.language == "fr"
+    assert source["updated_at"] == reference.updated
+    assert source["authors"][0]["name"] == reference.authors[0].name
+    assert source["contributors"][0]["name"] == reference.contributors[0].name
+    assert source["categories"][0]["term"] == reference.tags[0].term
+    assert source["categories"][0]["scheme"] == reference.tags[0].scheme
+    assert source["rights"] == reference.rights
+    assert source["rights_kind"] == "html" and reference.rights_detail.type == "text/html"
+    print("PASS independent Atom source identity, XHTML title, updated, people, category and rights")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 

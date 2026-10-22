@@ -96,6 +96,7 @@ fn uri_with_entry_urls(
     content_source,
     content_media_type: entry.content_media_type,
     atom_body,
+    atom_source: entry.atom_source,
     links,
     comments_url,
     source_url,
