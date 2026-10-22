@@ -155,6 +155,7 @@ pub fn Diagnostic::to_repr(Self) -> @debug.Repr
 pub enum DiagnosticKind {
   MissingChannelField(String)
   MissingItemIdentifier(Int32)
+  MissingItemContent(Int32)
   MissingFeedField(String)
   MissingEntryField(Int32, String)
   UnsupportedNestedMarkup(String)

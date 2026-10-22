@@ -104,6 +104,7 @@ def main() -> None:
         "rss2_metadata.xml": ("rss_metadata_test.mbt", "RSS guid role, source credit, and channel contacts"),
         "atom1_source_metadata.xml": ("atom_source_test.mbt", "aggregated Atom entry retains source identity and XHTML title"),
         "atom1_person_uris.xml": ("atom_person_uri_test.mbt", "Atom person URI scopes and inheritance across feed, entry and source"),
+        "rss2_anonymous_items.xml": ("rss_item_required_test.mbt", "RSS title-only and description-only items are valid without identifiers"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -146,6 +147,18 @@ def main() -> None:
     assert rss_cli["entries"][0]["source_title"] == rss_metadata.entries[0].source.title
     assert rss_cli["entries"][0]["source_url"] == rss_metadata.entries[0].source.href
     print("PASS independent RSS guid permalink role and source credit; channel contacts checked against fixture")
+    anonymous_ref = feedparser.parse((SAMPLES / "rss2_anonymous_items.xml").read_bytes())
+    assert not anonymous_ref.bozo and len(anonymous_ref.entries) == 3
+    anonymous_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(SAMPLES / "rss2_anonymous_items.xml")],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert anonymous_cli["diagnostics"] == []
+    for reference, actual in zip(anonymous_ref.entries, anonymous_cli["entries"], strict=True):
+        assert actual["identifier"] is None
+        assert actual["title"] == reference.get("title")
+        assert actual["description"] == reference.get("summary")
+    print("PASS independent RSS legal anonymous item intersection: title, description, and order")
     atom_source_reference = feedparser.parse((SAMPLES / "atom1_source_metadata.xml").read_bytes())
     assert not atom_source_reference.bozo and len(atom_source_reference.entries) == 1
     atom_source_cli = json.loads(subprocess.run(

@@ -13,6 +13,7 @@ pub struct Diagnostic {
 pub enum DiagnosticKind {
   MissingChannelField(String)
   MissingItemIdentifier(Int32)
+  MissingItemContent(Int32)
   MissingFeedField(String)
   MissingEntryField(Int32, String)
   UnsupportedNestedMarkup(String)
@@ -1042,7 +1043,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               updated_at: None,
             })
             diagnostics.push({
-              kind: MissingItemIdentifier(item_index),
+              kind: MissingItemContent(item_index),
               line: event.span.start.line,
               column: event.span.start.column,
             })
@@ -1399,9 +1400,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               published_at: item_published_at,
               updated_at: None,
             })
-            if identifier is None {
+            if item_title is None && item_description is None {
               diagnostics.push({
-                kind: MissingItemIdentifier(item_index),
+                kind: MissingItemContent(item_index),
                 line: item_line,
                 column: item_column,
               })

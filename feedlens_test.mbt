@@ -27,7 +27,7 @@ test "parse RSS 2.0 fields, entities, CDATA, and item order" {
 }
 
 ///|
-test "missing fields are recoverable and an anonymous item has a location" {
+test "missing channel fields are recoverable and a valid item can be anonymous" {
   let result = @feedlens.parse(
     (
       #|<rss version="2.0"><channel><link>https://example.com/</link>
@@ -44,15 +44,12 @@ test "missing fields are recoverable and an anonymous item has a location" {
   assert_eq(feed.title, None)
   assert_eq(feed.description, None)
   assert_eq(feed.entries[0].identifier, None)
-  assert_eq(feed.diagnostics.length(), 3)
-  assert_true(feed.diagnostics[0].kind is @feedlens.MissingItemIdentifier(0))
-  assert_eq(feed.diagnostics[0].line, 2)
-  assert_eq(feed.diagnostics[0].column, 1)
+  assert_eq(feed.diagnostics.length(), 2)
   assert_true(
-    feed.diagnostics[1].kind is @feedlens.MissingChannelField("title"),
+    feed.diagnostics[0].kind is @feedlens.MissingChannelField("title"),
   )
   assert_true(
-    feed.diagnostics[2].kind is @feedlens.MissingChannelField("description"),
+    feed.diagnostics[1].kind is @feedlens.MissingChannelField("description"),
   )
 }
 
@@ -202,7 +199,7 @@ test "RSS nested markup never becomes core field text" {
     (
       #|<rss version="2.0" xmlns:ext="urn:extension"><channel>
       #|<title>prefix <ext:em>nested</ext:em></title><link>https://example.com/</link><description>Feed</description>
-      #|<item><guid>item-1</guid><description>before <ext:em>nested</ext:em></description></item>
+      #|<item><guid>item-1</guid><title>Item</title><description>before <ext:em>nested</ext:em></description></item>
       #|</channel></rss>
     ),
   )
@@ -249,7 +246,7 @@ test "RSS Content Module encoded is separate from description" {
       #|<rss version="2.0" xmlns:c="http://purl.org/rss/1.0/modules/content/" xmlns:body="http://purl.org/rss/1.0/modules/content/" xmlns:fake="urn:not-content"><channel>
       #|<title>Feed</title><link>https://example.com/</link><description>Feed description</description>
       #|<item><guid>one</guid><description>Summary</description><c:encoded><![CDATA[<p>CDATA body</p>]]></c:encoded></item>
-      #|<item><guid>two</guid><fake:encoded>ignored</fake:encoded><body:encoded>&lt;p&gt;Entity &amp; text&lt;/p&gt;</body:encoded></item>
+      #|<item><guid>two</guid><title>Two</title><fake:encoded>ignored</fake:encoded><body:encoded>&lt;p&gt;Entity &amp; text&lt;/p&gt;</body:encoded></item>
       #|</channel></rss>
     ),
   )
@@ -267,7 +264,7 @@ test "RSS Content Module rejects nested XML and fake namespaces" {
     (
       #|<rss version="2.0" xmlns:c="http://purl.org/rss/1.0/modules/content/" xmlns:fake="urn:not-content"><channel>
       #|<title>Feed</title><link>https://example.com/</link><description>Feed description</description>
-      #|<item><guid>one</guid><fake:encoded>ignored</fake:encoded><c:encoded>before <b>markup</b></c:encoded></item>
+      #|<item><guid>one</guid><title>One</title><fake:encoded>ignored</fake:encoded><c:encoded>before <b>markup</b></c:encoded></item>
       #|</channel></rss>
     ),
   )
@@ -682,7 +679,7 @@ test "RSS authors and categories retain raw values and domains" {
   let result = @feedlens.parse(
     (
       #|<rss version="2.0"><channel><title>Feed</title><link>https://example.com/</link><description>Description</description><category domain="https://example.com/topics">Technology</category><category>News</category>
-      #|<item><guid>item</guid><author>Jane Doe &lt;jane@example.com&gt;</author><category domain="urn:topic">MoonBit</category><category>Language</category></item>
+      #|<item><guid>item</guid><title>Item</title><author>Jane Doe &lt;jane@example.com&gt;</author><category domain="urn:topic">MoonBit</category><category>Language</category></item>
       #|</channel></rss>
     ),
   )
@@ -710,7 +707,7 @@ test "RSS namespace collisions and empty author or category are diagnosed" {
   let result = @feedlens.parse(
     (
       #|<rss version="2.0" xmlns:x="urn:extension"><channel><title>Feed</title><link>https://example.com/</link><description>Description</description><x:category>ignored</x:category><category>   </category>
-      #|<item><guid>item</guid><x:author>ignored</x:author><x:category>ignored</x:category><author><![CDATA[ ]]></author><category/></item>
+      #|<item><guid>item</guid><title>Item</title><x:author>ignored</x:author><x:category>ignored</x:category><author><![CDATA[ ]]></author><category/></item>
       #|</channel></rss>
     ),
   )

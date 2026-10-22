@@ -1,0 +1,5 @@
+<rss version="2.0"><channel><title>Anonymous stories</title><link>https://example.test/</link><description>Stories with no permalink</description>
+<item><title>Title alone</title></item>
+<item><description>Body &amp; context</description></item>
+<item><title>Both</title><description>Full story</description></item>
+</channel></rss>

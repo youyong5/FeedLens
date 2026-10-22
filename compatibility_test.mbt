@@ -178,7 +178,7 @@ test "compatibility boundary samples preserve diagnostics and locations" {
       #|  <channel>
       #|    <title>Boundary RSS</title><link>https://feeds.example.test/boundary</link><description>Boundary description</description>
       #|    <x:category>ignored</x:category><category>   </category>
-      #|    <item><guid>boundary</guid><x:author>ignored</x:author><author> </author><x:encoded>ignored</x:encoded><c:encoded>before <b>nested</b></c:encoded></item>
+      #|    <item><guid>boundary</guid><title>Boundary item</title><x:author>ignored</x:author><author> </author><x:encoded>ignored</x:encoded><c:encoded>before <b>nested</b></c:encoded></item>
       #|  </channel>
       #|</rss>
     ),

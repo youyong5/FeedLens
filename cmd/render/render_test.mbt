@@ -39,11 +39,26 @@ test "render_json preserves normalized values, nulls, and diagnostic order" {
   }
   assert_eq(format, "rss2")
   assert_eq(entries.length(), 1)
-  assert_eq(diagnostics.length(), 1)
+  assert_eq(diagnostics.length(), 0)
   guard entries[0] is { "identifier": Null, "title": String(title), .. } else {
     fail("expected null identifier")
   }
   assert_eq(title, "Anonymous")
+}
+
+///|
+test "render_json locates an RSS item missing both title and description" {
+  guard @feedlens.parse(
+      "<rss version=\"2.0\"><channel><title>Feed</title><link>https://example.test/</link><description>News</description><item/></channel></rss>",
+    )
+    is Ok(feed) else {
+    fail("expected recovered RSS")
+  }
+  guard @json.parse(@render.render_json(feed))
+    is { "diagnostics": Array(diagnostics), .. } else {
+    fail("expected diagnostics array")
+  }
+  assert_eq(diagnostics.length(), 1)
   guard diagnostics[0]
     is {
       "kind": { "type": String(kind), "index": Number(index, ..), .. },
@@ -51,12 +66,12 @@ test "render_json preserves normalized values, nulls, and diagnostic order" {
       "column": Number(column, ..),
       ..
     } else {
-    fail("expected serialized diagnostic")
+    fail("expected located diagnostic")
   }
-  assert_eq(kind, "MissingItemIdentifier")
+  assert_eq(kind, "MissingItemContent")
   assert_eq(index, 0)
   assert_eq(line, 1)
-  assert_eq(column, 132)
+  assert_true(column > 0)
 }
 
 ///|
