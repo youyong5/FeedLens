@@ -26,7 +26,7 @@ FeedLens 增加格式层级、映射和诊断，并不取代 XML 解析器。
 | Atom `content` XML 媒体类型（`/xml`/`+xml`） | `InlineXml(XmlFragment, media_type)`；不剥 div；确定性序列化保留子节点、属性、命名空间、混合文本、注释与 PI | 非法 XML 仍致命；类型不合法可恢复诊断 | `atom_body_test.mbt`, `samples/atom1_content_forms.xml` | 根据媒体类型作模式校验或渲染、字节级前缀/实体还原、片段内 URI 自动重写 |
 | Atom 其他非复合媒体类型 Base64 | `InlineBinary(Bytes, media_type)`，跨三目标取得原始字节；CLI JSON 为 Base64 和字节数 | 非法编码定位诊断且不伪装文本；缺 summary 独立诊断 | `atom_body_test.mbt`, `samples/atom1_content_forms.xml`, `tools/check_cli.ps1` | MIME 内容嗅探、反病毒扫描、媒体解码 |
 | JSON Feed 1.0/1.1 精确版本 URL、对象根、`title/items` | Feed/Entry 统一字段及条目顺序、next_url 引用、expired 布尔状态、hubs 的 type/url；1.1 语言。item 的字符串 `id` 原样保留，包括空/空白；1.0 的非字符串 `id` 按规范转为字符串：数字保留词法，其他类型使用紧凑 JSON 表示 | 语法、根、version、必需字段/items 结构错误致命；next_url 等于 feed_url、非法 hubs/expired 给诊断；1.1 的非字符串复合 id 诊断并跳过该 item，已有数字 id 容错保留 | `json_feed_test.mbt`, `standard_fields_test.mbt`, `samples/jsonfeed10_legacy_ids.json`, `samples/jsonfeed11_opaque_strings.json` | 不跟随 next_url；跨页循环须由调用方处理；任意扩展键不映射 |
-| JSON Feed 内容、作者、tags、附件、显示图片 | `content_text`、`content_html` 同时保留，`content` 仍 HTML 优先，空字符串也算存在；authors 可只声明 avatar；继承；tags 的字符串原样保留，包括空/空白；来源明确的附件/图片 | 可恢复可选字段类型问题诊断；坏附件跳过但不丢 item；不下载/清洗 | `standard_fields_test.mbt`, `attachments_test.mbt`, `entry_display_test.mbt`, `json_feed_test.mbt` | user_comment 依规范供人工查看而非读者展示；对扩展键不作任意映射 |
+| JSON Feed 内容、作者、tags、附件、显示图片 | `content_text`、`content_html` 同时保留，`content` 仍 HTML 优先，空字符串也算存在；authors 的显式空/空白 name 仍是原样字符串，可只声明 avatar；继承；tags 的字符串原样保留，包括空/空白；来源明确的附件/图片 | 可恢复可选字段类型问题诊断；坏附件跳过但不丢 item；不下载/清洗 | `standard_fields_test.mbt`, `attachments_test.mbt`, `entry_display_test.mbt`, `json_feed_test.mbt`, `date_author_boundary_test.mbt`, `samples/jsonfeed11_empty_author_date.json` | user_comment 依规范供人工查看而非读者展示；对扩展键不作任意映射 |
 
 共同边界：`parse(String)` 不知道文档 URL，保留原始相对引用；
 `parse_with_source(String,String)` 只解析已承诺的 URI 字段，包括 Atom
@@ -45,6 +45,10 @@ Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/
 小数秒任意正位数可输入，UTC 文本保留全部位数，`nanosecond` 截取前九位，
 `Fraction(digits)` 保留声明位数。跨格式合成样本的秒级独立交集与库内完整
 小数位回归见 `date_test.mbt` 和 `tools/check_real_cross_format.py`。
+Atom Date construct 还要求大写 `T` 和 `Z`，JSON Feed 日期遵循允许小写
+`t`/`z` 的 RFC 3339；`normalize_date` 按格式区分，原值不变。
+见 `date_author_boundary_test.mbt`、`samples/atom1_date_case.xml`、
+`samples/jsonfeed11_empty_author_date.json` 和 `tools/check_date_author_reference.py`。
 可恢复诊断不是完整的标准校验器；JSON DOM 无字段源 span，其语义诊断为 `(1,1)`。
 
 与 feedparser 6.0.11 的独立交集比较见

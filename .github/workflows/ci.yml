@@ -28,6 +28,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
       - name: Compare Atom MIME parameter content forms
         run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
+      - name: Compare Atom and JSON date and author boundaries
+        run: uv run --with feedparser==6.0.11 python tools/check_date_author_reference.py
 
   library:
     name: ${{ matrix.target }} library checks
@@ -126,6 +128,11 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_legal_empty_and_rights.xml > legal-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_opaque_strings.json > legal-json.json
           python3 -c "import json; a=json.load(open('legal-atom.json')); j=json.load(open('legal-json.json')); assert a['title']=='   ' and a['entries'][0]['title']=='' and a['entries'][0]['rights_xhtml']==a['rights_xhtml'] and a['entries'][1]['rights']=='' and a['diagnostics']==[]; assert [x['identifier'] for x in j['entries']]==['','   '] and [x['term'] for x in j['entries'][0]['categories']]==['',' ','topic'] and j['diagnostics']==[]"
+      - name: Inspect Atom and JSON date and author boundaries
+        run: |
+          moon run --target native cmd/main --json samples/atom1_date_case.xml > date-atom.json
+          moon run --target native cmd/main --json samples/jsonfeed11_empty_author_date.json > author-json.json
+          python3 -c "import json; a=json.load(open('date-atom.json')); j=json.load(open('author-json.json')); assert a['entries'][0]['published_at']=='2026-10-14T14:00:00+01:00' and a['diagnostics']==[]; assert [x['name'] for x in j['authors']]==['',None] and j['entries'][0]['authors'][0]['name']==' ' and j['entries'][2]['authors'][0]['name']=='' and j['diagnostics']==[]"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
