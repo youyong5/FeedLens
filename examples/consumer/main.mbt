@@ -25,7 +25,18 @@ fn main {
   let atom =
     #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">Plan <em>A</em></div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
   match @feedlens.parse(atom) {
-    Ok(feed) =>
+    Ok(feed) => {
+      match
+        @feedlens.normalize_date(feed.format, Some("2026-10-14T13:00:00-00:00")) {
+        Ok(Some(date)) =>
+          println(
+            "unknown_local_zone=" +
+            date.utc +
+            ":" +
+            date.offset_known.to_string(),
+          )
+        _ => println("unknown local zone date failed")
+      }
       if feed.title_kind is @feedlens.Xhtml {
         match feed.title_xhtml {
           Some(fragment) => {
@@ -35,6 +46,7 @@ fn main {
           None => println("xhtml fragment unavailable")
         }
       }
+    }
     Err(_) => println("Atom XHTML parse failed")
   }
   let atom_body =

@@ -108,6 +108,15 @@ authoritative for content shape. The earlier
 [source/text sample](samples/atom1_content_sources.xml) remains in the
 regression suite.
 
+`normalize_date(format, raw)` preserves the original feed field and returns a
+validated UTC value when the source supplies enough information. Legal
+RFC 3339 `-00:00` (Atom and JSON Feed) and RSS mail-date `-0000` yield a
+known UTC time with `offset_known = false`: the source's **local** offset is
+unknown. `offset_minutes = 0` only serves the UTC calculation. `Z`, `+00:00`,
+and `+0000` have `offset_known = true`. See the
+[cross-format date samples](samples/atom1_unknown_offset.xml) and
+[independent intersection](tools/check_unknown_offset_reference.py).
+
 Atom entry bodies also expose `entry.atom_body`. `InlineText(value, media_type)`
 distinguishes MIME `text/*` (including `text/html`) from Atom's `InlineHtml`;
 `InlineXhtml` retains the existing fragment, `InlineXml` preserves a
