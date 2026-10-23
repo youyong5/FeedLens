@@ -30,6 +30,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
       - name: Compare Atom XHTML wrapper attributes
         run: uv run --with feedparser==6.0.11 python tools/check_xhtml_container_reference.py
+      - name: Compare cross-format unknown local offsets
+        run: uv run --with feedparser==6.0.11 python tools/check_unknown_offset_reference.py
       - name: Compare Atom MIME parameter content forms
         run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
       - name: Compare Atom and JSON date and author boundaries
@@ -143,6 +145,12 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_date_case.xml > date-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_empty_author_date.json > author-json.json
           python3 -c "import json; a=json.load(open('date-atom.json')); j=json.load(open('author-json.json')); assert a['entries'][0]['published_at']=='2026-10-14T14:00:00+01:00' and a['diagnostics']==[]; assert [x['name'] for x in j['authors']]==['',None] and j['entries'][0]['authors'][0]['name']==' ' and j['entries'][2]['authors'][0]['name']=='' and j['diagnostics']==[]"
+      - name: Inspect legal unknown-local-zone feed dates
+        run: |
+          moon run --target native cmd/main --json samples/rss2_unknown_offset.xml > unknown-rss.json
+          moon run --target native cmd/main --json samples/atom1_unknown_offset.xml > unknown-atom.json
+          moon run --target native cmd/main --json samples/jsonfeed11_unknown_offset.json > unknown-json.json
+          python3 -c "import json; r=json.load(open('unknown-rss.json')); a=json.load(open('unknown-atom.json')); j=json.load(open('unknown-json.json')); assert r['diagnostics']==a['diagnostics']==j['diagnostics']==[]; assert r['entries'][0]['published_at'].endswith('-0000'); assert a['entries'][0]['updated_at'].endswith('-00:00'); assert j['entries'][0]['published_at'].endswith('-00:00')"
       - name: Inspect raw Atom IRI fixture
         run: |
           moon run --target native cmd/main --json samples/atom1_iri_host.xml > atom-iri.json
@@ -153,6 +161,7 @@ jobs:
           grep -q 'published=2026-10-19T08:30:00Z' consumer.txt
           grep -q 'featured=https://example.test/images/preview.png' consumer.txt
           grep -q 'xhtml_title=Plan A' consumer.txt
+          grep -q 'unknown_local_zone=2026-10-14T13:00:00Z:false' consumer.txt
           grep -q 'atom_binary_bytes=3' consumer.txt
           grep -q 'atom_entry_link=https://example.test/news/posts/one' consumer.txt
           grep -q 'rss_docs=https://example.test/rss-spec.html' consumer.txt

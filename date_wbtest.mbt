@@ -13,6 +13,9 @@ test "three real WP Tavern publication dates identify one UTC instant" {
   assert_eq(json.unix_seconds, rss.unix_seconds)
   assert_eq(rss.offset_minutes, 0)
   assert_eq(json.offset_minutes, 60)
+  assert_true(rss.offset_known)
+  assert_true(atom.offset_known)
+  assert_true(json.offset_known)
   assert_true(rss.precision is Second)
 }
 
@@ -70,10 +73,6 @@ test "RSS date rejects impossible day, weekday mismatch, unknown zone, and missi
     normalize_date(Rss2, Some("14 Oct 2026 13:00 XYZ"))
     is Err(UnsupportedTimeZone),
   )
-  assert_true(
-    normalize_date(Rss2, Some("14 Oct 2026 13:00 -0000"))
-    is Err(UnsupportedTimeZone),
-  )
   assert_true(normalize_date(Rss2, None) is Ok(None))
 }
 
@@ -96,17 +95,13 @@ test "RFC 3339 offset and nanosecond precision are preserved across midnight" {
 }
 
 ///|
-test "RFC 3339 invalid calendar, missing offset and unknown offset fail" {
+test "RFC 3339 invalid calendar and missing offset fail" {
   assert_true(
     normalize_date(Atom1, Some("2026-02-29T12:00:00Z"))
     is Err(InvalidCalendarDate),
   )
   assert_true(
     normalize_date(JsonFeed1, Some("2026-10-14T12:00:00")) is Err(InvalidSyntax),
-  )
-  assert_true(
-    normalize_date(Atom1, Some("2026-10-14T12:00:00-00:00"))
-    is Err(UnsupportedTimeZone),
   )
   guard normalize_date(JsonFeed1, Some("2026-10-14T12:00:00.1234567890Z"))
     is Ok(Some(precise)) else {

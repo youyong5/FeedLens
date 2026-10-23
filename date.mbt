@@ -13,11 +13,15 @@ pub enum DatePrecision {
 /// `unix_seconds` and `nanosecond` expose seconds and nanoseconds without
 /// local time zones. `utc` retains any finer digits for callers that need them.
 /// `nanosecond` truncates any sub-nanosecond digits; `utc` keeps them intact.
+/// `offset_known` is false for RFC 3339 `-00:00` or RSS `-0000`: UTC is
+/// known but the source's local offset is not. In that case `offset_minutes`
+/// is zero only for UTC arithmetic; it does not assert a local offset.
 pub struct NormalizedDate {
   utc : String
   unix_seconds : Int64
   nanosecond : Int32
   offset_minutes : Int32
+  offset_known : Bool
   precision : DatePrecision
 } derive(Debug, Eq)
 
@@ -100,6 +104,7 @@ fn normalized_date(
   nanosecond : Int32,
   fraction : String,
   offset_minutes : Int32,
+  offset_known : Bool,
   precision : DatePrecision,
   weekday : @time.Weekday?,
 ) -> Result[NormalizedDate, DateError] {
@@ -136,6 +141,7 @@ fn normalized_date(
     unix_seconds,
     nanosecond,
     offset_minutes,
+    offset_known,
     precision,
   })
 }
@@ -204,14 +210,15 @@ fn normalize_rfc3339(
   if index >= chars.length() {
     return Err(InvalidSyntax)
   }
-  let offset_minutes = if chars[index] == 'Z' || chars[index] == 'z' {
+  let (offset_minutes, offset_known) = if chars[index] == 'Z' ||
+    chars[index] == 'z' {
     if atom_case && chars[index] != 'Z' {
       return Err(InvalidSyntax)
     }
     if index + 1 != chars.length() {
       return Err(InvalidSyntax)
     }
-    0
+    (0, true)
   } else if chars[index] == '+' || chars[index] == '-' {
     if index + 6 != chars.length() || !date_literal(chars, index + 3, ':') {
       return Err(InvalidOffset)
@@ -223,12 +230,11 @@ fn normalize_rfc3339(
     if offset_hour > 23 || offset_minute > 59 {
       return Err(InvalidOffset)
     }
-    // RFC 3339's -00:00 says the local offset is unknown, not UTC.
-    if chars[index] == '-' && offset_hour == 0 && offset_minute == 0 {
-      return Err(UnsupportedTimeZone)
-    }
-    (offset_hour * 60 + offset_minute) *
-    (if chars[index] == '-' { -1 } else { 1 })
+    (
+      (offset_hour * 60 + offset_minute) *
+      (if chars[index] == '-' { -1 } else { 1 }),
+      !(chars[index] == '-' && offset_hour == 0 && offset_minute == 0),
+    )
   } else {
     return Err(InvalidOffset)
   }
@@ -242,6 +248,7 @@ fn normalize_rfc3339(
     nanosecond,
     fraction,
     offset_minutes,
+    offset_known,
     precision,
     None,
   )
@@ -306,17 +313,17 @@ fn rss_weekday(day : String) -> @time.Weekday? {
 }
 
 ///|
-fn rss_offset(zone : String) -> Result[Int32, DateError] {
+fn rss_offset(zone : String) -> Result[(Int32, Bool), DateError] {
   match zone {
-    "UT" | "UTC" | "GMT" => return Ok(0)
-    "EST" => return Ok(-300)
-    "EDT" => return Ok(-240)
-    "CST" => return Ok(-360)
-    "CDT" => return Ok(-300)
-    "MST" => return Ok(-420)
-    "MDT" => return Ok(-360)
-    "PST" => return Ok(-480)
-    "PDT" => return Ok(-420)
+    "UT" | "UTC" | "GMT" => return Ok((0, true))
+    "EST" => return Ok((-300, true))
+    "EDT" => return Ok((-240, true))
+    "CST" => return Ok((-360, true))
+    "CDT" => return Ok((-300, true))
+    "MST" => return Ok((-420, true))
+    "MDT" => return Ok((-360, true))
+    "PST" => return Ok((-480, true))
+    "PDT" => return Ok((-420, true))
     _ => ()
   }
   let chars = date_chars(zone)
@@ -330,11 +337,12 @@ fn rss_offset(zone : String) -> Result[Int32, DateError] {
   if hour > 23 || minute > 59 {
     return Err(InvalidOffset)
   }
-  // The mail-date -0000 convention likewise does not assert UTC.
-  if chars[0] == '-' && hour == 0 && minute == 0 {
-    return Err(UnsupportedTimeZone)
-  }
-  Ok((hour * 60 + minute) * (if chars[0] == '-' { -1 } else { 1 }))
+  Ok(
+    (
+      (hour * 60 + minute) * (if chars[0] == '-' { -1 } else { 1 }),
+      !(chars[0] == '-' && hour == 0 && minute == 0),
+    ),
+  )
 }
 
 ///|
@@ -391,7 +399,7 @@ fn normalize_rss_date(text : String) -> Result[NormalizedDate, DateError] {
   } else {
     0
   }
-  let offset_minutes = match rss_offset(tokens[start + 4]) {
+  let (offset_minutes, offset_known) = match rss_offset(tokens[start + 4]) {
     Ok(offset) => offset
     Err(error) => return Err(error)
   }
@@ -405,6 +413,7 @@ fn normalize_rss_date(text : String) -> Result[NormalizedDate, DateError] {
     0,
     "",
     offset_minutes,
+    offset_known,
     if time.length() == 8 {
       Second
     } else {

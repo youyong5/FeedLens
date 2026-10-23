@@ -1,0 +1,1 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed:unknown-zone</id><title>UTC with unknown local zone</title><updated>2026-10-14T13:00:00-00:00</updated><author><name>Editor</name></author><entry><id>urn:story:one</id><title>One</title><updated>2026-10-14T13:00:00-00:00</updated><content>Body</content></entry></feed>

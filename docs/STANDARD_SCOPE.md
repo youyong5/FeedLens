@@ -57,6 +57,11 @@ DNS 可达性仍未验证。
 小数位回归见 `date_test.mbt` 和 `tools/check_real_cross_format.py`。
 Atom Date construct 还要求大写 `T` 和 `Z`，JSON Feed 日期遵循允许小写
 `t`/`z` 的 RFC 3339；`normalize_date` 按格式区分，原值不变。
+RFC 3339 `-00:00` 与 RSS 邮件日期 `-0000` 的 UTC 时刻可确定，
+`NormalizedDate.offset_known=false` 明示原本地时区未知；`offset_minutes=0`
+仅供 UTC 算术，不能解释为已知本地偏移。三格式离线镜像与独立交集见
+`date_unknown_offset_test.mbt`、`samples/*unknown_offset*` 和
+`tools/check_unknown_offset_reference.py`。已承诺范围仍未包含完整闰秒校验。
 见 `date_author_boundary_test.mbt`、`samples/atom1_date_case.xml`、
 `samples/jsonfeed11_empty_author_date.json` 和 `tools/check_date_author_reference.py`。
 可恢复诊断不是完整的标准校验器；JSON DOM 无字段源 span，其语义诊断为 `(1,1)`。
