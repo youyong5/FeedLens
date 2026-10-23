@@ -51,7 +51,10 @@ Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/
 未知地址机制。按已废止 RFC 6874 的现行 [RFC 9844](https://www.rfc-editor.org/rfc/rfc9844)，
 不把带 `%25ZoneID` 的主机当作普通 URI 来源接受。Unicode IRI 各码点范围和
 DNS 可达性仍未验证。
-日期原文保留，`normalize_date` 校验文档化的 RSS/RFC 3339 子集；RSS
+日期原文保留；Atom feed、entry、source 的 `updated` 和 entry 的
+`published` 在解析时校验 Date construct，无效值产生元素定位的
+`InvalidAtomDate`，包括显式空元素；`normalize_date` 校验文档化的
+RSS/RFC 3339 子集；RSS
 两位年份依 [RFC 2822 §4](https://www.rfc-editor.org/rfc/rfc2822#section-4)
 固定映射 00–49 为 2000–2049、50–99 为 1950–1999，
 带星期名时校验真实日历；`samples/rss2_two_digit_years.xml` 与 feedparser

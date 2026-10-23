@@ -23,8 +23,10 @@ or unsupported documents return `ParseError`.
 Attachment URLs and metadata are parsed only; FeedLens never downloads them.
 Feed and item images retain source-specific display roles; they are not
 attachments. JSON Feed `external_url` stays separate from the item permalink.
-Raw publication/update dates remain available; a separate, cross-target API
-validates supported RSS or RFC 3339 dates and returns comparable UTC instants.
+Raw publication/update dates remain available; invalid Atom feed, entry, and
+source dates produce located diagnostics during parsing. A separate,
+cross-target API validates supported RSS or RFC 3339 dates and returns
+comparable UTC instants.
 `parse_with_source(input, source_url)` optionally resolves documented links,
 image URLs, attachment URLs, and external Atom content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.

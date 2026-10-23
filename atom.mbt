@@ -13,6 +13,23 @@ fn atom_attribute_value(
 }
 
 ///|
+// Preserve the declared value for consumers, but flag an invalid Atom Date
+// Construct at the element that supplied it. No local timezone is inferred.
+fn atom_date_value(
+  raw : String,
+  field : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> String? {
+  match normalize_date(Atom1, Some(raw)) {
+    Ok(_) => ()
+    Err(_) => diagnostics.push({ kind: InvalidAtomDate(field), line, column })
+  }
+  non_blank_text(raw)
+}
+
+///|
 fn atom_alternate_link(element : @xml.NamespaceElement) -> String? {
   let rel = atom_attribute_value(element, "rel")
   let href = atom_iri_attribute(element, "href")
@@ -1435,7 +1452,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             } else if field == "id" {
               source_id = None
             } else if field == "updated" {
-              source_updated = None
+              source_updated = atom_date_value(
+                "", "source updated", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
             } else if field == "generator" {
               source_generator = None
               source_generator_uri = atom_attribute_value(element, "uri")
@@ -1705,7 +1725,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 feed_title_kind = kind
                 feed_title_xhtml = None
               }
-              "updated" => feed_updated = None
+              "updated" => feed_updated = atom_date_value(
+                "", "feed updated", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
               "rights" => {
                 feed_rights = if kind != Xhtml &&
                   atom_text_kind(element) is Some(_) {
@@ -1792,8 +1815,14 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 entry_title_kind = kind
                 entry_title_xhtml = None
               }
-              "published" => entry_published = None
-              "updated" => entry_updated = None
+              "published" => entry_published = atom_date_value(
+                "", "entry published", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
+              "updated" => entry_updated = atom_date_value(
+                "", "entry updated", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
               "rights" => {
                 entry_rights = if kind != Xhtml &&
                   atom_text_kind(element) is Some(_) {
@@ -2104,7 +2133,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   source_rights = Some(captured_text)
                   source_rights_kind = capture_text_kind
                 }
-                "updated" => source_updated = non_blank_text(captured_text)
+                "updated" => source_updated = atom_date_value(
+                  captured_text, "source updated", capture_line,
+                  capture_column, diagnostics,
+                )
                 "generator" => source_generator = non_blank_text(captured_text)
                 "icon" | "logo" =>
                   match non_blank_text(captured_text) {
@@ -2141,8 +2173,14 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   entry_title = Some(captured_text)
                   entry_title_kind = capture_text_kind
                 }
-                "published" => entry_published = non_blank_text(captured_text)
-                "updated" => entry_updated = non_blank_text(captured_text)
+                "published" => entry_published = atom_date_value(
+                  captured_text, "entry published", capture_line,
+                  capture_column, diagnostics,
+                )
+                "updated" => entry_updated = atom_date_value(
+                  captured_text, "entry updated", capture_line,
+                  capture_column, diagnostics,
+                )
                 "rights" => {
                   entry_rights = Some(captured_text)
                   entry_rights_kind = capture_text_kind
@@ -2168,7 +2206,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   feed_title = Some(captured_text)
                   feed_title_kind = capture_text_kind
                 }
-                "updated" => feed_updated = non_blank_text(captured_text)
+                "updated" => feed_updated = atom_date_value(
+                  captured_text, "feed updated", capture_line,
+                  capture_column, diagnostics,
+                )
                 "rights" => {
                   feed_rights = Some(captured_text)
                   feed_rights_kind = capture_text_kind

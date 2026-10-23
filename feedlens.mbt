@@ -30,6 +30,7 @@ pub enum DiagnosticKind {
   InvalidFeedImage(String)
   InvalidRssField(String)
   InvalidAtomLink(String)
+  InvalidAtomDate(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
