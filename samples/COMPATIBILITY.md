@@ -153,3 +153,13 @@ Python's `urllib.parse.urljoin`, and compares feed/entry IDs with feedparser
 6.0.11. MoonBit library regressions additionally reject malformed explicit
 source authorities before any field resolution and preserve raw references in
 `parse`. The Python comparison is not a full RFC 3987 IRI validator.
+
+`tools/check_atom_empty_iri_reference.py` reads a separate Atom sample with
+ElementTree to distinguish an explicitly present empty `href`/`src` from a
+missing attribute. It computes effective `xml:base` targets independently with
+Python `urljoin` and compares the raw fields in Native CLI JSON. feedparser
+6.0.11 agrees on feed/entry IDs and the enclosure's presence and length; its
+relative base projection in this nested fixture is different, so no resolved
+link equivalence to feedparser is claimed. Library regressions assert resolved
+feed/entry/source links, enclosure and external body, including a standalone
+Atom Entry and a genuinely missing link attribute.

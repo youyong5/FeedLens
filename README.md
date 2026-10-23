@@ -36,6 +36,11 @@ URIs under nested `xml:base`; `parse` retains the original references. RSS and A
 Feed pagination/hub declarations are visible without following any network links.
 Source-aware parsing also validates bracketed IPv6/IPvFuture host syntax before resolving
 relative references; `samples/atom1_ip_literals.xml` shows scoped Atom and enclosure links.
+An explicit empty Atom `href=""` or external `content src=""` remains a present
+IRI reference, distinct from a missing attribute. With a known source URL it
+resolves against the applicable `xml:base`; the
+[offline sample](samples/atom1_empty_iri_references.xml) checks feed, entry,
+source, enclosure, and external body fields.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
 diagnostic rules, XML namespace boundaries, and content-handling policy, see

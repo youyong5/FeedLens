@@ -40,6 +40,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_date_author_reference.py
       - name: Compare Atom source IRI scopes
         run: uv run --with feedparser==6.0.11 python tools/check_source_authority_reference.py
+      - name: Compare empty Atom IRI references and scoped bases
+        run: uv run --with feedparser==6.0.11 python tools/check_atom_empty_iri_reference.py
 
   library:
     name: ${{ matrix.target }} library checks
@@ -163,6 +165,10 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_iri_host.xml > atom-iri.json
           python3 -c "import json; x=json.load(open('atom-iri.json', encoding='utf-8')); e=x['entries'][0]; assert e['link']=='../文章/一?版=全#段' and e['attachments'][0]['url']=='音频/一.mp3' and x['diagnostics']==[]"
+      - name: Inspect empty Atom IRI references
+        run: |
+          moon run --target native cmd/main --json samples/atom1_empty_iri_references.xml > atom-empty-iri.json
+          python3 -c "import json; x=json.load(open('atom-empty-iri.json', encoding='utf-8')); e=x['entries'][0]; assert x['link']==e['link']==e['attachments'][0]['url']==e['content_source']==e['atom_body']['src']==e['atom_source']['link']=='' and x['diagnostics']==[]"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt

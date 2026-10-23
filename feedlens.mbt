@@ -760,6 +760,7 @@ fn xml_attachment(
   diagnostics : Array[Diagnostic],
 ) -> Attachment? {
   let url = match attribute_value(element, url_name) {
+    Some(value) if source == Atom1 && value.is_empty() => Some(value)
     Some(value) => non_blank_text(value)
     None => None
   }

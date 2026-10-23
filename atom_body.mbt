@@ -179,7 +179,7 @@ fn atom_external_content(
   base_references : Array[String],
 ) -> AtomExternalContent? {
   guard atom_attribute_value(element, "src") is Some(src) else { return None }
-  guard !src.trim().is_empty() else { return None }
+  guard src.is_empty() || !src.trim().is_empty() else { return None }
   let references = xhtml_copy_references(base_references)
   match xml_base_attribute(element) {
     Some(reference) => references.push(reference)
