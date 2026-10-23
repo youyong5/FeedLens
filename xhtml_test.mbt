@@ -17,6 +17,44 @@ fn atom_xhtml_acceptance_sample() -> String {
 }
 
 ///|
+test "Atom XHTML retains outer div attributes without adding the wrapper to markup" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xml:lang="en" xml:base="https://example.test/news/"><id>urn:f</id><title type="xhtml"><h:div class="headline" title="A &amp; B">Plan <h:em>ahead</h:em></h:div></title><updated>2026-10-23T10:00:00Z</updated><author><name>Editor</name></author><entry><id>urn:e</id><title>E</title><updated>2026-10-23T10:00:00Z</updated><content type="xhtml"><h:div class="story" xml:lang="fr" xml:base="assets/"><h:p>Bonjour</h:p></h:div></content></entry></feed>
+  guard @feedlens.parse_with_source(input, "https://example.test/atom.xml")
+    is Ok(feed) else {
+    fail("expected valid XHTML feed")
+  }
+  assert_eq(feed.diagnostics, [])
+  assert_eq(feed.title, Some("Plan ahead"))
+  guard feed.title_xhtml is Some(title) else { fail("missing title XHTML") }
+  assert_eq(title.container_attributes.length(), 2)
+  assert_eq(title.container_attributes[0].local_name, "class")
+  assert_eq(title.container_attributes[0].namespace_uri, None)
+  assert_eq(title.container_attributes[0].value, "headline")
+  assert_eq(title.container_attributes[1].local_name, "title")
+  assert_eq(title.container_attributes[1].value, "A & B")
+  assert_eq(
+    title.markup,
+    "Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">ahead</h:em>",
+  )
+  guard feed.entries[0].content_xhtml is Some(body) else {
+    fail("missing content XHTML")
+  }
+  assert_eq(body.container_attributes.length(), 3)
+  assert_eq(body.container_attributes[0].value, "story")
+  assert_eq(body.container_attributes[1].local_name, "lang")
+  assert_eq(
+    body.container_attributes[1].namespace_uri,
+    Some("http://www.w3.org/XML/1998/namespace"),
+  )
+  assert_eq(body.container_attributes[1].value, "fr")
+  assert_eq(body.container_attributes[2].local_name, "base")
+  assert_eq(body.container_attributes[2].value, "assets/")
+  assert_eq(body.language, Some("fr"))
+  assert_eq(body.base_references, ["https://example.test/news/", "assets/"])
+}
+
+///|
 test "Atom XHTML acceptance fixture has display text and deterministic markup" {
   guard @feedlens.parse(atom_xhtml_acceptance_sample()) is Ok(feed) else {
     fail("expected Atom XHTML feed")

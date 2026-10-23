@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Synthetic legal Atom XHTML input. The div is a wrapper, but its attributes are useful to consumers. -->
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xml:lang="en" xml:base="https://example.test/news/">
+  <id>urn:example:xhtml-container</id>
+  <title type="xhtml"><h:div class="headline" title="A &amp; B">Plan <h:em>ahead</h:em></h:div></title>
+  <updated>2026-10-23T10:00:00Z</updated>
+  <author><name>Editor</name></author>
+  <entry>
+    <id>urn:example:xhtml-container:1</id>
+    <title>Entry</title>
+    <updated>2026-10-23T10:00:00Z</updated>
+    <content type="xhtml"><h:div class="story" xml:lang="fr" xml:base="assets/"><h:p>Bonjour <h:strong>monde</h:strong>.</h:p></h:div></content>
+  </entry>
+</feed>

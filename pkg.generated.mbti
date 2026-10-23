@@ -389,10 +389,20 @@ pub fn TextKind::equal(Self, Self) -> Bool
 pub fn TextKind::not_equal(Self, Self) -> Bool
 pub fn TextKind::to_repr(Self) -> @debug.Repr
 
+pub struct XhtmlAttribute {
+  local_name : String
+  namespace_uri : String?
+  value : String
+} derive(Eq, @debug.Debug)
+pub fn XhtmlAttribute::equal(Self, Self) -> Bool
+pub fn XhtmlAttribute::not_equal(Self, Self) -> Bool
+pub fn XhtmlAttribute::to_repr(Self) -> @debug.Repr
+
 pub struct XhtmlFragment {
   markup : String
   language : String?
   base_references : Array[String]
+  container_attributes : Array[XhtmlAttribute]
 } derive(Eq, @debug.Debug)
 pub fn XhtmlFragment::equal(Self, Self) -> Bool
 pub fn XhtmlFragment::not_equal(Self, Self) -> Bool
