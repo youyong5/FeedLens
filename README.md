@@ -34,6 +34,8 @@ alternate convenience value. Aggregated entries expose original feed metadata th
 `parse_with_source` resolves source links, generator URI, images and author/contributor
 URIs under nested `xml:base`; `parse` retains the original references. RSS and Atom rights and generator values and JSON
 Feed pagination/hub declarations are visible without following any network links.
+Source-aware parsing also validates bracketed IPv6/IPvFuture host syntax before resolving
+relative references; `samples/atom1_ip_literals.xml` shows scoped Atom and enclosure links.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
 diagnostic rules, XML namespace boundaries, and content-handling policy, see

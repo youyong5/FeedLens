@@ -216,6 +216,139 @@ fn uri_merge(base : UriParts, path : String) -> String {
 }
 
 ///|
+fn uri_ipv4_address_valid(text : String) -> Bool {
+  let chars = date_chars(text)
+  let mut index = 0
+  for group = 0; group < 4; group = group + 1 {
+    let start = index
+    let mut value = 0
+    while index < chars.length() && chars[index] >= '0' && chars[index] <= '9' {
+      value = value * 10 + (chars[index].to_int() - 48)
+      index = index + 1
+      if index - start > 3 || value > 255 {
+        return false
+      }
+    }
+    if index == start || (index - start > 1 && chars[start] == '0') {
+      return false
+    }
+    if group < 3 {
+      if index >= chars.length() || chars[index] != '.' {
+        return false
+      }
+      index = index + 1
+    }
+  }
+  index == chars.length()
+}
+
+///|
+/// Count 16-bit groups in one side of an IPv6 address. An IPv4 tail is
+/// permitted only at the very end of the entire address and consumes two.
+fn uri_ipv6_groups(part : String, allow_ipv4 : Bool) -> Int32? {
+  let chars = date_chars(part)
+  if chars.is_empty() {
+    return Some(0)
+  }
+  let mut index = 0
+  let mut groups = 0
+  while index < chars.length() {
+    let start = index
+    while index < chars.length() && chars[index] != ':' {
+      index = index + 1
+    }
+    if index == start {
+      return None
+    }
+    let value = date_slice(chars, start, index)
+    if value.contains(".") {
+      if !allow_ipv4 ||
+        index != chars.length() ||
+        !uri_ipv4_address_valid(value) {
+        return None
+      }
+      groups = groups + 2
+    } else {
+      if index - start > 4 {
+        return None
+      }
+      for position = start; position < index; position = position + 1 {
+        if !uri_hex(chars[position]) {
+          return None
+        }
+      }
+      groups = groups + 1
+    }
+    if index < chars.length() {
+      index = index + 1
+      if index == chars.length() {
+        return None
+      }
+    }
+  }
+  Some(groups)
+}
+
+///|
+fn uri_ipv6_valid(text : String) -> Bool {
+  let chars = date_chars(text)
+  let mut compressed_at = -1
+  for index = 0; index + 1 < chars.length(); index = index + 1 {
+    if chars[index] == ':' && chars[index + 1] == ':' {
+      if compressed_at >= 0 {
+        return false
+      }
+      compressed_at = index
+    }
+  }
+  if compressed_at < 0 {
+    return uri_ipv6_groups(text, true) == Some(8)
+  }
+  let left = date_slice(chars, 0, compressed_at)
+  let right = date_slice(chars, compressed_at + 2, chars.length())
+  match (uri_ipv6_groups(left, false), uri_ipv6_groups(right, true)) {
+    (Some(left_count), Some(right_count)) => left_count + right_count < 8
+    _ => false
+  }
+}
+
+///|
+fn uri_ipvfuture_valid(text : String) -> Bool {
+  let chars = date_chars(text)
+  if chars.length() < 4 || (chars[0] != 'v' && chars[0] != 'V') {
+    return false
+  }
+  let mut index = 1
+  while index < chars.length() && uri_hex(chars[index]) {
+    index = index + 1
+  }
+  if index == 1 || index + 1 >= chars.length() || chars[index] != '.' {
+    return false
+  }
+  for position = index + 1; position < chars.length(); position = position + 1 {
+    let c = chars[position]
+    let ascii = (c >= 'a' && c <= 'z') ||
+      (c >= 'A' && c <= 'Z') ||
+      (c >= '0' && c <= '9')
+    let permitted = "-._~!$&'()*+,;=:"
+    if !ascii && !permitted.contains(c.to_string()) {
+      return false
+    }
+  }
+  true
+}
+
+///|
+fn uri_ip_literal_valid(text : String) -> Bool {
+  let chars = date_chars(text)
+  if !chars.is_empty() && (chars[0] == 'v' || chars[0] == 'V') {
+    uri_ipvfuture_valid(text)
+  } else {
+    uri_ipv6_valid(text)
+  }
+}
+
+///|
 fn uri_http_authority_valid(authority : String) -> Bool {
   let chars = date_chars(authority)
   if chars.is_empty() {
@@ -240,6 +373,9 @@ fn uri_http_authority_valid(authority : String) -> Bool {
       close = close + 1
     }
     if close == host_start + 1 || close == chars.length() {
+      return false
+    }
+    if !uri_ip_literal_valid(date_slice(chars, host_start + 1, close)) {
       return false
     }
     if close + 1 < chars.length() {

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="../archive/">
+  <id>urn:feed:ip-literal</id><title>Literal host</title>
+  <updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
+  <entry>
+    <id>urn:entry:ip-literal</id><title>Post</title>
+    <updated>2026-10-23T00:00:00Z</updated><content>Body</content>
+    <link href="post"/>
+    <link rel="enclosure" type="audio/mpeg" href="//[::ffff:192.0.2.128]/media.mp3"/>
+  </entry>
+</feed>
