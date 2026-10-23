@@ -152,10 +152,13 @@ RSS accepts the common RFC 822/1123 profile with a four-digit year, optional
 weekday, `HH:MM` or `HH:MM:SS`, and numeric `±HHMM`, `UT`/`UTC`/`GMT`, or
 US `EST`/`EDT`/`CST`/`CDT`/`MST`/`MDT`/`PST`/`PDT` zones. A stated weekday
 must agree with the calendar date. Atom and JSON Feed require RFC 3339 with an
-explicit offset or `Z`, and support 1–9 fractional-second digits. Calendar
-dates, times, and offsets are validated. Unknown-offset `-0000`/`-00:00`,
-two-digit RSS years, leap-second `:60`, and precision beyond nanoseconds are
-not normalized; the raw field is still available. No date is substituted from
+explicit offset or `Z`, and support any positive number of fractional-second
+digits. `utc` preserves every digit; `nanosecond` retains the first nine digits
+(zero-padded when needed) and truncates finer precision, while
+`Fraction(digits)` reports the declared count. Calendar dates, times, and
+offsets are validated. Unknown-offset `-0000`/`-00:00`, two-digit RSS years,
+and leap-second `:60` are not normalized; the raw field is still available.
+No date is substituted from
 the file timestamp, fetch time, or local clock.
 
 `Author` preserves source semantics through `source`, `name`, `uri`, and `email`.

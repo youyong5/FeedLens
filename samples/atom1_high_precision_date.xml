@@ -1,0 +1,3 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed:precision</id><title>Precision</title><updated>2026-10-14T14:00:00.123456789123+01:00</updated><author><name>Editor</name></author>
+<entry><id>urn:instant:one</id><title>One</title><updated>2026-10-14T14:00:00.123456789123+01:00</updated><published>2026-10-14T14:00:00.123456789123+01:00</published><content>Body</content></entry>
+</feed>

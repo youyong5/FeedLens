@@ -13,6 +13,7 @@ import email.utils
 import json
 import os
 import subprocess
+from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import urljoin
@@ -105,6 +106,9 @@ def main() -> None:
         "atom1_source_metadata.xml": ("atom_source_test.mbt", "aggregated Atom entry retains source identity and XHTML title"),
         "atom1_person_uris.xml": ("atom_person_uri_test.mbt", "Atom person URI scopes and inheritance across feed, entry and source"),
         "rss2_anonymous_items.xml": ("rss_item_required_test.mbt", "RSS title-only and description-only items are valid without identifiers"),
+        "rss2_high_precision_date.xml": ("date_test.mbt", "RSS date precision comparison sample retains whole-second source"),
+        "atom1_high_precision_date.xml": ("date_test.mbt", "Atom RFC 3339 accepts sub-nanosecond precision with original digits"),
+        "jsonfeed11_high_precision_date.json": ("date_test.mbt", "JSON Feed RFC 3339 retains trailing zeros beyond nanoseconds"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -159,6 +163,36 @@ def main() -> None:
         assert actual["title"] == reference.get("title")
         assert actual["description"] == reference.get("summary")
     print("PASS independent RSS legal anonymous item intersection: title, description, and order")
+    precise = {
+        "rss": "rss2_high_precision_date.xml",
+        "atom": "atom1_high_precision_date.xml",
+        "json": "jsonfeed11_high_precision_date.json",
+    }
+    expected_second = dt.datetime(2026, 10, 14, 13, tzinfo=dt.timezone.utc)
+    for name, filename in precise.items():
+        parsed = json.loads(subprocess.run(
+            [MOON, "run", "--target", "native", "cmd/main", "--json", str(SAMPLES / filename)],
+            cwd=ROOT, capture_output=True, text=True, check=True,
+        ).stdout)
+        assert parsed["diagnostics"] == [] and len(parsed["entries"]) == 1
+        raw = parsed["entries"][0]["published_at"]
+        if name == "rss":
+            reference = feedparser.parse((SAMPLES / filename).read_bytes())
+            assert not reference.bozo and len(reference.entries) == 1
+            seconds = dt.datetime(*reference.entries[0].published_parsed[:6], tzinfo=dt.timezone.utc)
+            assert raw == reference.entries[0].published
+        else:
+            if name == "atom":
+                reference = feedparser.parse((SAMPLES / filename).read_bytes())
+                assert not reference.bozo and len(reference.entries) == 1
+                seconds = dt.datetime(*reference.entries[0].published_parsed[:6], tzinfo=dt.timezone.utc)
+            else:
+                reference = json.loads((SAMPLES / filename).read_text("utf-8"))
+                assert raw == reference["items"][0]["date_published"]
+                seconds = dt.datetime.fromisoformat(raw).astimezone(dt.timezone.utc).replace(microsecond=0)
+            assert Decimal("0." + raw.split(".", 1)[1].split("+", 1)[0].split("-", 1)[0].removesuffix("Z")) == Decimal("0.123456789123")
+        assert seconds == expected_second, (name, seconds)
+    print("PASS independent date intersection: RSS/Atom/JSON UTC second; exact fractional digits in saved Atom/JSON inputs (library normalization tested separately)")
     atom_source_reference = feedparser.parse((SAMPLES / "atom1_source_metadata.xml").read_bytes())
     assert not atom_source_reference.bozo and len(atom_source_reference.entries) == 1
     atom_source_cli = json.loads(subprocess.run(
