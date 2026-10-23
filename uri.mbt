@@ -260,6 +260,8 @@ fn uri_http_authority_valid(authority : String) -> Bool {
         }
         colon_seen = true
         port_start = index + 1
+      } else if !uri_reg_name_char(chars[index]) {
+        return false
       }
     }
   }
@@ -269,6 +271,38 @@ fn uri_http_authority_valid(authority : String) -> Bool {
     }
   }
   true
+}
+
+///|
+/// RFC 3986 reg-name ASCII syntax plus unmodified non-ASCII IRI characters.
+/// Full RFC 3987 Unicode range checks and DNS lookup are not attempted here.
+fn uri_reg_name_char(c : Char) -> Bool {
+  let code = c.to_int()
+  if code >= 128 {
+    return code > 159
+  }
+  match c {
+    'a'..<='z'
+    | 'A'..<='Z'
+    | '0'..<='9'
+    | '-'
+    | '.'
+    | '_'
+    | '~'
+    | '%'
+    | '!'
+    | '$'
+    | '&'
+    | '\''
+    | '('
+    | ')'
+    | '*'
+    | '+'
+    | ','
+    | ';'
+    | '=' => true
+    _ => false
+  }
 }
 
 ///|

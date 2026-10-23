@@ -37,6 +37,12 @@ Atom 外链正文只交付引用和声明类型，不下载或解码其资源。
 Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/rfc4287#section-3.2.2)
 和 [XML Base §4.3](https://www.w3.org/TR/xmlbase/#matching)。合法 person URI 的完整 IRI 语法
 尚未由本库验证；无法解析时原值保留并给定位诊断。
+显式 HTTP(S) 来源 URL 需要无片段且有可解析的 host/port 结构；
+`parse_with_source` 和独立 Entry 入口共用此约束。常见 ASCII reg-name
+字符、Unicode IRI 域名及分层 `xml:base` 有离线回归和 Python URL join 对照，
+见 `uri_source_boundary_test.mbt`、`samples/atom1_iri_host.xml` 及
+`tools/check_source_authority_reference.py`。IPv6 字面量的完整语法、Unicode
+IRI 各码点范围和 DNS 可达性仍未验证。
 日期原文保留，`normalize_date` 校验文档化的 RSS/RFC 3339 子集；RSS
 两位年份依 [RFC 2822 §4](https://www.rfc-editor.org/rfc/rfc2822#section-4)
 固定映射 00–49 为 2000–2049、50–99 为 1950–1999，

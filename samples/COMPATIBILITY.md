@@ -143,3 +143,10 @@ Python JSON and the common UTC instant against Python datetime. Atom-only
 uppercase `T`/`Z` enforcement is checked by the MoonBit regression against
 RFC 4287; generic Python datetime is not an Atom validator. Leap seconds and
 unknown offsets remain outside normalized date support.
+
+`tools/check_source_authority_reference.py` mirrors the Atom Unicode IRI
+fixture, compares effective feed/entry `xml:base` and both link targets with
+Python's `urllib.parse.urljoin`, and compares feed/entry IDs with feedparser
+6.0.11. MoonBit library regressions additionally reject malformed explicit
+source authorities before any field resolution and preserve raw references in
+`parse`. The Python comparison is not a full RFC 3987 IRI validator.

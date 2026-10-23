@@ -13,6 +13,7 @@ support and remaining gaps is in [STANDARD_SCOPE.md](STANDARD_SCOPE.md).
 | JSON Feed string `id` is an opaque identifier; `tags` have any plain-text values ([JSON Feed 1.1 items](https://www.jsonfeed.org/version/1.1/#items)) | Blank IDs dropped entire items; empty tag values were skipped with a diagnostic. | Exact string IDs and string tags survive, including empty and whitespace-only values. Empty `content_text`/`content_html` already remained valid. Non-string tags still diagnose. | `json_feed_test.mbt`, `samples/jsonfeed11_opaque_strings.json` |
 | Atom Date construct requires uppercase `T` and `Z`; generic RFC 3339 permits lowercase ([RFC 4287 §3.3](https://www.rfc-editor.org/rfc/rfc4287#section-3.3), [RFC 3339 §5.6](https://www.rfc-editor.org/rfc/rfc3339#section-5.6)) | `normalize_date` treated Atom and JSON Feed the same and accepted lowercase in Atom. | `normalize_date` rejects lowercase `t`/`z` for Atom while accepting both for JSON Feed; stored date strings remain unmodified. | `date_author_boundary_test.mbt`, `samples/atom1_date_case.xml`, `samples/jsonfeed11_empty_author_date.json` |
 | JSON Feed author `name` is an optional plain-text string ([JSON Feed 1.1 authors](https://www.jsonfeed.org/version/1.1/#the-structure-of-a-feed)) | Explicit empty/whitespace name became absent; an author with only that field was dropped. | Preserve exact declared `name` and inheritance in both versions, including empty/whitespace. A truly empty author object is still invalid. | Same JSON sample, `json_feed_test.mbt` |
+| Explicit HTTP(S) source URL must have a usable authority ([RFC 3986 §3.2](https://www.rfc-editor.org/rfc/rfc3986#section-3.2)); Atom uses IRI references and `xml:base` | A nonempty authority such as `:80` or `example.test:bad` passed entry validation, then relative fields generated scattered resolution diagnostics. | Both source-aware APIs reject those malformed sources first. Common invalid ASCII host characters are rejected; Unicode IRI hosts and nested relative `xml:base` stay usable. | `uri_source_boundary_test.mbt`, `uri_wbtest.mbt`, `samples/atom1_iri_host.xml`, `tools/check_source_authority_reference.py` |
 | RSS item may contain only a title or only a description ([RSS 2.0 item](https://www.rssboard.org/rss-specification#hrelementsOfLtitemgt)) | Already supported. | Existing behavior retained; no identifier is invented for an item without guid/link. | `rss_item_required_test.mbt`, `samples/rss2_anonymous_items.xml` |
 
 `tools/check_legal_input_reference.py` checks both byte-mirrored samples.
@@ -30,7 +31,7 @@ This comparison does not use live network feeds or claim broad conformance.
 
 - Atom content's common MIME parameters now have legal and invalid regression
   cases plus an independent email/feedparser intersection. MIME comments and
-  extension parameter syntax, Atom IRI and leap-second date grammar, permitted extension
+  extension parameter syntax, full Atom IRI and leap-second date grammar, permitted extension
   points, and remaining cardinality rules still need a larger corpus.
 - RSS source-defined optional metadata is mapped; extension modules and HTML
   presentation remain outside the core reader model.

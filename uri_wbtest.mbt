@@ -18,6 +18,12 @@ test "URI resolution rejects malformed references and bases" {
   assert_eq(uri_resolve("http:///missing-host", "item"), None)
   assert_eq(uri_resolve("http://:80/feed", "item"), None)
   assert_eq(uri_resolve("http://example.test:bad/feed", "item"), None)
+  assert_eq(uri_resolve("http://bad^host/feed", "item"), None)
+  assert_eq(uri_resolve("https://bad{host}/feed", "item"), None)
+  assert_eq(
+    uri_resolve("https://例子.test/刊物/", "../文章/一"),
+    Some("https://例子.test/文章/一"),
+  )
   assert_eq(uri_resolve("https://example.test/feed.xml", "bad%2G"), None)
   assert_eq(uri_resolve("https://example.test/feed.xml", "bad path"), None)
   assert_eq(

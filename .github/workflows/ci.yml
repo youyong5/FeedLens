@@ -30,6 +30,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
       - name: Compare Atom and JSON date and author boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_date_author_reference.py
+      - name: Compare Atom source IRI scopes
+        run: uv run --with feedparser==6.0.11 python tools/check_source_authority_reference.py
 
   library:
     name: ${{ matrix.target }} library checks
@@ -133,6 +135,10 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_date_case.xml > date-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_empty_author_date.json > author-json.json
           python3 -c "import json; a=json.load(open('date-atom.json')); j=json.load(open('author-json.json')); assert a['entries'][0]['published_at']=='2026-10-14T14:00:00+01:00' and a['diagnostics']==[]; assert [x['name'] for x in j['authors']]==['',None] and j['entries'][0]['authors'][0]['name']==' ' and j['entries'][2]['authors'][0]['name']=='' and j['diagnostics']==[]"
+      - name: Inspect raw Atom IRI fixture
+        run: |
+          moon run --target native cmd/main --json samples/atom1_iri_host.xml > atom-iri.json
+          python3 -c "import json; x=json.load(open('atom-iri.json', encoding='utf-8')); e=x['entries'][0]; assert e['link']=='../文章/一?版=全#段' and e['attachments'][0]['url']=='音频/一.mp3' and x['diagnostics']==[]"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
