@@ -32,3 +32,27 @@ test "URI resolution rejects malformed references and bases" {
   )
   assert_eq(uri_resolve("https://example.test/feed.xml", "//"), None)
 }
+
+///|
+test "HTTP IP-literal hosts follow IPv6 and IPvFuture shapes" {
+  for
+    host in [
+      "[::]", "[::1]", "[2001:db8::1]", "[0:1:2:3:4:5:6:7]", "[::ffff:192.0.2.128]",
+      "[2001:db8:0:0:0:0:192.0.2.128]", "[v1.a]", "[Vf.a:b-._~!$&'()*+,;=]",
+    ] {
+    assert_eq(
+      uri_resolve("https://" + host + ":8080/feeds/main.xml", "../post"),
+      Some("https://" + host + ":8080/post"),
+    )
+  }
+  for
+    host in [
+      "[text]", "[1]", "[2001:db8:::1]", "[1:2:3:4:5:6:7]", "[1:2:3:4:5:6:7:8:9]",
+      "[1:2:3:4:5:6:7::8]", "[1::2::3]", "[::ffff:256.0.0.1]", "[::ffff:01.2.3.4]",
+      "[::ffff:1.2.3]", "[fe80::1%25eth0]", "[v.]", "[vG.a]", "[v1.]", "[v1.a%20]",
+      "[v1.a/]",
+    ] {
+    assert_eq(uri_resolve("https://" + host + "/feed", "post"), None)
+    assert_eq(uri_resolve("https://ok.test/feed", "//" + host + "/post"), None)
+  }
+}

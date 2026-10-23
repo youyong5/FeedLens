@@ -224,6 +224,9 @@ usable base, or for a malformed URI reference, the raw field is retained and
 `UnresolvedUri` is recorded; XML diagnostics point to the relevant element,
 whereas JSON semantic diagnostics are `(1, 1)`. An invalid explicit source URL
 is a fatal `InvalidSourceUrl` error. No URI is fetched.
+Bracketed HTTP(S) hosts require an IPv6 or RFC 3986 IPvFuture literal; malformed
+brackets, invalid IPv6 and the old `%25ZoneID` URI form are rejected. IPvFuture
+is syntax-checked only; FeedLens never dereferences that address mechanism.
 
 Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
 including the RSS link-fallback identifier. JSON author URLs and avatars,
