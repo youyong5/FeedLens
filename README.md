@@ -149,17 +149,25 @@ saved fixtures and independent reader comparison are runnable offline.
 
 The separate Native executable reads one local XML or JSON file and prints the
 normalized model. It does not infer a source URL from the file path and never
-fetches URLs. These checked-in files are [small, source-traceable projections](samples/REAL_WORLD.md)
-of WP Tavern's real RSS, Atom, and JSON Feed subscriptions:
+fetches URLs. These checked-in files include [source-traceable projections](samples/REAL_WORLD.md)
+of WP Tavern's three subscriptions and archived feeds from other publishers:
 
 ```powershell
 moon run --target native cmd/main samples/real_wptavern_rss.xml
 moon run --target native cmd/main samples/real_wptavern_atom.xml
 moon run --target native cmd/main --json samples/real_wptavern_json.json
+moon run --target native cmd/main --json samples/real_hn_rss.xml
+moon run --target native cmd/main --json samples/real_xkcd_atom.xml
+moon run --target native cmd/main --json samples/real_recompiled_json.json
 moon run --target native cmd/main --json samples/atom1_xhtml.xml
 moon run --target native cmd/main --json samples/atom1_content_forms.xml
 moon run --target native cmd/main -- --help
 ```
+
+The three additional [archived publisher projections](samples/REAL_WORLD.md)
+exercise RSS metadata, Atom HTML summaries, and JSON author inheritance.
+The xkcd snapshot lacks required Atom authors, so its five author diagnostics
+are expected even though its four entries remain available.
 
 The first RSS episode reports `Entries: 2` and an `audio/mpeg` enclosure of
 `37878054` bytes. The Atom and JSON Feed projections expose the same media URL

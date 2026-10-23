@@ -24,6 +24,8 @@ jobs:
       - run: moon update
       - name: Compare saved real projections and independent Atom Entry
         run: uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
+      - name: Compare three additional publisher snapshots
+        run: uv run --with feedparser==6.0.11 python tools/check_diverse_real_reference.py
       - name: Compare legal Atom and JSON Feed text boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
       - name: Compare Atom MIME parameter content forms

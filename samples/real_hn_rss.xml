@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="http://www.w3.org/2005/Atom" version="2.0">
+  <channel>
+    <title>Hacker News: Front Page</title>
+    <link>https://news.ycombinator.com/</link>
+    <description>Hacker News RSS</description>
+    <docs>https://hnrss.org/</docs>
+    <generator>hnrss v2.1.1</generator>
+    <lastBuildDate>Sun, 05 Jul 2026 16:40:24 +0000</lastBuildDate>
+    <ns0:link href="https://hnrss.org/frontpage" rel="self" type="application/rss+xml" />
+    <item>
+      <title>The Plight of the Martian Farmer</title>
+      <description>
+&lt;p&gt;Article URL: &lt;a href="https://mceglowski.substack.com/p/the-plight-of-the-martian-farmer"&gt;https://mceglowski.substack.com/p/the-plight-of-the-martian-farmer&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Comments URL: &lt;a href="https://news.ycombinator.com/item?id=48795303"&gt;https://news.ycombinator.com/item?id=48795303&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Points: 8&lt;/p&gt;
+&lt;p&gt;# Comments: 2&lt;/p&gt;
+</description>
+      <pubDate>Sun, 05 Jul 2026 16:04:23 +0000</pubDate>
+      <link>https://mceglowski.substack.com/p/the-plight-of-the-martian-farmer</link>
+      <dc:creator>zdw</dc:creator>
+      <comments>https://news.ycombinator.com/item?id=48795303</comments>
+      <guid isPermaLink="false">https://news.ycombinator.com/item?id=48795303</guid>
+    </item>
+    <item>
+      <title>Autonomous flying umbrella follows and shields users from rain and sunlight</title>
+      <description>
+&lt;p&gt;Article URL: &lt;a href="https://www.designboom.com/technology/autonomous-flying-umbrella-follows-users-rain-sunlight-i-build-stuff-01-13-2026/"&gt;https://www.designboom.com/technology/autonomous-flying-umbrella-follows-users-rain-sunlight-i-build-stuff-01-13-2026/&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Comments URL: &lt;a href="https://news.ycombinator.com/item?id=48795174"&gt;https://news.ycombinator.com/item?id=48795174&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;Points: 13&lt;/p&gt;
+&lt;p&gt;# Comments: 3&lt;/p&gt;
+</description>
+      <pubDate>Sun, 05 Jul 2026 15:49:18 +0000</pubDate>
+      <link>https://www.designboom.com/technology/autonomous-flying-umbrella-follows-users-rain-sunlight-i-build-stuff-01-13-2026/</link>
+      <dc:creator>amichail</dc:creator>
+      <comments>https://news.ycombinator.com/item?id=48795174</comments>
+      <guid isPermaLink="false">https://news.ycombinator.com/item?id=48795174</guid>
+    </item>
+  </channel>
+</rss>

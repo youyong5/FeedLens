@@ -37,6 +37,8 @@ This comparison does not use live network feeds or claim broad conformance.
   presentation remain outside the core reader model.
 - JSON Feed extension objects may be ignored by readers, but the remaining
   author/attachment/date edge cases need a documented compatibility corpus.
-- Cross-format real projections cover ordered podcast entries, dates, links,
-  and audio enclosures. They do not independently prove every optional field
-  or the absence of false diagnostics across a broad set of publishers.
+- The WP Tavern projections compare matching stories across all three formats.
+  Three additional publisher snapshots cover RSS channel metadata, Atom HTML
+  and missing-author diagnostics, and JSON HTML with author inheritance.
+  They do not prove every optional field or fully valid Atom behavior across
+  a broad set of publishers; xkcd's archived Atom input lacks required authors.
