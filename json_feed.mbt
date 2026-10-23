@@ -36,7 +36,9 @@ fn json_string(value : Json) -> String? {
 ///|
 fn json_item_identifier(value : Json, version : String) -> String? {
   match value {
-    String(text) => non_blank_text(text)
+    // String IDs are opaque identifiers. The format does not require them to
+    // be nonempty or trim whitespace; changing one would break identity.
+    String(text) => Some(text)
     // `stringify` uses the parsed number's source representation when one is
     // available, so converting a JSON number does not silently round it.
     Number(_, ..) => non_blank_text(value.stringify())
@@ -308,22 +310,13 @@ fn json_tags(
       for tag in tags {
         match json_string(tag) {
           Some(text) =>
-            match non_blank_text(text) {
-              Some(term) =>
-                categories.push({
-                  source: JsonFeed1,
-                  term,
-                  domain: None,
-                  scheme: None,
-                  label: None,
-                })
-              None =>
-                diagnostics.push({
-                  kind: InvalidCategory("json feed tag missing term"),
-                  line: 1,
-                  column: 1,
-                })
-            }
+            categories.push({
+              source: JsonFeed1,
+              term: text,
+              domain: None,
+              scheme: None,
+              label: None,
+            })
           None => add_json_diagnostic(diagnostics, Some(item_index), "tags")
         }
       }

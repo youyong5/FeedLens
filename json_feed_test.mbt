@@ -94,7 +94,7 @@ test "JSON Feed 1.0 accepts legacy author and numeric item id" {
 }
 
 ///|
-test "JSON Feed drops malformed items and retains item diagnostics" {
+test "JSON Feed preserves opaque blank IDs and diagnoses malformed items" {
   let result = @feedlens.parse(
     (
       #|{
@@ -111,20 +111,18 @@ test "JSON Feed drops malformed items and retains item diagnostics" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered JSON Feed") }
-  assert_eq(feed.entries.length(), 1)
-  assert_eq(feed.entries[0].identifier, Some("7"))
-  assert_eq(feed.diagnostics.length(), 4)
+  assert_eq(feed.entries.length(), 2)
+  assert_eq(feed.entries[0].identifier, Some("   "))
+  assert_eq(feed.entries[1].identifier, Some("7"))
+  assert_eq(feed.diagnostics.length(), 3)
   assert_true(
-    feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedItem(0, "id"),
+    feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedItem(2, "id"),
   )
   assert_true(
-    feed.diagnostics[1].kind is @feedlens.InvalidJsonFeedItem(2, "id"),
+    feed.diagnostics[1].kind is @feedlens.InvalidJsonFeedItem(3, "content"),
   )
   assert_true(
-    feed.diagnostics[2].kind is @feedlens.InvalidJsonFeedItem(3, "content"),
-  )
-  assert_true(
-    feed.diagnostics[3].kind is @feedlens.InvalidJsonFeedItem(4, "item"),
+    feed.diagnostics[2].kind is @feedlens.InvalidJsonFeedItem(4, "item"),
   )
   assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (1, 1))
 }
@@ -154,8 +152,9 @@ test "JSON Feed diagnoses optional field types, invalid authors, and tags" {
   assert_eq(feed.entries[0].title, None)
   assert_eq(feed.entries[0].content, Some("fallback body"))
   assert_eq(feed.entries[0].authors, [])
-  assert_eq(feed.entries[0].categories, [])
-  assert_eq(feed.diagnostics.length(), 6)
+  assert_eq(feed.entries[0].categories.length(), 1)
+  assert_eq(feed.entries[0].categories[0].term, "")
+  assert_eq(feed.diagnostics.length(), 5)
   assert_true(
     feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedField("home_page_url"),
   )
@@ -170,11 +169,7 @@ test "JSON Feed diagnoses optional field types, invalid authors, and tags" {
     feed.diagnostics[3].kind is @feedlens.InvalidJsonFeedItem(0, "title"),
   )
   assert_true(
-    feed.diagnostics[4].kind
-    is @feedlens.InvalidCategory("json feed tag missing term"),
-  )
-  assert_true(
-    feed.diagnostics[5].kind is @feedlens.InvalidJsonFeedItem(0, "tags"),
+    feed.diagnostics[4].kind is @feedlens.InvalidJsonFeedItem(0, "tags"),
   )
 }
 
@@ -259,4 +254,21 @@ test "JSON Feed 1.1 invalid composite IDs remain diagnosed" {
       d.kind is @feedlens.InvalidJsonFeedItem(0, "id")
     }),
   )
+}
+
+///|
+test "JSON Feed 1.1 preserves legal opaque IDs, empty content, and text tags" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Opaque text","items":[{"id":"","content_text":"","tags":[""," ","topic"]},{"id":"   ","content_html":" ","tags":[]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("JSON Feed 1.1") }
+  assert_eq(feed.entries.length(), 2)
+  assert_eq(feed.entries[0].identifier, Some(""))
+  assert_eq(feed.entries[0].content_text, Some(""))
+  assert_eq(feed.entries[0].content, Some(""))
+  assert_eq(feed.entries[0].categories.map(fn(tag) { tag.term }), [
+    "", " ", "topic",
+  ])
+  assert_eq(feed.entries[1].identifier, Some("   "))
+  assert_eq(feed.entries[1].content_html, Some(" "))
+  assert_eq(feed.diagnostics, [])
 }
