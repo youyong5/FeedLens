@@ -1,6 +1,7 @@
 ///|
 /// The precision actually declared by a source date. UTC rendering always
 /// includes seconds, but this marker distinguishes an RSS minute-only value.
+/// `Fraction(digits)` retains the full count beyond nanosecond precision.
 pub enum DatePrecision {
   Minute
   Second
@@ -9,7 +10,9 @@ pub enum DatePrecision {
 
 ///|
 /// A validated instant. `utc` preserves declared fractional-second digits;
-/// `unix_seconds` and `nanosecond` permit ordering without local time zones.
+/// `unix_seconds` and `nanosecond` expose seconds and nanoseconds without
+/// local time zones. `utc` retains any finer digits for callers that need them.
+/// `nanosecond` truncates any sub-nanosecond digits; `utc` keeps them intact.
 pub struct NormalizedDate {
   utc : String
   unix_seconds : Int64
@@ -23,6 +26,7 @@ pub enum DateError {
   InvalidSyntax
   InvalidCalendarDate
   InvalidOffset
+  // Retained for API compatibility; fractional digits are now unbounded.
   UnsupportedPrecision
   UnsupportedTimeZone
   OutOfRange
@@ -176,10 +180,9 @@ fn normalize_rfc3339(text : String) -> Result[NormalizedDate, DateError] {
       if digit < 0 || digit > 9 {
         break
       }
-      if index - first >= 9 {
-        return Err(UnsupportedPrecision)
+      if index - first < 9 {
+        nanosecond = nanosecond * 10 + digit
       }
-      nanosecond = nanosecond * 10 + digit
       index = index + 1
     }
     let digits = index - first
@@ -188,7 +191,7 @@ fn normalize_rfc3339(text : String) -> Result[NormalizedDate, DateError] {
     }
     precision = Fraction(digits)
     fraction = "." + date_slice(chars, first, index)
-    let mut padding = digits
+    let mut padding = if digits < 9 { digits } else { 9 }
     while padding < 9 {
       nanosecond = nanosecond * 10
       padding = padding + 1

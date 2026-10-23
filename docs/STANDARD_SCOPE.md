@@ -36,7 +36,10 @@ Atom 外链正文只交付引用和声明类型，不下载或解码其资源。
 Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/rfc4287#section-3.2.2)
 和 [XML Base §4.3](https://www.w3.org/TR/xmlbase/#matching)。合法 person URI 的完整 IRI 语法
 尚未由本库验证；无法解析时原值保留并给定位诊断。
-日期原文保留，`normalize_date` 仅校验文档化的 RSS/RFC 3339 子集。
+日期原文保留，`normalize_date` 校验文档化的 RSS/RFC 3339 子集；RFC 3339
+小数秒任意正位数可输入，UTC 文本保留全部位数，`nanosecond` 截取前九位，
+`Fraction(digits)` 保留声明位数。跨格式合成样本的秒级独立交集与库内完整
+小数位回归见 `date_test.mbt` 和 `tools/check_real_cross_format.py`。
 可恢复诊断不是完整的标准校验器；JSON DOM 无字段源 span，其语义诊断为 `(1,1)`。
 
 与 feedparser 6.0.11 的独立交集比较见

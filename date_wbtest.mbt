@@ -72,7 +72,7 @@ test "RFC 3339 offset and nanosecond precision are preserved across midnight" {
 }
 
 ///|
-test "RFC 3339 invalid calendar, missing offset, unknown offset, and excess precision fail" {
+test "RFC 3339 invalid calendar, missing offset and unknown offset fail" {
   assert_true(
     normalize_date(Atom1, Some("2026-02-29T12:00:00Z"))
     is Err(InvalidCalendarDate),
@@ -84,10 +84,13 @@ test "RFC 3339 invalid calendar, missing offset, unknown offset, and excess prec
     normalize_date(Atom1, Some("2026-10-14T12:00:00-00:00"))
     is Err(UnsupportedTimeZone),
   )
-  assert_true(
-    normalize_date(JsonFeed1, Some("2026-10-14T12:00:00.1234567890Z"))
-    is Err(UnsupportedPrecision),
-  )
+  guard normalize_date(JsonFeed1, Some("2026-10-14T12:00:00.1234567890Z"))
+    is Ok(Some(precise)) else {
+    fail("expected valid RFC 3339 fraction")
+  }
+  assert_eq(precise.utc, "2026-10-14T12:00:00.1234567890Z")
+  assert_eq(precise.nanosecond, 123456789)
+  assert_true(precise.precision is Fraction(10))
   assert_true(
     normalize_date(Atom1, Some("2026-10-14T12:00:60Z"))
     is Err(InvalidCalendarDate),
