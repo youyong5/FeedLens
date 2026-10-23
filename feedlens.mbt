@@ -806,7 +806,7 @@ fn xml_attachment(
     size_in_bytes: size,
     title: if source == Atom1 {
       match attribute_value(element, "title") {
-        Some(value) => non_blank_text(value)
+        Some(value) => Some(value)
         None => None
       }
     } else {

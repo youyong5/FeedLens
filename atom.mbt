@@ -90,7 +90,7 @@ fn atom_link(
     href,
     media_type: atom_non_blank_attribute(element, "type"),
     hreflang: atom_non_blank_attribute(element, "hreflang"),
-    title: atom_non_blank_attribute(element, "title"),
+    title: atom_attribute_value(element, "title"),
     length,
   })
 }
@@ -159,19 +159,15 @@ fn atom_iri_attribute(
 
 ///|
 fn atom_category(element : @xml.NamespaceElement) -> Category? {
-  match atom_non_blank_attribute(element, "term") {
+  match atom_attribute_value(element, "term") {
     Some(term) =>
-      match non_blank_text(term) {
-        Some(term) =>
-          Some({
-            source: Atom1,
-            term,
-            domain: None,
-            scheme: atom_non_blank_attribute(element, "scheme"),
-            label: atom_non_blank_attribute(element, "label"),
-          })
-        None => None
-      }
+      Some({
+        source: Atom1,
+        term,
+        domain: None,
+        scheme: atom_iri_attribute(element, "scheme"),
+        label: atom_attribute_value(element, "label"),
+      })
     None => None
   }
 }
@@ -1254,6 +1250,9 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               event.span.start.column,
               diagnostics,
             )
+            if is_atom_name(element.name, "name") {
+              author_name = Some("")
+            }
           }
           if entry_open && depth == entry_depth {
             atom_singleton(
@@ -1885,7 +1884,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_child_depth == depth &&
             is_atom_name(name, field) {
             match field {
-              "name" => author_name = non_blank_text(author_child_text)
+              "name" => author_name = Some(author_child_text)
               "uri" => author_uri = non_blank_text(author_child_text)
               _ => author_email = non_blank_text(author_child_text)
             }

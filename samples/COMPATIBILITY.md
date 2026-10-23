@@ -163,3 +163,11 @@ relative base projection in this nested fixture is different, so no resolved
 link equivalence to feedparser is claimed. Library regressions assert resolved
 feed/entry/source links, enclosure and external body, including a standalone
 Atom Entry and a genuinely missing link attribute.
+
+`tools/check_atom_declared_metadata_reference.py` checks a byte-mirrored Atom
+sample with ElementTree for exact declared Person names, category strings,
+link titles and enclosure title. It compares raw values with Native CLI JSON,
+then checks feedparser 6.0.11's feed/entry IDs, feed author name, category
+terms and link titles in their common representation. feedparser normalizes
+one whitespace-only author and does not project the library's effective
+author inheritance here, so neither is claimed as a cross-library match.
