@@ -7,11 +7,7 @@ fn atom_content_mode(declared : String?) -> String {
     Some("html") => "html"
     Some("xhtml") => "xhtml"
     Some(value) => {
-      let lower = value.to_lower()
-      let essence = match lower.split_once(";") {
-        Some((head, _)) => head.to_owned().trim()
-        None => lower.trim()
-      }
+      guard atom_mime_essence(value) is Some(essence) else { return "invalid" }
       match essence.split_once("/") {
         Some((major, minor)) if atom_mime_token(major.to_owned()) &&
           atom_mime_token(minor.to_owned()) &&
@@ -31,33 +27,130 @@ fn atom_content_mode(declared : String?) -> String {
 }
 
 ///|
+/// Validate the MIME type and its common parameter forms before dispatching
+/// on the essence. Keep the original declaration on the public Atom body.
+fn atom_mime_essence(value : String) -> String? {
+  let (head, tail) = match value.split_once(";") {
+    Some((head, tail)) => (head.to_owned(), Some(tail.to_owned()))
+    None => (value, None)
+  }
+  let essence = head.trim().to_owned().to_lower()
+  guard essence.split_once("/") is Some((major, minor)) &&
+    atom_mime_token(major.to_owned()) &&
+    atom_mime_token(minor.to_owned()) else {
+    return None
+  }
+  guard tail is Some(parameters) else { return Some(essence) }
+  let chars = parameters.to_array()
+  let mut index = 0
+  while index < chars.length() {
+    while index < chars.length() &&
+          (chars[index] == ' ' || chars[index] == '\t') {
+      index = index + 1
+    }
+    let start = index
+    while index < chars.length() && atom_mime_token_char(chars[index]) {
+      index = index + 1
+    }
+    if index == start {
+      return None
+    }
+    while index < chars.length() &&
+          (chars[index] == ' ' || chars[index] == '\t') {
+      index = index + 1
+    }
+    if index == chars.length() || chars[index] != '=' {
+      return None
+    }
+    index = index + 1
+    while index < chars.length() &&
+          (chars[index] == ' ' || chars[index] == '\t') {
+      index = index + 1
+    }
+    if index < chars.length() && chars[index] == '"' {
+      index = index + 1
+      let mut closed = false
+      while index < chars.length() {
+        if chars[index] == '"' {
+          index = index + 1
+          closed = true
+          break
+        }
+        if chars[index] == '\\' {
+          index = index + 1
+          if index == chars.length() ||
+            chars[index].to_int() < 32 ||
+            chars[index].to_int() > 126 {
+            return None
+          }
+        } else if chars[index].to_int() < 32 || chars[index].to_int() > 126 {
+          return None
+        }
+        index = index + 1
+      }
+      if !closed {
+        return None
+      }
+    } else {
+      let start = index
+      while index < chars.length() && atom_mime_token_char(chars[index]) {
+        index = index + 1
+      }
+      if index == start {
+        return None
+      }
+    }
+    while index < chars.length() &&
+          (chars[index] == ' ' || chars[index] == '\t') {
+      index = index + 1
+    }
+    if index == chars.length() {
+      return Some(essence)
+    }
+    if chars[index] != ';' {
+      return None
+    }
+    index = index + 1
+  }
+  None // A trailing semicolon has no parameter.
+}
+
+///|
 fn atom_mime_token(value : String) -> Bool {
   if value.is_empty() {
     return false
   }
   for c in value.to_array() {
-    match c {
-      'a'..<='z'
-      | '0'..<='9'
-      | '!'
-      | '#'
-      | '$'
-      | '%'
-      | '&'
-      | '\''
-      | '*'
-      | '+'
-      | '-'
-      | '.'
-      | '^'
-      | '_'
-      | '`'
-      | '|'
-      | '~' => ()
-      _ => return false
+    if !atom_mime_token_char(c) {
+      return false
     }
   }
   true
+}
+
+///|
+fn atom_mime_token_char(c : Char) -> Bool {
+  match c {
+    'a'..<='z'
+    | 'A'..<='Z'
+    | '0'..<='9'
+    | '!'
+    | '#'
+    | '$'
+    | '%'
+    | '&'
+    | '\''
+    | '*'
+    | '+'
+    | '-'
+    | '.'
+    | '^'
+    | '_'
+    | '`'
+    | '|'
+    | '~' => true
+    _ => false
+  }
 }
 
 ///|

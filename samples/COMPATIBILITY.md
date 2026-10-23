@@ -125,3 +125,13 @@ assertions. It does not compare omitted long
 bodies, claim equivalence of opaque XML/JSON IDs, or fetch live sources.
 The phase-11 display metadata and JSON Feed fixture are parser regressions,
 not part of the older feedparser XML intersection.
+
+`tools/check_atom_media_reference.py` independently reads the mirrored
+`atom1_mime_parameters.xml` with ElementTree, Python's email MIME parameter
+parser and feedparser 6.0.11. It compares four ordered IDs, the text body's
+decoded value, external `src`, declared types, quoted parameter values,
+binary bytes and an XML child. feedparser turns the example XML MIME payload
+into its own XHTML/text projection, so the serialized XML fragment is checked
+against the source XML rather than claiming a cross-library markup match.
+Invalid parameter syntax and source locations are covered by MoonBit's own
+regression, not independently validated by the permissive email reader.

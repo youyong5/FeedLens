@@ -26,6 +26,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
       - name: Compare legal Atom and JSON Feed text boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
+      - name: Compare Atom MIME parameter content forms
+        run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
 
   library:
     name: ${{ matrix.target }} library checks
@@ -99,6 +101,10 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_content_forms.xml > atom-content.json
           python3 -c "import json; x=json.load(open('atom-content.json', encoding='utf-8')); e=x['entries']; assert [v['atom_body']['kind'] for v in e] == ['external','inline_text','inline_xml','inline_binary']; assert e[0]['atom_body']['src'] == 'entry.xml'; assert e[1]['atom_body']['media_type'] == 'TEXT/MARKDOWN'; assert '<n0:root' in e[2]['atom_body']['markup']; assert e[3]['atom_body']['base64'] == 'AQID/w==' and e[3]['atom_body']['byte_length'] == 4"
+      - name: Inspect Atom MIME parameter forms
+        run: |
+          moon run --target native cmd/main --json samples/atom1_mime_parameters.xml > atom-mime.json
+          python3 -c "import json; x=json.load(open('atom-mime.json', encoding='utf-8')); e=x['entries']; assert [v['atom_body']['kind'] for v in e] == ['inline_text','inline_xml','inline_binary','external']; assert e[0]['content']=='A & B' and 'a;b' in e[0]['content_media_type']; assert e[2]['atom_body']['base64']=='AQID/w==' and e[3]['atom_body']['src']=='media/pic.png'; assert x['diagnostics']==[]"
       - name: Inspect additional standard fields
         run: |
           moon run --target native cmd/main --json samples/rss2_standard_fields.xml > standard-rss.json
