@@ -1,0 +1,5 @@
+<feed xmlns="http://www.w3.org/2005/Atom">
+<id>urn:date:invalid</id><title>Dates</title><updated>2026-02-30T00:00:00Z</updated><author><name>Editor</name></author>
+<entry><id>urn:date:one</id><title>One</title><updated>2026-10-23t09:00:00Z</updated><published>2026-10-23T09:00:00+25:00</published><content>Body</content><source><updated>2026-13-01T00:00:00Z</updated></source></entry>
+<entry><id>urn:date:two</id><title>Two</title><updated>2026-10-23T09:00:00-00:00</updated><published/></entry>
+</feed>
