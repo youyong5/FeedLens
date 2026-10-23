@@ -37,6 +37,14 @@ fn main {
           )
         _ => println("unknown local zone date failed")
       }
+      match
+        @feedlens.normalize_date(feed.format, Some("2016-12-31T23:59:60Z")) {
+        Ok(Some(date)) =>
+          println(
+            "leap_second=" + date.utc + ":" + date.is_leap_second.to_string(),
+          )
+        _ => println("leap-second date failed")
+      }
       if feed.title_kind is @feedlens.Xhtml {
         match feed.title_xhtml {
           Some(fragment) => {

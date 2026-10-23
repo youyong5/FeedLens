@@ -61,7 +61,11 @@ RFC 3339 `-00:00` 与 RSS 邮件日期 `-0000` 的 UTC 时刻可确定，
 `NormalizedDate.offset_known=false` 明示原本地时区未知；`offset_minutes=0`
 仅供 UTC 算术，不能解释为已知本地偏移。三格式离线镜像与独立交集见
 `date_unknown_offset_test.mbt`、`samples/*unknown_offset*` 和
-`tools/check_unknown_offset_reference.py`。已承诺范围仍未包含完整闰秒校验。
+`tools/check_unknown_offset_reference.py`。已公布的正闰秒按
+[NIST 27 项日期快照](../samples/LEAP_SECONDS_NIST_2026-10-23.md) 核对：偏移
+换算后的 UTC 必须是公布日期的 `23:59:60`，`NormalizedDate.is_leap_second`
+保留此语义；`unix_seconds` 取前一 POSIX 秒，不能单靠整数区分闰秒。新闰秒
+公布后须更新快照；不预测未来闰秒。
 见 `date_author_boundary_test.mbt`、`samples/atom1_date_case.xml`、
 `samples/jsonfeed11_empty_author_date.json` 和 `tools/check_date_author_reference.py`。
 可恢复诊断不是完整的标准校验器；JSON DOM 无字段源 span，其语义诊断为 `(1,1)`。

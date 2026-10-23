@@ -117,6 +117,15 @@ and `+0000` have `offset_known = true`. See the
 [cross-format date samples](samples/atom1_unknown_offset.xml) and
 [independent intersection](tools/check_unknown_offset_reference.py).
 
+Announced positive leap seconds are accepted when the parsed UTC minute
+matches the [27 NIST dates in this offline snapshot](samples/LEAP_SECONDS_NIST_2026-10-23.md).
+For example, Atom `2017-01-01T08:59:60+09:00` yields
+`utc = "2016-12-31T23:59:60Z"`, `is_leap_second = true` and
+`unix_seconds = 1483228799` (the preceding POSIX second). The flag is needed
+because Unix time has no unique value for the leap second. New announcements
+require updating the date table; unannounced `:60` is rejected by
+`normalize_date` while its original feed field remains available.
+
 Atom entry bodies also expose `entry.atom_body`. `InlineText(value, media_type)`
 distinguishes MIME `text/*` (including `text/html`) from Atom's `InlineHtml`;
 `InlineXhtml` retains the existing fragment, `InlineXml` preserves a
@@ -228,6 +237,7 @@ powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1
 uv run --with feedparser==6.0.11 python tools/check_compatibility.py
 uv run --with feedparser==6.0.11 python tools/check_xhtml_reference.py
+uv run --with feedparser==6.0.11 python tools/check_leap_second_reference.py
 uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
 ```
 

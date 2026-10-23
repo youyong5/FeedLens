@@ -329,6 +329,7 @@ pub struct NormalizedDate {
   nanosecond : Int32
   offset_minutes : Int32
   offset_known : Bool
+  is_leap_second : Bool
   precision : DatePrecision
 } derive(Eq, @debug.Debug)
 pub fn NormalizedDate::equal(Self, Self) -> Bool

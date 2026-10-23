@@ -16,12 +16,16 @@ pub enum DatePrecision {
 /// `offset_known` is false for RFC 3339 `-00:00` or RSS `-0000`: UTC is
 /// known but the source's local offset is not. In that case `offset_minutes`
 /// is zero only for UTC arithmetic; it does not assert a local offset.
+/// `is_leap_second` distinguishes an announced `23:59:60` from the preceding
+/// second: POSIX/Unix time has no separate leap-second value, so
+/// `unix_seconds` uses the preceding `23:59:59` second in that case.
 pub struct NormalizedDate {
   utc : String
   unix_seconds : Int64
   nanosecond : Int32
   offset_minutes : Int32
   offset_known : Bool
+  is_leap_second : Bool
   precision : DatePrecision
 } derive(Debug, Eq)
 
@@ -94,6 +98,26 @@ fn date_slice(chars : Array[Char], start : Int32, stop : Int32) -> String {
 }
 
 ///|
+// Positive leap seconds announced through 2026-10-23. NIST's published table:
+// https://www.nist.gov/pml/time-and-frequency-division/time-realization/leap-seconds
+// Refresh this list after a new IERS Bulletin C announces another event.
+fn announced_positive_leap_second(date : String) -> Bool {
+  for
+    known in [
+      "1972-06-30", "1972-12-31", "1973-12-31", "1974-12-31", "1975-12-31", "1976-12-31",
+      "1977-12-31", "1978-12-31", "1979-12-31", "1981-06-30", "1982-06-30", "1983-06-30",
+      "1985-06-30", "1987-12-31", "1989-12-31", "1990-12-31", "1992-06-30", "1993-06-30",
+      "1994-06-30", "1995-12-31", "1997-06-30", "1998-12-31", "2005-12-31", "2008-12-31",
+      "2012-06-30", "2015-06-30", "2016-12-31",
+    ] {
+    if date == known {
+      return true
+    }
+  }
+  false
+}
+
+///|
 fn normalized_date(
   year : Int32,
   month : Int32,
@@ -108,16 +132,17 @@ fn normalized_date(
   precision : DatePrecision,
   weekday : @time.Weekday?,
 ) -> Result[NormalizedDate, DateError] {
-  if year < 1 || year > 9999 || second > 59 {
+  if year < 1 || year > 9999 || second > 60 {
     return Err(InvalidCalendarDate)
   }
+  let is_leap_second = second == 60
   let local_date = @time.PlainDateTime::of(
     year,
     month,
     day,
     hour~,
     minute~,
-    second~,
+    second=if is_leap_second { 59 } else { second },
   ) catch {
     _ => return Err(InvalidCalendarDate)
   }
@@ -136,12 +161,24 @@ fn normalized_date(
   if utc.year() < 1 || utc.year() > 9999 {
     return Err(OutOfRange)
   }
+  let utc_text = utc.to_string()
+  let displayed_utc = if is_leap_second {
+    guard utc_text.split_once("T") is Some((date, time)) &&
+      time == "23:59:59" &&
+      announced_positive_leap_second(date.to_owned()) else {
+      return Err(InvalidCalendarDate)
+    }
+    date.to_owned() + "T23:59:60"
+  } else {
+    utc_text
+  }
   Ok({
-    utc: utc.to_string() + fraction + "Z",
+    utc: displayed_utc + fraction + "Z",
     unix_seconds,
     nanosecond,
     offset_minutes,
     offset_known,
+    is_leap_second,
     precision,
   })
 }
