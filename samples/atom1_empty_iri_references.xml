@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="pages/index.atom?view=feed">
+  <id>urn:feed:empty-iri</id>
+  <title>Same-document references</title>
+  <updated>2026-10-23T00:00:00Z</updated>
+  <author><name>Editor</name></author>
+  <link href=""/>
+  <entry xml:base="../entries/current.atom?edition=1">
+    <id>urn:entry:empty-iri</id>
+    <title>Referenced entry</title>
+    <updated>2026-10-23T00:00:00Z</updated>
+    <summary>External representation</summary>
+    <link rel="alternate" href=""/>
+    <link rel="enclosure" href="" type="audio/mpeg" length="0"/>
+    <source><link href=""/></source>
+    <content src="" type="application/xml"/>
+  </entry>
+</feed>

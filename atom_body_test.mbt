@@ -239,7 +239,7 @@ test "Atom XML media keeps comments, processing instructions and several roots" 
 }
 
 ///|
-test "Atom blank external src and nested MIME text get positioned diagnostics" {
+test "Atom whitespace-only external src and nested MIME text get positioned diagnostics" {
   let xml =
     #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
     #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src=" " type="application/xml"/></entry>
@@ -251,7 +251,7 @@ test "Atom blank external src and nested MIME text get positioned diagnostics" {
   assert_eq(feed.diagnostics.length(), 2)
   assert_true(
     feed.diagnostics[0].kind
-    is @feedlens.UnsupportedAtomContent("empty external Atom src"),
+    is @feedlens.UnsupportedAtomContent("invalid external Atom src"),
   )
   assert_true(
     feed.diagnostics[1].kind

@@ -6,6 +6,11 @@ test "RFC 3986 relative, root, query, fragment and authority references" {
   assert_eq(uri_resolve(base, "../../g"), Some("http://a/g"))
   assert_eq(uri_resolve(base, "/g"), Some("http://a/g"))
   assert_eq(uri_resolve(base, "?y"), Some("http://a/b/c/d;p?y"))
+  assert_eq(uri_resolve(base, ""), Some(base))
+  assert_eq(
+    uri_resolve("http://a/b/c/d;p?q#old", ""),
+    Some("http://a/b/c/d;p?q"),
+  )
   assert_eq(uri_resolve(base, "#s"), Some("http://a/b/c/d;p?q#s"))
   assert_eq(uri_resolve(base, "//g"), Some("http://g"))
   assert_eq(uri_resolve(base, "g?y#s"), Some("http://a/b/c/g?y#s"))

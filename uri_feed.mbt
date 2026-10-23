@@ -693,7 +693,7 @@ fn UriXmlState::on_element(
   } else if self.source_open &&
     depth == self.source_depth &&
     is_atom_name(element.name, "link") {
-    match atom_non_blank_attribute(element, "href") {
+    match atom_iri_attribute(element, "href") {
       Some(raw) => {
         let links = self.source_links[self.entry_index]
         let index = self.source_link_index
@@ -810,7 +810,7 @@ fn UriXmlState::on_element(
       _ => ()
     }
   } else if !self.entry_open && depth == 1 && is_atom_name(element.name, "link") {
-    match atom_non_blank_attribute(element, "href") {
+    match atom_iri_attribute(element, "href") {
       Some(raw) => self.resolve_atom_link(raw, base, line, column, false)
       None => ()
     }
@@ -835,7 +835,7 @@ fn UriXmlState::on_element(
   } else if self.entry_open &&
     depth == self.entry_depth &&
     is_atom_name(element.name, "link") {
-    match atom_non_blank_attribute(element, "href") {
+    match atom_iri_attribute(element, "href") {
       Some(raw) => self.resolve_atom_link(raw, base, line, column, true)
       None => ()
     }
@@ -858,7 +858,7 @@ fn UriXmlState::on_element(
       }
     }
     if atom_element_relation_is(element, "enclosure") {
-      match atom_non_blank_attribute(element, "href") {
+      match atom_iri_attribute(element, "href") {
         Some(href) =>
           self.resolve_attachment(
             href,

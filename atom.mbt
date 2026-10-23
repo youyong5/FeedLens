@@ -15,13 +15,13 @@ fn atom_attribute_value(
 ///|
 fn atom_alternate_link(element : @xml.NamespaceElement) -> String? {
   let rel = atom_attribute_value(element, "rel")
-  let href = atom_attribute_value(element, "href")
+  let href = atom_iri_attribute(element, "href")
   match rel {
     None
     | Some("alternate")
     | Some("http://www.iana.org/assignments/relation/alternate") =>
       match href {
-        Some(value) if !value.trim().is_empty() => Some(value)
+        Some(value) => Some(value)
         _ => None
       }
     _ => None
@@ -55,7 +55,7 @@ fn atom_link(
   diagnostics : Array[Diagnostic],
 ) -> AtomLink? {
   let relation = atom_attribute_value(element, "rel").unwrap_or("alternate")
-  let href = match atom_non_blank_attribute(element, "href") {
+  let href = match atom_iri_attribute(element, "href") {
     Some(href) => href
     None => {
       if !atom_relation_is(relation, "enclosure") {
@@ -142,6 +142,18 @@ fn atom_non_blank_attribute(
   match atom_attribute_value(element, expected) {
     Some(value) => non_blank_text(value)
     None => None
+  }
+}
+
+///|
+// The empty string is an IRI reference (ipath-empty), unlike missing href.
+fn atom_iri_attribute(
+  element : @xml.NamespaceElement,
+  expected : String,
+) -> String? {
+  match atom_attribute_value(element, expected) {
+    Some(value) if value.is_empty() || !value.trim().is_empty() => Some(value)
+    _ => None
   }
 }
 
@@ -961,7 +973,9 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                       entry_atom_body = Some(External(reference))
                     None =>
                       diagnostics.push({
-                        kind: UnsupportedAtomContent("empty external Atom src"),
+                        kind: UnsupportedAtomContent(
+                          "invalid external Atom src",
+                        ),
                         line: event.span.start.line,
                         column: event.span.start.column,
                       })
@@ -1564,7 +1578,9 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                       entry_atom_body = Some(External(reference))
                     None =>
                       diagnostics.push({
-                        kind: UnsupportedAtomContent("empty external Atom src"),
+                        kind: UnsupportedAtomContent(
+                          "invalid external Atom src",
+                        ),
                         line: event.span.start.line,
                         column: event.span.start.column,
                       })
