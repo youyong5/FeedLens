@@ -214,6 +214,53 @@ fn with_authors(entry : Entry, authors : Array[Author]) -> Entry {
 }
 
 ///|
+/// RFC 4287 §4.2.10: an entry without its own rights inherits the containing
+/// feed's declaration, even when that declaration follows the entry in XML.
+fn with_inherited_atom_rights(
+  entry : Entry,
+  rights : String,
+  kind : TextKind,
+  fragment : XhtmlFragment?,
+) -> Entry {
+  {
+    identifier: entry.identifier,
+    title: entry.title,
+    title_kind: entry.title_kind,
+    title_xhtml: entry.title_xhtml,
+    link: entry.link,
+    external_url: entry.external_url,
+    language: entry.language,
+    description: entry.description,
+    description_kind: entry.description_kind,
+    description_xhtml: entry.description_xhtml,
+    content: entry.content,
+    content_text: entry.content_text,
+    content_html: entry.content_html,
+    content_kind: entry.content_kind,
+    content_xhtml: entry.content_xhtml,
+    content_source: entry.content_source,
+    content_media_type: entry.content_media_type,
+    atom_body: entry.atom_body,
+    atom_source: entry.atom_source,
+    links: entry.links,
+    comments_url: entry.comments_url,
+    source_url: entry.source_url,
+    source_title: entry.source_title,
+    guid_is_permalink: entry.guid_is_permalink,
+    rights: Some(rights),
+    rights_kind: kind,
+    rights_xhtml: fragment,
+    authors: entry.authors,
+    contributors: entry.contributors,
+    categories: entry.categories,
+    attachments: entry.attachments,
+    images: entry.images,
+    published_at: entry.published_at,
+    updated_at: entry.updated_at,
+  }
+}
+
+///|
 fn atom_location(
   field_location : (Int32, Int32)?,
   entry_line : Int32,
@@ -1338,15 +1385,30 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             if field is ("title" | "subtitle" | "rights") {
               let kind = atom_text_kind(element).unwrap_or(Text)
               if field == "title" {
-                source_title = None
+                source_title = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 source_title_kind = kind
                 source_title_xhtml = None
               } else if field == "subtitle" {
-                source_subtitle = None
+                source_subtitle = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 source_subtitle_kind = kind
                 source_subtitle_xhtml = None
               } else {
-                source_rights = None
+                source_rights = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 source_rights_kind = kind
                 source_rights_xhtml = None
               }
@@ -1619,13 +1681,23 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             match element.name.local_name {
               "id" => feed_id = None
               "title" => {
-                feed_title = None
+                feed_title = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 feed_title_kind = kind
                 feed_title_xhtml = None
               }
               "updated" => feed_updated = None
               "rights" => {
-                feed_rights = None
+                feed_rights = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 feed_rights_kind = kind
                 feed_rights_xhtml = None
               }
@@ -1637,7 +1709,12 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 )
               }
               _ => {
-                feed_subtitle = None
+                feed_subtitle = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 feed_subtitle_kind = kind
                 feed_subtitle_xhtml = None
               }
@@ -1691,19 +1768,34 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             match element.name.local_name {
               "id" => entry_id = None
               "title" => {
-                entry_title = None
+                entry_title = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 entry_title_kind = kind
                 entry_title_xhtml = None
               }
               "published" => entry_published = None
               "updated" => entry_updated = None
               "rights" => {
-                entry_rights = None
+                entry_rights = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 entry_rights_kind = kind
                 entry_rights_xhtml = None
               }
               _ => {
-                entry_summary = None
+                entry_summary = if kind != Xhtml &&
+                  atom_text_kind(element) is Some(_) {
+                  Some("")
+                } else {
+                  None
+                }
                 entry_summary_kind = kind
                 entry_summary_xhtml = None
               }
@@ -1926,32 +2018,32 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   let plain = state.plain_text
                   if capture_in_source {
                     if field == "title" {
-                      source_title = non_blank_text(plain)
+                      source_title = Some(plain)
                       source_title_kind = Xhtml
                       source_title_xhtml = xhtml_fragment
                     } else if field == "subtitle" {
-                      source_subtitle = non_blank_text(plain)
+                      source_subtitle = Some(plain)
                       source_subtitle_kind = Xhtml
                       source_subtitle_xhtml = xhtml_fragment
                     } else {
-                      source_rights = non_blank_text(plain)
+                      source_rights = Some(plain)
                       source_rights_kind = Xhtml
                       source_rights_xhtml = xhtml_fragment
                     }
                   } else if capture_in_entry {
                     match field {
                       "title" => {
-                        entry_title = non_blank_text(plain)
+                        entry_title = Some(plain)
                         entry_title_kind = Xhtml
                         entry_title_xhtml = xhtml_fragment
                       }
                       "summary" => {
-                        entry_summary = non_blank_text(plain)
+                        entry_summary = Some(plain)
                         entry_summary_kind = Xhtml
                         entry_summary_xhtml = xhtml_fragment
                       }
                       "rights" => {
-                        entry_rights = non_blank_text(plain)
+                        entry_rights = Some(plain)
                         entry_rights_kind = Xhtml
                         entry_rights_xhtml = xhtml_fragment
                       }
@@ -1967,15 +2059,15 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                       }
                     }
                   } else if field == "title" {
-                    feed_title = non_blank_text(plain)
+                    feed_title = Some(plain)
                     feed_title_kind = Xhtml
                     feed_title_xhtml = xhtml_fragment
                   } else if field == "rights" {
-                    feed_rights = non_blank_text(plain)
+                    feed_rights = Some(plain)
                     feed_rights_kind = Xhtml
                     feed_rights_xhtml = xhtml_fragment
                   } else {
-                    feed_subtitle = non_blank_text(plain)
+                    feed_subtitle = Some(plain)
                     feed_subtitle_kind = Xhtml
                     feed_subtitle_xhtml = xhtml_fragment
                   }
@@ -1986,15 +2078,15 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               match field {
                 "id" => source_id = non_blank_text(captured_text)
                 "title" => {
-                  source_title = non_blank_text(captured_text)
+                  source_title = Some(captured_text)
                   source_title_kind = capture_text_kind
                 }
                 "subtitle" => {
-                  source_subtitle = non_blank_text(captured_text)
+                  source_subtitle = Some(captured_text)
                   source_subtitle_kind = capture_text_kind
                 }
                 "rights" => {
-                  source_rights = non_blank_text(captured_text)
+                  source_rights = Some(captured_text)
                   source_rights_kind = capture_text_kind
                 }
                 "updated" => source_updated = non_blank_text(captured_text)
@@ -2031,13 +2123,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               match field {
                 "id" => entry_id = non_blank_text(captured_text)
                 "title" => {
-                  entry_title = non_blank_text(captured_text)
+                  entry_title = Some(captured_text)
                   entry_title_kind = capture_text_kind
                 }
                 "published" => entry_published = non_blank_text(captured_text)
                 "updated" => entry_updated = non_blank_text(captured_text)
                 "rights" => {
-                  entry_rights = non_blank_text(captured_text)
+                  entry_rights = Some(captured_text)
                   entry_rights_kind = capture_text_kind
                 }
                 "content" => {
@@ -2050,7 +2142,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   }
                 }
                 _ => {
-                  entry_summary = non_blank_text(captured_text)
+                  entry_summary = Some(captured_text)
                   entry_summary_kind = capture_text_kind
                 }
               }
@@ -2058,17 +2150,17 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               match field {
                 "id" => feed_id = non_blank_text(captured_text)
                 "title" => {
-                  feed_title = non_blank_text(captured_text)
+                  feed_title = Some(captured_text)
                   feed_title_kind = capture_text_kind
                 }
                 "updated" => feed_updated = non_blank_text(captured_text)
                 "rights" => {
-                  feed_rights = non_blank_text(captured_text)
+                  feed_rights = Some(captured_text)
                   feed_rights_kind = capture_text_kind
                 }
                 "generator" => feed_generator = non_blank_text(captured_text)
                 _ => {
-                  feed_subtitle = non_blank_text(captured_text)
+                  feed_subtitle = Some(captured_text)
                   feed_subtitle_kind = capture_text_kind
                 }
               }
@@ -2200,6 +2292,18 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   line,
                   column,
                 })
+              }
+            }
+          }
+          if !standalone && feed_rights is Some(rights) {
+            for index = 0; index < entries.length(); index = index + 1 {
+              if entries[index].rights is None {
+                entries[index] = with_inherited_atom_rights(
+                  entries[index],
+                  rights,
+                  feed_rights_kind,
+                  feed_rights_xhtml,
+                )
               }
             }
           }
