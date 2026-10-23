@@ -28,6 +28,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_diverse_real_reference.py
       - name: Compare legal Atom and JSON Feed text boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
+      - name: Compare Atom XHTML wrapper attributes
+        run: uv run --with feedparser==6.0.11 python tools/check_xhtml_container_reference.py
       - name: Compare Atom MIME parameter content forms
         run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
       - name: Compare Atom and JSON date and author boundaries
@@ -99,6 +101,10 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_xhtml.xml > atom-xhtml.json
           python3 -c "import json; x=json.load(open('atom-xhtml.json', encoding='utf-8')); e=x['entries'][0]; assert x['title'] == 'Plan A & B' and x['title_kind'] == 'xhtml' and '<h:em' in x['title_xhtml']['markup']; assert e['title'] == 'Race review' and e['content_kind'] == 'xhtml' and '<h:strong' in e['content_xhtml']['markup']"
+      - name: Inspect Atom XHTML wrapper attributes
+        run: |
+          moon run --target native cmd/main --json samples/atom1_xhtml_container.xml > atom-xhtml-container.json
+          python3 -c "import json; x=json.load(open('atom-xhtml-container.json', encoding='utf-8')); e=x['entries'][0]; assert x['diagnostics']==[]; assert x['title_xhtml']['container_attributes']==[{'local_name':'class','namespace_uri':None,'value':'headline'},{'local_name':'title','namespace_uri':None,'value':'A & B'}]; assert e['content_xhtml']['container_attributes'][2]=={'local_name':'base','namespace_uri':'http://www.w3.org/XML/1998/namespace','value':'assets/'}"
       - name: Inspect Atom external and text MIME content
         run: |
           moon run --target native cmd/main --json samples/atom1_content_sources.xml > atom-content-sources.json

@@ -93,7 +93,11 @@ and a `title_xhtml` fragment. For the fixed
 its entry has `title = Some("Race review")` and `content_kind = Xhtml` with
 `content_xhtml.markup` containing `<h:p>` and `<h:strong>`. The required outer
 `div` is removed; namespace-qualified child markup and meaningful whitespace
-remain. This fragment is **untrusted XML**, not rendered or sanitized content.
+remain. `container_attributes` separately preserves the div's attributes in
+source order with expanded namespace names. The
+[container regression](samples/atom1_xhtml_container.xml) compares them to an
+independent XML reader. This fragment and its attributes are **untrusted XML**,
+not rendered or sanitized content.
 Callers must use context-appropriate safe handling before displaying it.
 
 Atom external `content src` is available as `Entry.content_source`, with its
@@ -200,7 +204,7 @@ For the XHTML sample, this is an exact feed-title field excerpt from the
 CLI's normalized JSON (other fields omitted here):
 
 ```json
-{"title":"Plan A & B","title_kind":"xhtml","title_xhtml":{"markup":"Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em> &amp; B","language":null,"base_references":[]}}
+{"title":"Plan A & B","title_kind":"xhtml","title_xhtml":{"markup":"Plan <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">A</h:em> &amp; B","language":null,"base_references":[],"container_attributes":[]}}
 ```
 
 ## Verification

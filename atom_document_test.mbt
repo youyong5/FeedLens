@@ -39,6 +39,33 @@ test "stand-alone Atom Entry Document keeps fields, XHTML, and source scopes" {
 }
 
 ///|
+test "stand-alone Atom Entry XHTML keeps outer div attributes and inherited context" {
+  let input =
+    #|<entry xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xml:lang="en" xml:base="posts/"><id>urn:entry:div</id><title type="xhtml"><h:div class="lead" xml:lang="fr" xml:base="images/">Bonjour <h:em>ici</h:em></h:div></title><updated>2026-10-23T10:00:00Z</updated><author><name>Editor</name></author><content>Text</content></entry>
+  guard @feedlens.parse_document_with_source(
+      input, "https://example.test/news/entry.atom",
+    )
+    is Ok(@feedlens.AtomEntryDocument(entry, diagnostics)) else {
+    fail("expected standalone Atom Entry")
+  }
+  assert_eq(diagnostics, [])
+  assert_eq(entry.title, Some("Bonjour ici"))
+  guard entry.title_xhtml is Some(fragment) else {
+    fail("expected XHTML title")
+  }
+  assert_eq(fragment.container_attributes.length(), 3)
+  assert_eq(fragment.container_attributes[0].value, "lead")
+  assert_eq(fragment.container_attributes[1].value, "fr")
+  assert_eq(fragment.container_attributes[2].value, "images/")
+  assert_eq(fragment.language, Some("fr"))
+  assert_eq(fragment.base_references, ["posts/", "images/"])
+  assert_eq(
+    fragment.markup,
+    "Bonjour <h:em xmlns:h=\"http://www.w3.org/1999/xhtml\">ici</h:em>",
+  )
+}
+
+///|
 test "entry documents use source author and required metadata diagnostics" {
   let input =
     #|<entry xmlns="http://www.w3.org/2005/Atom"><source><author><name>Source editor</name></author></source><id>urn:one</id><title>One</title><updated>2026-10-21T12:00:00Z</updated><content>Body</content></entry>

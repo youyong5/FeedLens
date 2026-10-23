@@ -282,6 +282,15 @@ fn xhtml_fragment_json(fragment : @feedlens.XhtmlFragment?) -> Json {
         "base_references": Json::array(
           value.base_references.map(fn(reference) { Json::string(reference) }),
         ),
+        "container_attributes": Json::array(
+          value.container_attributes.map(fn(attribute) {
+            Json::object({
+              "local_name": Json::string(attribute.local_name),
+              "namespace_uri": optional_string_json(attribute.namespace_uri),
+              "value": Json::string(attribute.value),
+            })
+          }),
+        ),
       })
   }
 }

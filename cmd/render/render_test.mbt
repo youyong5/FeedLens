@@ -108,6 +108,25 @@ test "render_json exposes unsanitized Atom XHTML text kind and fragments" {
 }
 
 ///|
+test "render_json exposes Atom XHTML outer div attributes in source order" {
+  let input =
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:f</id><title>F</title><updated>2026-10-23T10:00:00Z</updated><author><name>Editor</name></author><entry><id>urn:e</id><title type="xhtml"><h:div class="lead" xml:lang="fr">Bonjour</h:div></title><updated>2026-10-23T10:00:00Z</updated><content>Body</content></entry></feed>
+  guard @feedlens.parse(input) is Ok(feed) else {
+    fail("expected Atom XHTML feed")
+  }
+  assert_eq(feed.diagnostics, [])
+  let rendered = @render.render_json(feed)
+  guard @json.parse(rendered) is { "entries": Array(entries), .. } else {
+    fail("expected Atom entries JSON")
+  }
+  guard entries[0]
+    is { "title_xhtml": { "container_attributes": Array(attributes), .. }, .. } else {
+    fail("expected XHTML div attributes in entry JSON")
+  }
+  assert_eq(attributes.length(), 2)
+}
+
+///|
 test "render_json exposes binary bytes as Base64 and external references without fetching" {
   let input =
     #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="image/png">AQID/w==</content></entry><entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="/body" type="application/xml"/></entry></feed>

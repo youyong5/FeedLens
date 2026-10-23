@@ -53,15 +53,33 @@ pub enum TextKind {
 } derive(Debug, Eq)
 
 ///|
+/// An attribute declared on the outer Atom XHTML div. Names are expanded
+/// into namespace URI and local name so prefixes do not affect callers.
+pub struct XhtmlAttribute {
+  local_name : String
+  namespace_uri : String?
+  value : String
+} derive(Debug, Eq)
+
+///|
+pub extend XhtmlAttribute with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend XhtmlAttribute with Eq::{not_equal, equal}
+
+///|
 /// An Atom XHTML fragment. `markup` omits the required outer XHTML div and
 /// uses deterministic namespace-qualified XML serialization. `language` is
 /// the effective xml:lang at that div; `base_references` retains the ordered
 /// xml:base declarations from the feed/entry, text construct, and div. The
-/// latter are raw references, not guessed absolute URLs.
+/// latter are raw references, not guessed absolute URLs. `container_attributes`
+/// retains the discarded div's attributes in source order, including xml:lang
+/// and xml:base; markup and attributes are unsanitized.
 pub struct XhtmlFragment {
   markup : String
   language : String?
   base_references : Array[String]
+  container_attributes : Array[XhtmlAttribute]
 } derive(Debug, Eq)
 
 ///|

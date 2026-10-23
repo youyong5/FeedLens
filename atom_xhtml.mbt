@@ -26,6 +26,7 @@ priv struct AtomXhtmlCapture {
   mut markup : String
   mut language : String?
   base_references : Array[String]
+  container_attributes : Array[XhtmlAttribute]
 }
 
 ///|
@@ -41,6 +42,7 @@ fn AtomXhtmlCapture::new(
     markup: "",
     language,
     base_references: xhtml_copy_references(base_references),
+    container_attributes: [],
   }
 }
 
@@ -137,6 +139,13 @@ fn AtomXhtmlCapture::node(
     }
     self.div_seen = true
     self.div_open = !empty
+    for attribute in element.attributes {
+      self.container_attributes.push({
+        local_name: attribute.name.local_name,
+        namespace_uri: attribute.name.namespace_uri,
+        value: attribute.value,
+      })
+    }
     match xml_language_attribute(element) {
       Some(value) => self.language = non_blank_text(value)
       None => ()
@@ -210,5 +219,6 @@ fn AtomXhtmlCapture::fragment(self : AtomXhtmlCapture) -> XhtmlFragment? {
     markup: self.markup,
     language: self.language,
     base_references: self.base_references,
+    container_attributes: self.container_attributes,
   })
 }
