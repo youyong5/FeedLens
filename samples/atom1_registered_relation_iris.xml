@@ -1,0 +1,7 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="feeds/"><id>urn:feed</id><title>Audio feed</title><updated>2026-10-23T00:00:00Z</updated><author><name>Editor</name></author>
+<link rel="http://www.iana.org/assignments/relation/alternate" href="home"/>
+<entry xml:base="posts/"><id>urn:entry</id><title>One</title><updated>2026-10-23T00:00:00Z</updated>
+<link rel="http://www.iana.org/assignments/relation/enclosure" href="audio/one.mp3" type="audio/mpeg" length="42"/>
+<link rel="http://www.iana.org/assignments/relation/alternate" href="one"/>
+<link rel="https://example.test/relation/enclosure" href="unrelated"/>
+</entry></feed>

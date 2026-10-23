@@ -17,12 +17,33 @@ fn atom_alternate_link(element : @xml.NamespaceElement) -> String? {
   let rel = atom_attribute_value(element, "rel")
   let href = atom_attribute_value(element, "href")
   match rel {
-    None | Some("alternate") =>
+    None
+    | Some("alternate")
+    | Some("http://www.iana.org/assignments/relation/alternate") =>
       match href {
         Some(value) if !value.trim().is_empty() => Some(value)
         _ => None
       }
     _ => None
+  }
+}
+
+///|
+// RFC 4287 treats a registered short relation as equivalent to this IRI.
+// Preserve the declared spelling in AtomLink; compare semantics only here.
+fn atom_relation_is(relation : String, name : String) -> Bool {
+  relation == name ||
+  relation == "http://www.iana.org/assignments/relation/" + name
+}
+
+///|
+fn atom_element_relation_is(
+  element : @xml.NamespaceElement,
+  name : String,
+) -> Bool {
+  match atom_attribute_value(element, "rel") {
+    Some(relation) => atom_relation_is(relation, name)
+    None => name == "alternate"
   }
 }
 
@@ -37,7 +58,7 @@ fn atom_link(
   let href = match atom_non_blank_attribute(element, "href") {
     Some(href) => href
     None => {
-      if relation != "enclosure" {
+      if !atom_relation_is(relation, "enclosure") {
         diagnostics.push({
           kind: InvalidAtomLink("missing href"),
           line,
@@ -52,7 +73,7 @@ fn atom_link(
       match attachment_size(raw) {
         Some(value) => Some(value)
         None => {
-          if relation != "enclosure" {
+          if !atom_relation_is(relation, "enclosure") {
             diagnostics.push({
               kind: InvalidAtomLink("invalid length"),
               line,
@@ -85,9 +106,9 @@ fn atom_append_link(
 ) -> Unit {
   match atom_link(element, line, column, diagnostics) {
     Some(link) => {
-      if link.relation == "alternate" &&
+      if atom_relation_is(link.relation, "alternate") &&
         links.any(fn(previous) {
-          previous.relation == "alternate" &&
+          atom_relation_is(previous.relation, "alternate") &&
           previous.media_type == link.media_type &&
           previous.hreflang == link.hreflang
         }) {
@@ -843,7 +864,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             if entry_link is None {
               entry_link = atom_alternate_link(element)
             }
-            if atom_attribute_value(element, "rel") == Some("enclosure") {
+            if atom_element_relation_is(element, "enclosure") {
               match
                 xml_attachment(
                   element,
@@ -1431,7 +1452,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             if entry_link is None {
               entry_link = atom_alternate_link(element)
             }
-            if atom_attribute_value(element, "rel") == Some("enclosure") {
+            if atom_element_relation_is(element, "enclosure") {
               match
                 xml_attachment(
                   element,

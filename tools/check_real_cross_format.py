@@ -110,6 +110,7 @@ def main() -> None:
         "atom1_high_precision_date.xml": ("date_test.mbt", "Atom RFC 3339 accepts sub-nanosecond precision with original digits"),
         "jsonfeed11_high_precision_date.json": ("date_test.mbt", "JSON Feed RFC 3339 retains trailing zeros beyond nanoseconds"),
         "rss2_two_digit_years.xml": ("date_test.mbt", "RSS two-digit-year archive normalizes channel and item dates"),
+        "atom1_registered_relation_iris.xml": ("atom_relation_test.mbt", "registered Atom relation IRIs keep raw spelling and map alternate and enclosure"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -269,6 +270,29 @@ def main() -> None:
     second = people_cli["entries"][1]
     assert urljoin(base + "origin/people/", second["atom_source"]["authors"][0]["uri"]) == people_ref.entries[1].source.authors[0].href
     print("PASS independent Atom person URI intersection: feed, entry and source scopes; inherited entry authors library-only")
+    relation_file = SAMPLES / "atom1_registered_relation_iris.xml"
+    relation_ref = feedparser.parse(relation_file.read_bytes())
+    assert not relation_ref.bozo and len(relation_ref.entries) == 1
+    relation_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(relation_file)],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    entry = relation_cli["entries"][0]
+    reference_entry = relation_ref.entries[0]
+    assert relation_cli["diagnostics"] == []
+    assert [link["rel"] for link in entry["links"]] == [link.rel for link in reference_entry.links]
+    # feedparser applies the feed-level xml:base here, but omits the nested
+    # entry base; compare the literal link references after that known join.
+    assert [urljoin("feeds/", link["href"]) for link in entry["links"]] == [
+        link.href for link in reference_entry.links
+    ]
+    assert urljoin("feeds/", entry["attachments"][0]["url"]) == reference_entry.links[0].href
+    assert entry["attachments"][0]["media_type"] == reference_entry.links[0].type
+    assert entry["attachments"][0]["size_in_bytes"] == int(reference_entry.links[0].length)
+    assert len(entry["attachments"]) == 1
+    assert reference_entry.enclosures == []
+    assert entry["link"] == "one" and relation_cli["link"] == "home"
+    print("PASS independent Atom registered relation IRIs and link metadata; feedparser omits entry xml:base and enclosure projection, checked separately against RFC/fixture")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 

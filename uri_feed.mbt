@@ -851,7 +851,7 @@ fn UriXmlState::on_element(
         None => ()
       }
     }
-    if atom_attribute_value(element, "rel") == Some("enclosure") {
+    if atom_element_relation_is(element, "enclosure") {
       match atom_non_blank_attribute(element, "href") {
         Some(href) =>
           self.resolve_attachment(
