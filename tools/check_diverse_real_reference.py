@@ -68,7 +68,43 @@ def main() -> None:
         assert dt.datetime(*reference.published_parsed[:6], tzinfo=dt.timezone.utc) == email.utils.parsedate_to_datetime(
             actual["published_at"]
         ).astimezone(dt.timezone.utc)
-    print("PASS Hacker News RSS: channel metadata and two ordered title/ID/link/raw-date records")
+        assert actual["authors"] == [{
+            "source": "dublin_core", "name": reference.author,
+            "email": None, "uri": None, "avatar": None,
+        }]
+    print("PASS Hacker News RSS: metadata, ordered story records and Dublin Core creator names")
+
+    lines = (ROOT / "rss_dublin_creator_test.mbt").read_text("utf-8").splitlines()
+    start = lines.index("fn rss_dublin_sample() -> String {") + 2
+    mirrored_xml = []
+    for line in lines[start:]:
+        if not line.startswith("    #|"):
+            break
+        mirrored_xml.append(line[6:])
+    creator_file = ROOT / "samples" / "rss2_dublin_creator.xml"
+    assert "\n".join(mirrored_xml) + "\n" == creator_file.read_text("utf-8")
+    creator_root = ET.parse(creator_file).getroot()
+    ns = {"d": "http://purl.org/dc/elements/1.1/"}
+    items = creator_root.findall("./channel/item")
+    assert len(items) == 3
+    assert [e.text for e in items[0].findall("./d:creator", ns)] == [
+        "Jane & Co", "Second credited editor",
+    ]
+    assert items[0].find("./author").text == "one@example.test"
+    creator_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(creator_file)],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert [(a["source"], a["name"], a["email"]) for a in creator_cli["entries"][0]["authors"]] == [
+        ("rss2", None, "one@example.test"),
+        ("dublin_core", "Jane & Co", None),
+        ("dublin_core", "Second credited editor", None),
+    ]
+    assert creator_cli["entries"][1]["authors"][0]["name"] == items[1].find("./d:creator", ns).text
+    assert [d["kind"]["type"] for d in creator_cli["diagnostics"]] == [
+        "InvalidAuthor", "UnsupportedNestedMarkup",
+    ]
+    print("PASS synthetic namespace/order boundaries against ElementTree direct children; invalid creators diagnosed")
 
     atom_ref = feedparser.parse((ROOT / "samples" / FILES["atom"]).read_bytes())
     atom = cli("atom")
