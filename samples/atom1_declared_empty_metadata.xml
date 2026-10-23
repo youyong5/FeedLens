@@ -1,0 +1,6 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:meta:feed</id><title>Declared strings</title><updated>2026-10-23T00:00:00Z</updated>
+<author><name/></author><category term="" label="  " scheme=""/><link href="home" title=""/>
+<entry><id>urn:meta:own</id><title>Own</title><updated>2026-10-23T00:00:00Z</updated><author><name>  </name></author><category term="  " label="" scheme="topics"/><link href="post" title="  "/><link rel="enclosure" href="audio.mp3" title=""/><content>Body</content></entry>
+<entry><id>urn:meta:source</id><title>Source</title><updated>2026-10-23T00:00:00Z</updated><source><author><name>Origin</name></author><category term="" label=""/></source><content>Body</content></entry>
+<entry><id>urn:meta:inherited</id><title>Inherited</title><updated>2026-10-23T00:00:00Z</updated><content>Body</content></entry>
+</feed>

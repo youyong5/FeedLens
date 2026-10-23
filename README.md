@@ -41,6 +41,10 @@ IRI reference, distinct from a missing attribute. With a known source URL it
 resolves against the applicable `xml:base`; the
 [offline sample](samples/atom1_empty_iri_references.xml) checks feed, entry,
 source, enclosure, and external body fields.
+Atom Person names, category terms/labels, and link/enclosure titles also retain
+declared empty or whitespace-only strings; absent required names/terms still
+produce diagnostics. The [metadata sample](samples/atom1_declared_empty_metadata.xml)
+tests author precedence alongside these values.
 
 For the [standard behavior matrix](docs/STANDARD_SCOPE.md), complete field mapping,
 diagnostic rules, XML namespace boundaries, and content-handling policy, see
