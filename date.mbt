@@ -141,12 +141,16 @@ fn normalized_date(
 }
 
 ///|
-fn normalize_rfc3339(text : String) -> Result[NormalizedDate, DateError] {
+fn normalize_rfc3339(
+  text : String,
+  atom_case : Bool,
+) -> Result[NormalizedDate, DateError] {
   let chars = date_chars(text)
   if chars.length() < 20 ||
     !date_literal(chars, 4, '-') ||
     !date_literal(chars, 7, '-') ||
     (chars[10] != 'T' && chars[10] != 't') ||
+    (atom_case && chars[10] != 'T') ||
     !date_literal(chars, 13, ':') ||
     !date_literal(chars, 16, ':') {
     return Err(InvalidSyntax)
@@ -201,6 +205,9 @@ fn normalize_rfc3339(text : String) -> Result[NormalizedDate, DateError] {
     return Err(InvalidSyntax)
   }
   let offset_minutes = if chars[index] == 'Z' || chars[index] == 'z' {
+    if atom_case && chars[index] != 'Z' {
+      return Err(InvalidSyntax)
+    }
     if index + 1 != chars.length() {
       return Err(InvalidSyntax)
     }
@@ -410,7 +417,8 @@ fn normalize_rss_date(text : String) -> Result[NormalizedDate, DateError] {
 ///|
 /// Validate an optional source date without changing the raw feed field.
 /// RSS uses the supported RFC 822/1123 profile; Atom and JSON Feed use RFC
-/// 3339. A missing date is `Ok(None)`, while malformed dates are `Err`.
+/// 3339. Atom additionally requires uppercase `T` and `Z`. A missing date
+/// is `Ok(None)`, while malformed dates are `Err`.
 pub fn normalize_date(
   format : FeedFormat,
   raw : String?,
@@ -420,7 +428,8 @@ pub fn normalize_date(
     Some(text) => {
       let date = match format {
         Rss2 => normalize_rss_date(text)
-        Atom1 | JsonFeed1 => normalize_rfc3339(text)
+        Atom1 => normalize_rfc3339(text, true)
+        JsonFeed1 => normalize_rfc3339(text, false)
       }
       match date {
         Ok(value) => Ok(Some(value))

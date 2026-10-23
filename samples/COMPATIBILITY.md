@@ -135,3 +135,11 @@ into its own XHTML/text projection, so the serialized XML fragment is checked
 against the source XML rather than claiming a cross-library markup match.
 Invalid parameter syntax and source locations are covered by MoonBit's own
 regression, not independently validated by the permissive email reader.
+
+`tools/check_date_author_reference.py` checks two new byte-mirrored samples:
+Atom feed/entry IDs and the common publication instant against feedparser
+6.0.11, plus JSON Feed exact author strings and inherited author lists against
+Python JSON and the common UTC instant against Python datetime. Atom-only
+uppercase `T`/`Z` enforcement is checked by the MoonBit regression against
+RFC 4287; generic Python datetime is not an Atom validator. Leap seconds and
+unknown offsets remain outside normalized date support.

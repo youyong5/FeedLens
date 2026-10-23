@@ -227,7 +227,9 @@ fn json_author(
     Object(object) => {
       let name = match
         json_optional_string(object, "name", diagnostics, item_index) {
-        Some(value) => non_blank_text(value)
+        // A declared plain-text name is an opaque string, including an empty
+        // one. Its presence also satisfies the author's required member.
+        Some(value) => Some(value)
         None => None
       }
       let uri = match

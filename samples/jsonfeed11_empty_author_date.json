@@ -1,0 +1,4 @@
+{"version":"https://jsonfeed.org/version/1.1","title":"People","authors":[{"name":""},{"avatar":"https://example.test/avatar.png"}],"items":[
+{"id":"one","content_text":"A","authors":[{"name":" "}],"date_published":"2026-10-14t13:00:00z"},
+{"id":"two","content_text":"B","date_modified":"2026-10-14T14:00:00+01:00"},
+{"id":"three","content_text":"C","author":{"name":""}}]}

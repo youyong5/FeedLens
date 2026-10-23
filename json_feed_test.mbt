@@ -140,7 +140,7 @@ test "JSON Feed diagnoses optional field types, invalid authors, and tags" {
       #|    "title": false,
       #|    "content_html": false,
       #|    "content_text": "fallback body",
-      #|    "authors": [{"name": " "}],
+      #|    "authors": [{}],
       #|    "tags": ["", 3]
       #|  }]
       #|}
