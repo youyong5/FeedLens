@@ -26,8 +26,10 @@ This comparison does not use live network feeds or claim broad conformance.
 
 ## Still requiring audit before the application
 
-- Atom IRI and date grammar, MIME parameters, permitted extension points,
-  and remaining cardinality rules need a larger legal and invalid corpus.
+- Atom content's common MIME parameters now have legal and invalid regression
+  cases plus an independent email/feedparser intersection. MIME comments and
+  extension parameter syntax, Atom IRI and date grammar, permitted extension
+  points, and remaining cardinality rules still need a larger corpus.
 - RSS source-defined optional metadata is mapped; extension modules and HTML
   presentation remain outside the core reader model.
 - JSON Feed extension objects may be ignored by readers, but the remaining
