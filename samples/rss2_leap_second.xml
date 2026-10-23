@@ -1,0 +1,1 @@
+<rss version="2.0"><channel><title>Leap second</title><link>https://example.test/</link><description>UTC leap</description><item><guid>urn:leap:2016</guid><title>One</title><pubDate>Sat, 31 Dec 2016 23:59:60 GMT</pubDate></item></channel></rss>
