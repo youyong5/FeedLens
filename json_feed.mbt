@@ -34,12 +34,16 @@ fn json_string(value : Json) -> String? {
 }
 
 ///|
-fn json_item_identifier(value : Json) -> String? {
+fn json_item_identifier(value : Json, version : String) -> String? {
   match value {
     String(text) => non_blank_text(text)
     // `stringify` uses the parsed number's source representation when one is
     // available, so converting a JSON number does not silently round it.
     Number(_, ..) => non_blank_text(value.stringify())
+    // JSON Feed 1.0 explicitly requires readers to coerce other JSON values
+    // to a string. JSON serialization gives these values a deterministic
+    // representation without silently discarding an otherwise usable item.
+    _ if version == JSON_FEED_1_0 => non_blank_text(value.stringify())
     _ => None
   }
 }
@@ -539,7 +543,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     }
     let identifier = match json_field(item, "id") {
       Some(value) =>
-        match json_item_identifier(value) {
+        match json_item_identifier(value, version) {
           Some(identifier) => identifier
           None => {
             add_json_diagnostic(diagnostics, Some(index), "id")
@@ -664,6 +668,10 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     updated_at: None,
     published_at: None,
     ttl_minutes: None,
+    docs_url: None,
+    rating: None,
+    cloud: None,
+    text_input: None,
     skip_hours: [],
     skip_days: [],
     rights: None,

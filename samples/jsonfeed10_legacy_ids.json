@@ -1,0 +1,1 @@
+{"version":"https://jsonfeed.org/version/1","title":"Legacy IDs","items":[{"id":true,"content_text":"Boolean"},{"id":null,"content_text":"Null"},{"id":{"key":"value"},"content_text":"Object"},{"id":[1,2],"content_text":"Array"},{"id":9007199254740993,"content_text":"Large number"}]}

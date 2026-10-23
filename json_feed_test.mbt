@@ -232,3 +232,31 @@ test "XML dispatch remains RSS and Atom compatible" {
   guard atom is Ok(atom_feed) else { fail("expected Atom regression feed") }
   assert_true(atom_feed.format is @feedlens.Atom1)
 }
+
+///|
+test "JSON Feed 1.0 coerces non-string item IDs without rounding integers" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1","title":"Legacy IDs","items":[{"id":true,"content_text":"Boolean"},{"id":null,"content_text":"Null"},{"id":{"key":"value"},"content_text":"Object"},{"id":[1,2],"content_text":"Array"},{"id":9007199254740993,"content_text":"Large number"}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("JSON Feed 1.0") }
+  assert_eq(feed.entries.length(), 5)
+  assert_eq(feed.entries[0].identifier, Some("true"))
+  assert_eq(feed.entries[1].identifier, Some("null"))
+  assert_eq(feed.entries[2].identifier, Some("{\"key\":\"value\"}"))
+  assert_eq(feed.entries[3].identifier, Some("[1,2]"))
+  assert_eq(feed.entries[4].identifier, Some("9007199254740993"))
+  assert_eq(feed.diagnostics, [])
+}
+
+///|
+test "JSON Feed 1.1 invalid composite IDs remain diagnosed" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Modern","items":[{"id":{"key":"value"},"content_text":"Skipped"},{"id":"valid","content_text":"Kept"}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("JSON Feed 1.1") }
+  assert_eq(feed.entries.length(), 1)
+  assert_eq(feed.entries[0].identifier, Some("valid"))
+  assert_true(
+    feed.diagnostics.any(fn(d) {
+      d.kind is @feedlens.InvalidJsonFeedItem(0, "id")
+    }),
+  )
+}
