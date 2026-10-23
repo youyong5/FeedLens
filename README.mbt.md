@@ -30,6 +30,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.updated_at` | channel `lastBuildDate` | feed `updated` | none |
 | `Feed.published_at`, `Feed.ttl_minutes` | channel `pubDate`, `ttl` | none | none |
 | `Feed.skip_hours`, `Feed.skip_days` | direct channel `skipHours/hour` (GMT 0–23), `skipDays/day` (English weekday) | empty arrays | empty arrays |
+| `Feed.docs_url`, `Feed.rating`, `Feed.cloud`, `Feed.text_input` | direct channel `docs`, raw `rating`, `cloud`, `textInput`; no registration or form submission | none | none |
 | `Feed.rights`, `Feed.generator` | channel `copyright`, `generator` | feed `rights`, `generator` | none |
 | `Feed.next_url`, `Feed.expired`, `Feed.hubs` | none | none | `next_url`, `expired`, `hubs` |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
@@ -368,6 +369,8 @@ moon run --target native cmd/main samples/real_wptavern_atom.xml
 moon run --target native cmd/main --json samples/real_wptavern_json.json
 moon run --target native cmd/main --json samples/atom1_xhtml.xml
 moon run --target native cmd/main --json samples/atom1_content_forms.xml
+moon run --target native cmd/main --json samples/rss2_optional_channel.xml
+moon run --target native cmd/main --json samples/jsonfeed10_legacy_ids.json
 moon run --target native cmd/main -- --help
 ```
 

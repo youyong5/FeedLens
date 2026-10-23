@@ -107,6 +107,8 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/rss2_skip_schedule.xml > rss-skip.json
           python3 -c "import json; x=json.load(open('rss-skip.json', encoding='utf-8')); assert x['skip_hours']==[0,23] and x['skip_days']==['Sunday','Monday'] and x['diagnostics']==[]"
+      - name: Independently compare RSS optional fields and JSON Feed 1.0 IDs
+        run: python3 tools/check_optional_channel_and_legacy_ids.py
       - name: Inspect Atom aggregation source metadata
         run: |
           moon run --target native cmd/main --json samples/atom1_source_metadata.xml > atom-source.json
@@ -119,5 +121,8 @@ jobs:
           grep -q 'xhtml_title=Plan A' consumer.txt
           grep -q 'atom_binary_bytes=3' consumer.txt
           grep -q 'atom_entry_link=https://example.test/news/posts/one' consumer.txt
+          grep -q 'rss_docs=https://example.test/rss-spec.html' consumer.txt
+          grep -q 'rss_cloud=notify.example.test:80' consumer.txt
+          grep -q 'rss_search=https://example.test/search' consumer.txt
       - name: Show CLI help
         run: moon run --target native cmd/main -- --help

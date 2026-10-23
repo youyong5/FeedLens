@@ -129,6 +129,16 @@ These fragments and references are untrusted input. FeedLens neither cleans
 XML/HTML nor checks remote content; callers must apply their own rendering,
 URI-access and download policy.
 
+RSS 2.0 channel metadata also exposes `docs_url`, raw `rating`, `cloud`
+(`RssCloud`), and `text_input` (`RssTextInput`). These are descriptive values:
+no cloud registration or search form submission occurs. Relative `docs_url`
+and `text_input.link` resolve only through `parse_with_source`; the fixture
+[`rss2_optional_channel.xml`](samples/rss2_optional_channel.xml) and
+[`jsonfeed10_legacy_ids.json`](samples/jsonfeed10_legacy_ids.json) cover these
+RSS fields and JSON Feed 1.0's required non-string item-ID coercion. The
+[standard behavior matrix](docs/STANDARD_SCOPE.md) states their validation
+boundaries and the remaining limits.
+
 ## Local-file CLI
 
 The separate Native executable reads one local XML or JSON file and prints the
