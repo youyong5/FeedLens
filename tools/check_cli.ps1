@@ -55,6 +55,24 @@ if (($rssSkipModel.skip_hours -join ",") -ne "0,23" -or ($rssSkipModel.skip_days
   throw "RSS skip hints JSON lost ordered GMT hours or weekdays"
 }
 
+$rssOptional = Invoke-FeedLensCli @("--json", "samples/rss2_optional_channel.xml")
+if ($rssOptional.ExitCode -ne 0 -or $rssOptional.StandardError) {
+  throw "RSS optional channel CLI scenario failed"
+}
+$rssOptionalModel = $rssOptional.StandardOutput | ConvertFrom-Json
+if ($rssOptionalModel.docs_url -ne "../spec/rss.html" -or $rssOptionalModel.cloud.port -ne 80 -or $rssOptionalModel.text_input.name -ne "query" -or $rssOptionalModel.diagnostics.Count -ne 0) {
+  throw "RSS optional channel CLI output lost metadata"
+}
+
+$legacyIds = Invoke-FeedLensCli @("--json", "samples/jsonfeed10_legacy_ids.json")
+if ($legacyIds.ExitCode -ne 0 -or $legacyIds.StandardError) {
+  throw "JSON Feed 1.0 legacy IDs CLI scenario failed"
+}
+$legacyModel = $legacyIds.StandardOutput | ConvertFrom-Json
+if (($legacyModel.entries.identifier -join "|") -ne 'true|null|{"key":"value"}|[1,2]|9007199254740993' -or $legacyModel.diagnostics.Count -ne 0) {
+  throw "JSON Feed 1.0 IDs were dropped or rounded"
+}
+
 $atomAttachments = Invoke-FeedLensCli @("--json", "samples/atom1_attachments.xml")
 if ($atomAttachments.ExitCode -ne 0 -or $atomAttachments.StandardError) {
   throw "Atom attachment JSON CLI scenario failed"

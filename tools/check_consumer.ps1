@@ -16,7 +16,10 @@ foreach ($expected in @(
   "xhtml_title=Plan A",
   "xhtml_markup=Plan <h:em",
   "atom_binary_type=application/octet-stream",
-  "atom_binary_bytes=3"
+  "atom_binary_bytes=3",
+  "rss_docs=https://example.test/rss-spec.html",
+  "rss_cloud=notify.example.test:80",
+  "rss_search=https://example.test/search"
 )) {
   if (-not $text.Contains($expected)) {
     throw "Library consumer output missing: $expected"
