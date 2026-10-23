@@ -36,7 +36,11 @@ Atom 外链正文只交付引用和声明类型，不下载或解码其资源。
 Person 的相对 `uri` 遵循 [RFC 4287 §3.2.2](https://www.rfc-editor.org/rfc/rfc4287#section-3.2.2)
 和 [XML Base §4.3](https://www.w3.org/TR/xmlbase/#matching)。合法 person URI 的完整 IRI 语法
 尚未由本库验证；无法解析时原值保留并给定位诊断。
-日期原文保留，`normalize_date` 校验文档化的 RSS/RFC 3339 子集；RFC 3339
+日期原文保留，`normalize_date` 校验文档化的 RSS/RFC 3339 子集；RSS
+两位年份依 [RFC 2822 §4](https://www.rfc-editor.org/rfc/rfc2822#section-4)
+固定映射 00–49 为 2000–2049、50–99 为 1950–1999，
+带星期名时校验真实日历；`samples/rss2_two_digit_years.xml` 与 feedparser
+6.0.11 秒级独立对照。RFC 3339
 小数秒任意正位数可输入，UTC 文本保留全部位数，`nanosecond` 截取前九位，
 `Fraction(digits)` 保留声明位数。跨格式合成样本的秒级独立交集与库内完整
 小数位回归见 `date_test.mbt` 和 `tools/check_real_cross_format.py`。

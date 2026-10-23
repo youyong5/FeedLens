@@ -33,6 +33,30 @@ test "RSS date accepts weekday, GMT, named US zone, and minute precision" {
 }
 
 ///|
+test "RSS two-digit year boundaries use fixed RFC 2822 centuries" {
+  for
+    (source, expected) in [
+      ("01 Jan 00 00:00:00 GMT", "2000-01-01T00:00:00Z"),
+      ("01 Jan 49 00:00:00 GMT", "2049-01-01T00:00:00Z"),
+      ("01 Jan 50 00:00:00 GMT", "1950-01-01T00:00:00Z"),
+      ("01 Jan 99 00:00:00 GMT", "1999-01-01T00:00:00Z"),
+      ("01 Jan 2049 00:00:00 GMT", "2049-01-01T00:00:00Z"),
+    ] {
+    guard normalize_date(Rss2, Some(source)) is Ok(Some(date)) else {
+      fail("expected supported RSS year")
+    }
+    assert_eq(date.utc, expected)
+  }
+  assert_true(
+    normalize_date(Rss2, Some("01 Jan 049 00:00:00 GMT")) is Err(InvalidSyntax),
+  )
+  assert_true(
+    normalize_date(Rss2, Some("Tue, 01 Jan 00 00:00:00 GMT"))
+    is Err(InvalidCalendarDate),
+  )
+}
+
+///|
 test "RSS date rejects impossible day, weekday mismatch, unknown zone, and missing date" {
   assert_true(
     normalize_date(Rss2, Some("Mon, 31 Feb 2026 13:00 GMT"))
