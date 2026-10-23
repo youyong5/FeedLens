@@ -1,0 +1,5 @@
+<rss version="2.0" xmlns:x="urn:unrelated"><channel><title>Night desk</title><link>https://example.test/</link><description>Daily notes</description>
+<skipHours><hour>0</hour><x:hour>12</x:hour><hour>23</hour><wrapper><hour>11</hour></wrapper></skipHours>
+<skipDays><day>Sunday</day><x:day>Friday</x:day><day>Monday</day></skipDays>
+<item><title>Notice</title><description>Service note</description><skipHours><hour>9</hour></skipHours></item>
+</channel></rss>

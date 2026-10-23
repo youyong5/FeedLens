@@ -46,6 +46,15 @@ if ($rssAttachments.ExitCode -ne 0 -or $rssAttachments.StandardError -or -not $r
   throw "RSS attachment summary CLI scenario failed"
 }
 
+$rssSkip = Invoke-FeedLensCli @("--json", "samples/rss2_skip_schedule.xml")
+if ($rssSkip.ExitCode -ne 0 -or $rssSkip.StandardError) {
+  throw "RSS skip hints JSON CLI scenario failed"
+}
+$rssSkipModel = $rssSkip.StandardOutput | ConvertFrom-Json
+if (($rssSkipModel.skip_hours -join ",") -ne "0,23" -or ($rssSkipModel.skip_days -join ",") -ne "Sunday,Monday" -or $rssSkipModel.diagnostics.Count -ne 0) {
+  throw "RSS skip hints JSON lost ordered GMT hours or weekdays"
+}
+
 $atomAttachments = Invoke-FeedLensCli @("--json", "samples/atom1_attachments.xml")
 if ($atomAttachments.ExitCode -ne 0 -or $atomAttachments.StandardError) {
   throw "Atom attachment JSON CLI scenario failed"
@@ -142,6 +151,7 @@ Write-Output "PASS RSS exit=$($rss.ExitCode)"
 Write-Output "PASS Atom exit=$($atom.ExitCode)"
 Write-Output "PASS JSON exit=$($json.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS RSS attachment summary exit=$($rssAttachments.ExitCode)"
+Write-Output "PASS RSS skip hints JSON exit=$($rssSkip.ExitCode), ordered values verified"
 Write-Output "PASS Atom attachment JSON exit=$($atomAttachments.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS JSON Feed attachment JSON exit=$($jsonAttachments.ExitCode), ConvertFrom-Json accepted output"
 Write-Output "PASS real RSS projection exit=$($realRss.ExitCode)"

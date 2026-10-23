@@ -251,6 +251,8 @@ pub struct Feed {
   updated_at : String?
   published_at : String?
   ttl_minutes : Int32?
+  skip_hours : Array[Int32]
+  skip_days : Array[String]
   rights : String?
   rights_kind : TextKind
   rights_xhtml : XhtmlFragment?

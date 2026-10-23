@@ -2217,6 +2217,8 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             updated_at: feed_updated,
             published_at: None,
             ttl_minutes: None,
+            skip_hours: [],
+            skip_days: [],
             rights: feed_rights,
             rights_kind: feed_rights_kind,
             rights_xhtml: feed_rights_xhtml,

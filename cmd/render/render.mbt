@@ -617,6 +617,8 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
         Some(value) => Json(value)
         None => Json::null()
       },
+      "skip_hours": Json::array(feed.skip_hours.map(fn(hour) { Json(hour) })),
+      "skip_days": Json::array(feed.skip_days.map(Json::string)),
       "rights": optional_string_json(feed.rights),
       "rights_kind": text_kind_json(feed.rights_kind),
       "rights_xhtml": xhtml_fragment_json(feed.rights_xhtml),

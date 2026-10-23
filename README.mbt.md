@@ -29,6 +29,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.language` | inherited channel language | inherited feed `xml:lang`, or entry override/reset | inherited feed language, or item override (1.1 only) |
 | `Feed.updated_at` | channel `lastBuildDate` | feed `updated` | none |
 | `Feed.published_at`, `Feed.ttl_minutes` | channel `pubDate`, `ttl` | none | none |
+| `Feed.skip_hours`, `Feed.skip_days` | direct channel `skipHours/hour` (GMT 0–23), `skipDays/day` (English weekday) | empty arrays | empty arrays |
 | `Feed.rights`, `Feed.generator` | channel `copyright`, `generator` | feed `rights`, `generator` | none |
 | `Feed.next_url`, `Feed.expired`, `Feed.hubs` | none | none | `next_url`, `expired`, `hubs` |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
@@ -245,6 +246,7 @@ The original `parse` and `parse_with_source` feed return types remain unchanged.
 - Channel `title`, `link`, and `description`; item `guid`, `title`, `link`, `description`, and `pubDate`, retained in document order.
 - Channel `pubDate`, `lastBuildDate`, `copyright`, `generator` and nonnegative
   `ttl`; item `comments` and source `url`. Invalid TTL gets a located diagnostic.
+- Direct channel `skipHours` and `skipDays` are advisory GMT polling hints, kept in source order in `Feed.skip_hours` and `Feed.skip_days`. A blank/invalid child, more than 24 hours or seven days, or a repeated container gets a located diagnostic; valid earlier values remain usable. Foreign-namespace or nested lookalikes are ignored. The library does not schedule network requests.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
 - XML errors, unsupported roots, unsupported RSS versions, and a missing channel are fatal `ParseError` values.
 - Missing or whitespace-only fields are recoverable and become `None`. `Feed.diagnostics` reports each missing required channel field and an item with neither a usable title nor a description. A blank channel field diagnostic points at that field; an absent one points at `<channel>`. An item-content diagnostic points at `<item>`. A valid title-only or description-only item may have no identifier.

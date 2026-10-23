@@ -13,6 +13,7 @@ import email.utils
 import json
 import os
 import subprocess
+import xml.etree.ElementTree as ET
 from decimal import Decimal
 from html.parser import HTMLParser
 from pathlib import Path
@@ -111,6 +112,7 @@ def main() -> None:
         "jsonfeed11_high_precision_date.json": ("date_test.mbt", "JSON Feed RFC 3339 retains trailing zeros beyond nanoseconds"),
         "rss2_two_digit_years.xml": ("date_test.mbt", "RSS two-digit-year archive normalizes channel and item dates"),
         "atom1_registered_relation_iris.xml": ("atom_relation_test.mbt", "registered Atom relation IRIs keep raw spelling and map alternate and enclosure"),
+        "rss2_skip_schedule.xml": ("rss_skip_test.mbt", "RSS skipHours and skipDays preserve valid direct channel hints in source order"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -293,6 +295,22 @@ def main() -> None:
     assert reference_entry.enclosures == []
     assert entry["link"] == "one" and relation_cli["link"] == "home"
     print("PASS independent Atom registered relation IRIs and link metadata; feedparser omits entry xml:base and enclosure projection, checked separately against RFC/fixture")
+    skip_file = SAMPLES / "rss2_skip_schedule.xml"
+    channel = ET.fromstring(skip_file.read_bytes()).find("channel")
+    assert channel is not None
+    expected_hours = [int(node.text) for node in channel.findall("./skipHours/hour")]
+    expected_days = [node.text for node in channel.findall("./skipDays/day")]
+    skip_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(skip_file)],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert skip_cli["diagnostics"] == []
+    assert skip_cli["skip_hours"] == expected_hours == [0, 23]
+    assert skip_cli["skip_days"] == expected_days == ["Sunday", "Monday"]
+    skip_ref = feedparser.parse(skip_file.read_bytes())
+    assert not skip_ref.bozo and skip_ref.feed.day == "Monday"
+    assert skip_ref.feed.hour == "11"
+    print("PASS independent RSS direct skipHours/skipDays order against ElementTree; feedparser's hour is overwritten by a nested lookalike")
     print(f"feedparser {feedparser.__version__}; checked-in projections only; no live fetch")
 
 
