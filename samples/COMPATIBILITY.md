@@ -18,6 +18,7 @@ RSS 2.0 / Atom 1.0 / JSON Feed surface.
 | `atom1_attachments.xml` | Atom alternate versus enclosure links, optional enclosure metadata, and order; parser and CLI fixture only. |
 | `jsonfeed11_attachments.json` | JSON Feed attachment title, size, fractional duration, and order; parser and CLI fixture only. |
 | `real_wptavern_rss.xml`, `real_wptavern_atom.xml`, `real_wptavern_json.json` | Editorially reduced projections of two corresponding podcast entries from live public subscriptions, with source URLs and capture hashes in `REAL_WORLD.md`; date, article link, and attachment regression cases. |
+| `real_hn_rss.xml`, `real_xkcd_atom.xml`, `real_recompiled_json.json` | Publisher-diverse archived snapshots with pinned provenance, reduction details and hashes in `REAL_WORLD.md`. xkcd's missing author is a real input defect with diagnostics, not a legal-input success case. `tools/check_diverse_real_reference.py` checks an explicit offline feedparser/Python intersection. |
 | `jsonfeed11_display.json` | Synthetic JSON Feed 1.1 fixture for language, feed icon/favicon, distinct permalink/external URL, and featured/banner item-image roles; parser and CLI fixture only. |
 | `atom1_entry_document.xml` | Stand-alone Atom Entry Document with XHTML text/body, author, xml:base, alternate/enclosure links; independent feedparser and library regression. |
 | `rss2_standard_fields.xml`, `atom1_standard_fields.xml`, `jsonfeed11_standard_fields.json` | Synthetic, byte-mirrored regressions for additional common fields and CLI output; not portrayed as live sources. |

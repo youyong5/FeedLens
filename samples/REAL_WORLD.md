@@ -1,4 +1,22 @@
-# Real-feed offline projections (2026-10-19 UTC)
+# Real-feed offline projections
+
+## Additional publisher corpus (pinned public archive)
+
+The public [mojo-feed fixture archive](https://github.com/conorbronsdon/mojo-feed/tree/be9e1dbc17faea2723fa3224512f184738adb43d/test/data) contains snapshots from three other publishers. We copied them from archived commit `be9e1dbc17faea2723fa3224512f184738adb43d`; we did **not** request the publishers' current feeds in October 2026. The archive's `test_real_feed.mojo` identifies each publisher, and the snapshot contents contain the publication dates below. The archive capture timestamps are not known.
+
+| Publisher / format | Archived original, SHA-256 | Checked-in file and transformation |
+| --- | --- | --- |
+| [Hacker News front page](https://hnrss.org/frontpage), RSS 2.0 | [`rss_hn.xml`](https://github.com/conorbronsdon/mojo-feed/blob/be9e1dbc17faea2723fa3224512f184738adb43d/test/data/rss_hn.xml), `70083349c25d7778751f63cccc787cb7a75df85e4fa566faaa5662300d0bfbd2` | `real_hn_rss.xml`: first two of 20 items; ElementTree rewrites prefixes, CDATA and indentation but retains selected XML values. Items dated 2026-07-05. |
+| [xkcd](https://xkcd.com/atom.xml), Atom 1.0 | [`atom_xkcd.xml`](https://github.com/conorbronsdon/mojo-feed/blob/be9e1dbc17faea2723fa3224512f184738adb43d/test/data/atom_xkcd.xml), `34ca646019ac7b8974e88dd76a2abe843000a94cdcdeaec08d216b700e8f0886` | `real_xkcd_atom.xml`: all four entries, original bytes with one final newline added for the MoonBit mirror. Entries updated in July 2026. |
+| [Recompiled](https://www.recompiled.dev/feed/feed.json), JSON Feed 1.1 | [`jsonfeed_recompiled.json`](https://github.com/conorbronsdon/mojo-feed/blob/be9e1dbc17faea2723fa3224512f184738adb43d/test/data/jsonfeed_recompiled.json), `92057fdcca7b6e04464733f90a0b2e7387fa0afdeefaed4437573d0caa438c85` | `real_recompiled_json.json`: first two of six items; each 26 KB HTML body reduced to its verbatim opening message block. Items dated 2024-03-19 and 2024-02-22. |
+
+The checked-in files are small **editorial projections**, except the xkcd document's newline. `tools/project_diverse_feeds.py` deterministically regenerates the RSS and JSON files from an adjacent checkout of that exact archive commit. The three projection hashes are `648e4e9c199f159d684340d39694632b7b42cdcb2fd8120ba6184d2f1cb29d49` (RSS), `6e27227788d47220f822a8fb7687117c542a18e510d723409577d9cf62415fc0` (Atom), and `488bddb4318fcab452815b854f2616c069eeced5e4483085995806afb6138244` (JSON). No archived publisher response is a live endpoint check.
+
+We ran the **complete archived originals** through the current Native CLI before reducing them: 20 RSS entries, four Atom entries, and six JSON items were returned. The RSS and JSON originals had no diagnostics. The xkcd original has no feed author and no entry author. Under RFC 4287's Atom author rule, that is an issue in the publisher snapshot; FeedLens retains all four usable entries and emits one feed and four entry author diagnostics. This example demonstrates diagnostic behavior, **not** acceptance of a fully valid Atom document. The earlier WP Tavern Atom projection has valid explicit entry authors and no diagnostics.
+
+`diverse_real_test.mbt` embeds byte-matched versions of the saved files for Wasm, JS, and Native. `tools/check_diverse_real_reference.py` checks those mirrors and compares declared fields with independent feedparser 6.0.11 (RSS/Atom) and Python JSON/date parsing (JSON Feed). It checks IDs, titles, ordered links and dates; RSS channel metadata; Atom HTML type and source-level absence of authors; JSON HTML and inherited author. The source archive's own Mojo parser is not a validator for FeedLens. Neither script compares full source documents against current publishers or proves all optional fields and extension modules.
+
+## WP Tavern same-story comparison
 
 These three small files are field-preserving, editorially reduced projections
 of public WP Tavern subscriptions fetched on 2026-10-19. They are **not**

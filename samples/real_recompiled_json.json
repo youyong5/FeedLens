@@ -1,0 +1,28 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "Recompiled",
+  "language": "en",
+  "home_page_url": "https://www.recompiled.dev/",
+  "feed_url": "https://www.recompiled.dev/feed/feed.json",
+  "description": "I write about compilers and JavaScript",
+  "author": {
+    "name": "Sathya Gunasekaran",
+    "url": ""
+  },
+  "items": [
+    {
+      "id": "https://www.recompiled.dev/blog/type-system/",
+      "url": "https://www.recompiled.dev/blog/type-system/",
+      "title": "Type system of the React compiler",
+      "content_html": "<div class=\"message-box\">\n\t<p><em>If you're wondering what the React compiler is, I recommend reading our recent <a href=\"https://react.dev/blog/2024/02/15/react-labs-what-we-have-been-working-on-february-2024#react-compiler\">update post</a> for some background. This post is for anyone curious about the compiler theory behind it. Don't feel pressured to understand everything in this post in order to use the compiler. </em></p>\n</div>",
+      "date_published": "2024-03-19T16:45:37Z"
+    },
+    {
+      "id": "https://www.recompiled.dev/blog/ssa/",
+      "url": "https://www.recompiled.dev/blog/ssa/",
+      "title": "Compiler Theory and Reactivity",
+      "content_html": "<div class=\"message-box\">\n\t<p><em>If you're wondering what the React compiler is, I recommend reading our recent <a href=\"https://react.dev/blog/2024/02/15/react-labs-what-we-have-been-working-on-february-2024#react-compiler\">update post</a> for some background. This post is for anyone curious about the compiler theory behind it. Don't feel pressured to understand everything in this post in order to use the compiler. </em></p>\n</div>",
+      "date_published": "2024-02-22T16:45:37Z"
+    }
+  ]
+}
