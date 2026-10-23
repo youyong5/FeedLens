@@ -24,6 +24,8 @@ jobs:
       - run: moon update
       - name: Compare saved real projections and independent Atom Entry
         run: uv run --with feedparser==6.0.11 python tools/check_real_cross_format.py
+      - name: Compare legal Atom and JSON Feed text boundaries
+        run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
 
   library:
     name: ${{ matrix.target }} library checks
@@ -113,6 +115,11 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_source_metadata.xml > atom-source.json
           python3 -c "import json; x=json.load(open('atom-source.json')); s=x['entries'][0]['atom_source']; assert x['diagnostics']==[]; assert x['generator_uri']=='tools/agg' and x['generator_version']=='3'; assert s['subtitle_kind']=='html' and s['generator_uri']=='tool'; assert [v['rel'] for v in s['links']]==['alternate','self']; assert [v['role'] for v in s['images']]==['atom_icon','atom_logo']"
+      - name: Inspect legal empty text and inherited Atom rights
+        run: |
+          moon run --target native cmd/main --json samples/atom1_legal_empty_and_rights.xml > legal-atom.json
+          moon run --target native cmd/main --json samples/jsonfeed11_opaque_strings.json > legal-json.json
+          python3 -c "import json; a=json.load(open('legal-atom.json')); j=json.load(open('legal-json.json')); assert a['title']=='   ' and a['entries'][0]['title']=='' and a['entries'][0]['rights_xhtml']==a['rights_xhtml'] and a['entries'][1]['rights']=='' and a['diagnostics']==[]; assert [x['identifier'] for x in j['entries']]==['','   '] and [x['term'] for x in j['entries'][0]['categories']]==['',' ','topic'] and j['diagnostics']==[]"
       - name: Run independent library consumer example
         run: |
           moon run --target native examples/consumer > consumer.txt
