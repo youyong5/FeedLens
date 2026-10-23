@@ -617,6 +617,29 @@ pub fn render_json(feed : @feedlens.Feed) -> String {
         Some(value) => Json(value)
         None => Json::null()
       },
+      "docs_url": optional_string_json(feed.docs_url),
+      "rating": optional_string_json(feed.rating),
+      "cloud": match feed.cloud {
+        Some(cloud) =>
+          Json::object({
+            "domain": Json::string(cloud.domain),
+            "port": Json(cloud.port),
+            "path": Json::string(cloud.path),
+            "register_procedure": Json::string(cloud.register_procedure),
+            "protocol": Json::string(cloud.protocol),
+          })
+        None => Json::null()
+      },
+      "text_input": match feed.text_input {
+        Some(form) =>
+          Json::object({
+            "title": Json::string(form.title),
+            "description": Json::string(form.description),
+            "name": Json::string(form.name),
+            "link": Json::string(form.link),
+          })
+        None => Json::null()
+      },
       "skip_hours": Json::array(feed.skip_hours.map(fn(hour) { Json(hour) })),
       "skip_days": Json::array(feed.skip_days.map(Json::string)),
       "rights": optional_string_json(feed.rights),

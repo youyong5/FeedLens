@@ -62,4 +62,22 @@ fn main {
     }
     _ => println("Atom Entry Document parse failed")
   }
+  let rss =
+    #|<rss version="2.0"><channel><title>Desk</title><link>https://example.test/</link><description>News</description><docs>../rss-spec.html</docs><cloud domain="notify.example.test" port="80" path="/RPC2" registerProcedure="ping" protocol="xml-rpc"/><textInput><title>Search</title><description>Archives</description><name>q</name><link>../search</link></textInput></channel></rss>
+  match
+    @feedlens.parse_with_source(rss, "https://example.test/feeds/daily.xml") {
+    Ok(feed) => {
+      println("rss_docs=" + feed.docs_url.unwrap_or(""))
+      match feed.cloud {
+        Some(cloud) =>
+          println("rss_cloud=" + cloud.domain + ":" + cloud.port.to_string())
+        None => ()
+      }
+      match feed.text_input {
+        Some(form) => println("rss_search=" + form.link)
+        None => ()
+      }
+    }
+    Err(_) => println("RSS channel parse failed")
+  }
 }

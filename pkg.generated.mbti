@@ -251,6 +251,10 @@ pub struct Feed {
   updated_at : String?
   published_at : String?
   ttl_minutes : Int32?
+  docs_url : String?
+  rating : String?
+  cloud : RssCloud?
+  text_input : RssTextInput?
   skip_hours : Array[Int32]
   skip_days : Array[String]
   rights : String?
@@ -352,6 +356,27 @@ pub enum ParsedDocument {
 pub fn ParsedDocument::equal(Self, Self) -> Bool
 pub fn ParsedDocument::not_equal(Self, Self) -> Bool
 pub fn ParsedDocument::to_repr(Self) -> @debug.Repr
+
+pub struct RssCloud {
+  domain : String
+  port : Int32
+  path : String
+  register_procedure : String
+  protocol : String
+} derive(Eq, @debug.Debug)
+pub fn RssCloud::equal(Self, Self) -> Bool
+pub fn RssCloud::not_equal(Self, Self) -> Bool
+pub fn RssCloud::to_repr(Self) -> @debug.Repr
+
+pub struct RssTextInput {
+  title : String
+  description : String
+  name : String
+  link : String
+} derive(Eq, @debug.Debug)
+pub fn RssTextInput::equal(Self, Self) -> Bool
+pub fn RssTextInput::not_equal(Self, Self) -> Bool
+pub fn RssTextInput::to_repr(Self) -> @debug.Repr
 
 pub enum TextKind {
   Unspecified
