@@ -166,8 +166,10 @@ No date is substituted from
 the file timestamp, fetch time, or local clock.
 
 `Author` preserves source semantics through `source`, `name`, `uri`, and `email`.
-RSS item authors are exposed only as their original `email` text (`source = Rss2`);
-FeedLens does not infer a name from it. Atom authors are person constructs
+RSS core item `author` values are exposed only as their original `email` text (`source = Rss2`);
+FeedLens does not infer a name from it. A direct item Dublin Core `creator`
+under the exact `http://purl.org/dc/elements/1.1/` namespace maps to
+`name` with `source = DublinCore`; both kinds retain document order. Atom authors are person constructs
 (`source = Atom1`) with a required non-blank `name` and optional `uri`/`email`.
 JSON Feed authors (`source = JsonFeed`) map `name` and `url` to `name` and `uri`;
 either non-blank value is sufficient, and JSON Feed has no mapped `email` field.
@@ -255,7 +257,7 @@ The original `parse` and `parse_with_source` feed return types remain unchanged.
 - RSS item source credit keeps the source channel title separately from its required `url`. The channel's `managingEditor` and `webMaster` contact texts remain separate from entry authors.
 - RSS core fields containing nested XML markup are not flattened: their value becomes `None` and `UnsupportedNestedMarkup` identifies the field location. Plain text, XML entities, and CDATA remain supported.
 - Supports a direct item child named `content:encoded` only when its resolved namespace URI is exactly `http://purl.org/rss/1.0/modules/content/`. Its XML-decoded text or CDATA is exposed as `Entry.content` with `content_kind = Unspecified`; it is independent from `description`. Nested XML is rejected with the same explicit nested-markup diagnostic policy.
-- Reads direct channel and item `category` elements in document order. A category's non-blank text is its term and its optional `domain` remains RSS-specific. Reads direct item `author` text as an unparsed raw email value. Blank authors/categories receive source-located `InvalidAuthor`/`InvalidCategory` diagnostics; namespaced lookalikes are ignored.
+- Reads direct channel and item `category` elements in document order. A category's non-blank text is its term and its optional `domain` remains RSS-specific. Reads direct item `author` text as an unparsed raw email value, and direct Dublin Core `creator` as an author name with a distinct source. Empty or nested creators get located diagnostics; wrong-namespace and nested lookalikes are ignored. Blank core authors/categories receive source-located `InvalidAuthor`/`InvalidCategory` diagnostics.
 - Reads only direct, unnamespaced item `enclosure` elements. `url`, `length`, and `type` are required. Invalid enclosures are skipped with source-located `InvalidAttachment`; an invalid length never overflows.
 - The public API exposes FeedLens types only; it does not expose `Milky2018/xml` types.
 

@@ -352,6 +352,7 @@ fn author_source_json(source : @feedlens.AuthorSource) -> Json {
   Json::string(
     match source {
       Rss2 => "rss2"
+      DublinCore => "dublin_core"
       Atom1 => "atom1"
       JsonFeed => "jsonfeed"
     },

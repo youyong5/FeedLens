@@ -261,6 +261,27 @@ test "render_json keeps feed image roles and RSS metadata" {
 }
 
 ///|
+test "render_json distinguishes Dublin Core creator names from RSS email" {
+  let input =
+    #|<rss version="2.0" xmlns:d="http://purl.org/dc/elements/1.1/"><channel><title>T</title><link>L</link><description>D</description><item><title>I</title><author>a@example.test</author><d:creator>Writer</d:creator></item></channel></rss>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected RSS") }
+  guard @json.parse(@render.render_json(feed))
+    is { "entries": Array([{ "authors": Array(authors), .. }]), .. } else {
+    fail("expected JSON authors")
+  }
+  guard authors[0] is { "source": String(first), "email": String(email), .. } else {
+    fail("expected RSS email")
+  }
+  guard authors[1] is { "source": String(second), "name": String(name), .. } else {
+    fail("expected Dublin Core name")
+  }
+  assert_eq(first, "rss2")
+  assert_eq(email, "a@example.test")
+  assert_eq(second, "dublin_core")
+  assert_eq(name, "Writer")
+}
+
+///|
 test "render_json separates JSON item permalink, external URL, images, and attachments" {
   guard @feedlens.parse(
       "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"T\",\"items\":[{\"id\":\"one\",\"content_text\":\"B\",\"url\":\"https://example.test/post\",\"external_url\":\"https://outside.test/story\",\"image\":\"https://example.test/preview.png\",\"banner_image\":\"https://example.test/banner.png\"}]}",

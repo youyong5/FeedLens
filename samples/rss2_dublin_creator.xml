@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:d="http://purl.org/dc/elements/1.1/" xmlns:fake="https://example.test/not-dc">
+  <channel>
+    <title>Author roles</title><link>https://example.test/</link><description>RSS with creator names</description>
+    <d:creator>Channel creator is outside item scope</d:creator>
+    <item>
+      <title>One</title><author>one@example.test</author>
+      <d:creator>Jane &amp; Co</d:creator><fake:creator>Not an author</fake:creator>
+      <wrapper><d:creator>Nested ignored</d:creator></wrapper>
+      <d:creator>Second credited editor</d:creator>
+    </item>
+    <item><title>Two</title><d:creator>  Name with spaces  </d:creator><d:creator/></item>
+    <item><title>Three</title><d:creator><b>nested invalid</b></d:creator></item>
+  </channel>
+</rss>

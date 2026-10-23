@@ -17,6 +17,7 @@ application form. It contains no private contact information.
 | Independent Atom Entry | `parse_document`, `atom_document_test.mbt`, `samples/atom1_entry_document.xml` | `parse` remains feed-only; typed document API handles independent entries. |
 | Common standard fields and constraints | `standard_fields_test.mbt`, three `samples/*standard_fields*` files, `docs/STANDARD_SCOPE.md` | Remaining legal core/optional constructs and full validation gaps are recorded, not claimed complete. |
 | Cross-format independent result | `tools/check_real_cross_format.py`, `tools/check_diverse_real_reference.py`, `samples/REAL_WORLD.md` | Two matching podcast episodes and three other publisher snapshots; feedparser XML and Python JSON/date intersections only, no live feed fetch. |
+| RSS creator names | `rss_dublin_creator_test.mbt`, `samples/rss2_dublin_creator.xml`, `real_hn_rss.xml`, `tools/check_diverse_real_reference.py` | Exact Dublin Core namespace, item scope and distinct `AuthorSource`; other Dublin Core terms remain unmapped. |
 
 For repeatable verification, run `moon fmt`, `moon info`, the Wasm/JS/Native
 `moon check` and `moon test` commands in the README, then

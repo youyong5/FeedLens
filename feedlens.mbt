@@ -118,13 +118,15 @@ pub extend AtomBody with Eq::{not_equal, equal}
 /// The source syntax that defines an author's fields.
 pub enum AuthorSource {
   Rss2
+  DublinCore
   Atom1
   JsonFeed
 } derive(Debug, Eq)
 
 ///|
-/// An RSS raw author email, Atom person construct, or JSON Feed author. RSS
-/// values use only `email`; JSON Feed maps its `url` to `uri`.
+/// An RSS raw author email, Dublin Core creator name, Atom person construct,
+/// or JSON Feed author. RSS uses `email`, Dublin Core uses `name`, and JSON
+/// Feed maps its `url` to `uri`.
 pub struct Author {
   source : AuthorSource
   name : String?
@@ -605,6 +607,12 @@ fn is_rss_content_encoded(name : @xml.XmlName) -> Bool {
 }
 
 ///|
+fn is_rss_dc_creator(name : @xml.XmlName) -> Bool {
+  name.local_name == "creator" &&
+  name.namespace_uri == Some("http://purl.org/dc/elements/1.1/")
+}
+
+///|
 fn attribute_value(
   element : @xml.NamespaceElement,
   expected : String,
@@ -1066,10 +1074,13 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "category") ||
               is_rss_name(element.name, "comments") ||
               is_rss_name(element.name, "source") ||
+              is_rss_dc_creator(element.name) ||
               is_rss_content_encoded(element.name)
             ) {
             capture_field = Some(
-              if is_rss_content_encoded(element.name) {
+              if is_rss_dc_creator(element.name) {
+                "dc:creator"
+              } else if is_rss_content_encoded(element.name) {
                 "content:encoded"
               } else {
                 element.name.local_name
@@ -1331,9 +1342,16 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               is_rss_name(element.name, "category") ||
               is_rss_name(element.name, "comments") ||
               is_rss_name(element.name, "source") ||
+              is_rss_dc_creator(element.name) ||
               is_rss_content_encoded(element.name)
             ) {
-            if is_rss_content_encoded(element.name) {
+            if is_rss_dc_creator(element.name) {
+              diagnostics.push({
+                kind: InvalidAuthor("dublin core creator missing name"),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            } else if is_rss_content_encoded(element.name) {
               item_content = Some("")
             } else if is_rss_name(element.name, "author") {
               diagnostics.push({
@@ -1388,7 +1406,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             capture_depth == depth &&
             (
               is_rss_name(name, field) ||
-              (field == "content:encoded" && is_rss_content_encoded(name))
+              (field == "content:encoded" && is_rss_content_encoded(name)) ||
+              (field == "dc:creator" && is_rss_dc_creator(name))
             ) {
             if capture_has_nested_markup {
               diagnostics.push({
@@ -1409,6 +1428,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   "description" => item_description = None
                   "content:encoded" => item_content = None
                   "author" => ()
+                  "dc:creator" => ()
                   "category" => ()
                   "comments" => item_comments_url = None
                   "source" => item_source_title = None
@@ -1478,6 +1498,23 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                     None =>
                       diagnostics.push({
                         kind: InvalidAuthor("rss author missing email"),
+                        line: capture_line,
+                        column: capture_column,
+                      })
+                  }
+                "dc:creator" =>
+                  match non_blank_text(captured_text) {
+                    Some(name) =>
+                      item_authors.push({
+                        source: DublinCore,
+                        name: Some(name),
+                        uri: None,
+                        email: None,
+                        avatar: None,
+                      })
+                    None =>
+                      diagnostics.push({
+                        kind: InvalidAuthor("dublin core creator missing name"),
                         line: capture_line,
                         column: capture_column,
                       })

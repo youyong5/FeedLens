@@ -12,7 +12,7 @@ results; the library never fetches a feed or an attachment.
 
 | Format | Implemented core | Deliberate boundaries |
 | --- | --- | --- |
-| RSS 2.0 | Channel/item metadata and dates, TTL and advisory skip hours/days, copyright/generator, editor/webmaster contacts, guid permalink role, source credit, language, image, Content Module body, authors, categories and enclosures | Other RSS versions, uncommon optional constructs and extension modules |
+| RSS 2.0 | Channel/item metadata and dates, TTL and advisory skip hours/days, copyright/generator, editor/webmaster contacts, guid permalink role, source credit, language, image, Content Module body, RSS email and Dublin Core creator authors, categories and enclosures | Other RSS versions, uncommon optional constructs and extension modules |
 | Atom 1.0 | Feed and independent Entry documents, source identity/title/subtitle/updated, rights XHTML, generator attributes, contributors, feed/entry/source links and their common attributes, icon/logo, scoped language and person URI references, body forms, author inheritance, categories | Some optional metadata and structural checks, external-content retrieval, fragment rendering or sanitization |
 | JSON Feed 1.0/1.1 | Feed/items, next URL and expired state, hubs, icons, external links, both item body representations, author avatars, tags and attachments; language in 1.1 | Pagination following, arbitrary extension mapping, additional version-specific checks |
 
@@ -165,7 +165,7 @@ moon run --target native cmd/main -- --help
 ```
 
 The three additional [archived publisher projections](samples/REAL_WORLD.md)
-exercise RSS metadata, Atom HTML summaries, and JSON author inheritance.
+exercise RSS metadata and creator names, Atom HTML summaries, and JSON author inheritance.
 The xkcd snapshot lacks required Atom authors, so its five author diagnostics
 are expected even though its four entries remain available.
 

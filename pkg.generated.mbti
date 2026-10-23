@@ -104,6 +104,7 @@ pub fn Author::to_repr(Self) -> @debug.Repr
 
 pub enum AuthorSource {
   Rss2
+  DublinCore
   Atom1
   JsonFeed
 } derive(Eq, @debug.Debug)
