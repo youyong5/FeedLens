@@ -313,6 +313,26 @@ pub struct Entry {
 } derive(Debug, Eq)
 
 ///|
+/// RSS 2.0 cloud registration descriptor. Its values are metadata only.
+pub struct RssCloud {
+  domain : String
+  port : Int32
+  path : String
+  register_procedure : String
+  protocol : String
+} derive(Debug, Eq)
+
+///|
+/// RSS 2.0 textInput form descriptor. The link is resolved only when a
+/// document source URL is supplied.
+pub struct RssTextInput {
+  title : String
+  description : String
+  name : String
+  link : String
+} derive(Debug, Eq)
+
+///|
 /// A normalized feed and its entries, in document order.
 pub struct Feed {
   format : FeedFormat
@@ -336,6 +356,14 @@ pub struct Feed {
   /// RSS channel pubDate and ttl; absent on other formats.
   published_at : String?
   ttl_minutes : Int32?
+  /// RSS channel advisory specification URL, retained as a reference.
+  docs_url : String?
+  /// RSS channel PICS rating, retained without interpretation.
+  rating : String?
+  /// RSS notification endpoint metadata; no registration is performed.
+  cloud : RssCloud?
+  /// RSS legacy search form metadata; no form is rendered or submitted.
+  text_input : RssTextInput?
   /// RSS 2.0 advisory GMT hours (0–23) and weekday names in source order.
   /// An empty array means no usable hint; these do not schedule fetching.
   skip_hours : Array[Int32]
@@ -510,6 +538,18 @@ pub extend Hub with @moonbitlang/core/debug.Debug::{to_repr}
 
 ///|
 pub extend Hub with Eq::{not_equal, equal}
+
+///|
+pub extend RssCloud with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RssCloud with Eq::{not_equal, equal}
+
+///|
+pub extend RssTextInput with @moonbitlang/core/debug.Debug::{to_repr}
+
+///|
+pub extend RssTextInput with Eq::{not_equal, equal}
 
 ///|
 pub extend AtomLink with @moonbitlang/core/debug.Debug::{to_repr}
@@ -1608,6 +1648,10 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             updated_at: channel_updated,
             published_at: channel_published,
             ttl_minutes: channel_ttl,
+            docs_url: None,
+            rating: None,
+            cloud: None,
+            text_input: None,
             skip_hours: channel_skip_hours,
             skip_days: channel_skip_days,
             rights: channel_rights,
@@ -1659,7 +1703,12 @@ pub fn parse(input : String) -> Result[Feed, ParseError] {
         @xml.Start(element) | @xml.Empty(element) => {
           if is_rss_name(element.name, "rss") {
             return match parse_rss(input) {
-              Ok(feed) => add_xml_feed_images(input, feed, None, true)
+              Ok(feed) =>
+                match add_xml_feed_images(input, feed, None, true) {
+                  Ok(imaged) =>
+                    add_rss_optional_channel(input, imaged, None, true)
+                  Err(error) => Err(error)
+                }
               Err(error) => Err(error)
             }
           }

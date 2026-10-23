@@ -1,0 +1,8 @@
+<rss version="2.0" xmlns:x="urn:unrelated"><channel>
+<title>Morning desk</title><link>https://example.test/news/</link><description>Bulletins</description>
+<docs>../spec/rss.html</docs><rating>(PICS-1.1 "https://ratings.example.test/")</rating>
+<cloud domain="notify.example.test" port="80" path="/RPC2" registerProcedure="pingMe" protocol="xml-rpc"/>
+<textInput><title>Search stories</title><description>Look up past issues</description><name>query</name><link>../search?q=latest</link></textInput>
+<item><title>One</title><description>News</description><docs>ignore nested</docs></item>
+<x:docs>ignore foreign</x:docs>
+</channel></rss>

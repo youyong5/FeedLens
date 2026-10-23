@@ -143,6 +143,10 @@ fn uri_with_feed_urls(
     updated_at: feed.updated_at,
     published_at: feed.published_at,
     ttl_minutes: feed.ttl_minutes,
+    docs_url: feed.docs_url,
+    rating: feed.rating,
+    cloud: feed.cloud,
+    text_input: feed.text_input,
     skip_hours: feed.skip_hours,
     skip_days: feed.skip_days,
     rights: feed.rights,
@@ -1346,7 +1350,21 @@ pub fn parse_with_source(
         Rss2 | Atom1 =>
           match resolve_xml_feed(input, feed, source_url, false) {
             Ok(resolved) =>
-              add_xml_feed_images(input, resolved, Some(source_url), false)
+              match
+                add_xml_feed_images(input, resolved, Some(source_url), false) {
+                Ok(imaged) =>
+                  if feed.format == Rss2 {
+                    add_rss_optional_channel(
+                      input,
+                      imaged,
+                      Some(source_url),
+                      false,
+                    )
+                  } else {
+                    Ok(imaged)
+                  }
+                Err(error) => Err(error)
+              }
             Err(error) => Err(error)
           }
       }
@@ -1384,6 +1402,10 @@ pub fn parse_document_with_source(
         updated_at: None,
         published_at: None,
         ttl_minutes: None,
+        docs_url: None,
+        rating: None,
+        cloud: None,
+        text_input: None,
         skip_hours: [],
         skip_days: [],
         rights: None,
