@@ -36,9 +36,9 @@ fn json_string(value : Json) -> String? {
 ///|
 fn json_item_identifier(value : Json, version : String) -> String? {
   match value {
-    // String IDs are opaque identifiers. The format does not require them to
-    // be nonempty or trim whitespace; changing one would break identity.
-    String(text) => Some(text)
+    // A blank ID cannot identify an item. Keep nonblank identifiers verbatim,
+    // including any whitespace surrounding their meaningful text.
+    String(text) => non_blank_text(text)
     // `stringify` uses the parsed number's source representation when one is
     // available, so converting a JSON number does not silently round it.
     Number(_, ..) => non_blank_text(value.stringify())
@@ -373,11 +373,16 @@ fn json_attachment(
     Some(String(value)) => non_blank_text(value)
     _ => None
   }
-  if url is None || media_type is None {
-    json_attachment_problem(
-      diagnostics, item_index, attachment_index, "url or mime_type",
-    )
+  if url is None {
+    json_attachment_problem(diagnostics, item_index, attachment_index, "url")
     return None
+  }
+  // mime_type is required for publishers, but a reader can still expose the
+  // attachment URL and metadata when it is missing or unusable.
+  if media_type is None {
+    json_attachment_problem(
+      diagnostics, item_index, attachment_index, "mime_type",
+    )
   }
   let title = match json_field(object, "title") {
     None => None

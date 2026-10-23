@@ -66,7 +66,7 @@ def main() -> None:
     atom_name = "atom1_legal_empty_and_rights.xml"
     json_name = "jsonfeed11_opaque_strings.json"
     assert mirror("atom_legal_text_test.mbt", "legal empty Atom text constructs and feed rights apply in document order") == (SAMPLES / atom_name).read_text("utf-8")
-    assert mirror("json_feed_test.mbt", "JSON Feed 1.1 preserves legal opaque IDs, empty content, and text tags") == (SAMPLES / json_name).read_text("utf-8")
+    assert mirror("json_feed_test.mbt", "JSON Feed 1.1 retains nonblank opaque IDs and empty text but discards blank IDs") == (SAMPLES / json_name).read_text("utf-8")
     print("PASS both cross-target test/sample mirrors")
 
     atom = cli(atom_name)
@@ -95,11 +95,15 @@ def main() -> None:
 
     source = json.loads((SAMPLES / json_name).read_text("utf-8"))
     jf = cli(json_name)
-    assert [entry["identifier"] for entry in jf["entries"]] == [item["id"] for item in source["items"]]
-    assert [entry["content"] for entry in jf["entries"]] == [item.get("content_html", item.get("content_text")) for item in source["items"]]
-    assert [[tag["term"] for tag in entry["categories"]] for entry in jf["entries"]] == [item["tags"] for item in source["items"]]
-    assert jf["diagnostics"] == []
-    print("PASS JSON Feed opaque IDs/content/tags vs stdlib JSON")
+    valid = [(i, item) for i, item in enumerate(source["items"]) if item["id"].strip()]
+    assert [entry["identifier"] for entry in jf["entries"]] == [item["id"] for _, item in valid]
+    assert [entry["content"] for entry in jf["entries"]] == [item.get("content_html", item.get("content_text")) for _, item in valid]
+    assert [[tag["term"] for tag in entry["categories"]] for entry in jf["entries"]] == [item["tags"] for _, item in valid]
+    assert [d["kind"] for d in jf["diagnostics"]] == [
+        {"type": "InvalidJsonFeedItem", "index": i, "field": "id"}
+        for i, item in enumerate(source["items"]) if not item["id"].strip()
+    ]
+    print("PASS JSON Feed nonblank IDs/content/tags and blank-ID discard vs stdlib JSON")
 
 
 if __name__ == "__main__":
