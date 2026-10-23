@@ -336,6 +336,10 @@ pub struct Feed {
   /// RSS channel pubDate and ttl; absent on other formats.
   published_at : String?
   ttl_minutes : Int32?
+  /// RSS 2.0 advisory GMT hours (0–23) and weekday names in source order.
+  /// An empty array means no usable hint; these do not schedule fetching.
+  skip_hours : Array[Int32]
+  skip_days : Array[String]
   /// RSS copyright / Atom rights, and RSS / Atom generator text.
   rights : String?
   rights_kind : TextKind
@@ -635,6 +639,52 @@ fn rss_ttl_minutes(raw : String) -> Int32? {
 }
 
 ///|
+fn rss_skip_hour(
+  raw : String,
+  count : Int32,
+  hours : Array[Int32],
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  match rss_ttl_minutes(raw) {
+    Some(hour) if hour <= 23 && count <= 24 => hours.push(hour)
+    _ =>
+      diagnostics.push({
+        kind: InvalidRssField("skipHours hour"),
+        line,
+        column,
+      })
+  }
+}
+
+///|
+fn rss_skip_day(
+  raw : String,
+  count : Int32,
+  days : Array[String],
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  let day = raw.trim()
+  if count <= 7 &&
+    (
+      day == "Monday" ||
+      day == "Tuesday" ||
+      day == "Wednesday" ||
+      day == "Thursday" ||
+      day == "Friday" ||
+      day == "Saturday" ||
+      day == "Sunday"
+    ) {
+    days.push(day.to_owned())
+  } else {
+    diagnostics.push({ kind: InvalidRssField("skipDays day"), line, column, })
+  }
+}
+
+///|
 fn xml_attachment(
   element : @xml.NamespaceElement,
   source : FeedFormat,
@@ -765,6 +815,14 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_published : String? = None
     let mut channel_updated : String? = None
     let mut channel_ttl : Int32? = None
+    let channel_skip_hours : Array[Int32] = []
+    let channel_skip_days : Array[String] = []
+    let mut skip_kind : String? = None
+    let mut skip_depth = 0
+    let mut skip_child_count = 0
+    let mut skip_ignored = false
+    let mut skip_hours_seen = false
+    let mut skip_days_seen = false
     let mut channel_title_location : (Int32, Int32)? = None
     let mut channel_link_location : (Int32, Int32)? = None
     let mut channel_description_location : (Int32, Int32)? = None
@@ -863,6 +921,47 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               Some(attachment) => item_attachments.push(attachment)
               None => ()
             }
+          } else if channel_seen &&
+            depth == channel_depth &&
+            !item_open &&
+            (
+              is_rss_name(element.name, "skipHours") ||
+              is_rss_name(element.name, "skipDays")
+            ) {
+            let kind = element.name.local_name
+            skip_ignored = if kind == "skipHours" {
+              let seen = skip_hours_seen
+              skip_hours_seen = true
+              seen
+            } else {
+              let seen = skip_days_seen
+              skip_days_seen = true
+              seen
+            }
+            if skip_ignored {
+              diagnostics.push({
+                kind: InvalidRssField(kind + " duplicate"),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+            skip_kind = Some(kind)
+            skip_depth = depth + 1
+            skip_child_count = 0
+          } else if skip_kind is Some(kind) &&
+            !skip_ignored &&
+            depth == skip_depth &&
+            (
+              (kind == "skipHours" && is_rss_name(element.name, "hour")) ||
+              (kind == "skipDays" && is_rss_name(element.name, "day"))
+            ) {
+            skip_child_count = skip_child_count + 1
+            capture_field = Some(element.name.local_name)
+            capture_depth = depth + 1
+            captured_text = ""
+            capture_has_nested_markup = false
+            capture_line = event.span.start.line
+            capture_column = event.span.start.column
           } else if capture_field is None &&
             channel_seen &&
             depth == channel_depth &&
@@ -1060,6 +1159,57 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             depth == channel_depth &&
             !item_open &&
             (
+              is_rss_name(element.name, "skipHours") ||
+              is_rss_name(element.name, "skipDays")
+            ) {
+            let kind = element.name.local_name
+            let seen = if kind == "skipHours" {
+              let seen = skip_hours_seen
+              skip_hours_seen = true
+              seen
+            } else {
+              let seen = skip_days_seen
+              skip_days_seen = true
+              seen
+            }
+            if seen {
+              diagnostics.push({
+                kind: InvalidRssField(kind + " duplicate"),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+          } else if skip_kind is Some(kind) &&
+            !skip_ignored &&
+            depth == skip_depth &&
+            (
+              (kind == "skipHours" && is_rss_name(element.name, "hour")) ||
+              (kind == "skipDays" && is_rss_name(element.name, "day"))
+            ) {
+            skip_child_count = skip_child_count + 1
+            if kind == "skipHours" {
+              rss_skip_hour(
+                "",
+                skip_child_count,
+                channel_skip_hours,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              )
+            } else {
+              rss_skip_day(
+                "",
+                skip_child_count,
+                channel_skip_days,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              )
+            }
+          } else if channel_seen &&
+            depth == channel_depth &&
+            !item_open &&
+            (
               is_rss_name(element.name, "title") ||
               is_rss_name(element.name, "link") ||
               is_rss_name(element.name, "description") ||
@@ -1206,7 +1356,9 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 line: capture_line,
                 column: capture_column,
               })
-              if item_open {
+              if field == "hour" || field == "day" {
+                ()
+              } else if item_open {
                 match field {
                   "guid" => {
                     item_guid = None
@@ -1237,6 +1389,16 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                   _ => channel_language = None
                 }
               }
+            } else if field == "hour" {
+              rss_skip_hour(
+                captured_text, skip_child_count, channel_skip_hours, capture_line,
+                capture_column, diagnostics,
+              )
+            } else if field == "day" {
+              rss_skip_day(
+                captured_text, skip_child_count, channel_skip_days, capture_line,
+                capture_column, diagnostics,
+              )
             } else if item_open {
               match field {
                 "guid" => {
@@ -1358,6 +1520,12 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             capture_category_domain = None
             capture_guid_is_permalink = None
           }
+          if skip_kind is Some(kind) &&
+            depth == skip_depth &&
+            is_rss_name(name, kind) {
+            skip_kind = None
+            skip_ignored = false
+          }
           if item_open && depth == item_depth && is_rss_name(name, "item") {
             let item_index = entries.length()
             let identifier = match item_guid {
@@ -1440,6 +1608,8 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             updated_at: channel_updated,
             published_at: channel_published,
             ttl_minutes: channel_ttl,
+            skip_hours: channel_skip_hours,
+            skip_days: channel_skip_days,
             rights: channel_rights,
             rights_kind: Unspecified,
             rights_xhtml: None,

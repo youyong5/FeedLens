@@ -51,6 +51,8 @@ fn with_feed_images(feed : Feed, images : Array[FeedImage]) -> Feed {
     updated_at: feed.updated_at,
     published_at: feed.published_at,
     ttl_minutes: feed.ttl_minutes,
+    skip_hours: feed.skip_hours,
+    skip_days: feed.skip_days,
     rights: feed.rights,
     rights_kind: feed.rights_kind,
     rights_xhtml: feed.rights_xhtml,

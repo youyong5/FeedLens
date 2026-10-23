@@ -103,6 +103,10 @@ jobs:
           moon run --target native cmd/main --json samples/atom1_standard_fields.xml > standard-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_standard_fields.json > standard-json.json
           python3 -c "import json; r=json.load(open('standard-rss.json')); a=json.load(open('standard-atom.json')); j=json.load(open('standard-json.json')); assert r['generator']=='Publisher 2' and r['entries'][0]['comments_url']=='comments/one'; assert a['rights_kind']=='xhtml' and a['rights_xhtml']['markup']; assert j['next_url']=='older.json' and j['expired'] is False and j['entries'][0]['content_text']=='One' and j['authors'][0]['avatar']=='avatars/editor.png'"
+      - name: Inspect RSS polling hints
+        run: |
+          moon run --target native cmd/main --json samples/rss2_skip_schedule.xml > rss-skip.json
+          python3 -c "import json; x=json.load(open('rss-skip.json', encoding='utf-8')); assert x['skip_hours']==[0,23] and x['skip_days']==['Sunday','Monday'] and x['diagnostics']==[]"
       - name: Inspect Atom aggregation source metadata
         run: |
           moon run --target native cmd/main --json samples/atom1_source_metadata.xml > atom-source.json

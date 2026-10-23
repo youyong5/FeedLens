@@ -664,6 +664,8 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     updated_at: None,
     published_at: None,
     ttl_minutes: None,
+    skip_hours: [],
+    skip_days: [],
     rights: None,
     rights_kind: Unspecified,
     rights_xhtml: None,
