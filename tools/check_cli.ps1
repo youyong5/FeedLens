@@ -73,6 +73,24 @@ if (($legacyModel.entries.identifier -join "|") -ne 'true|null|{"key":"value"}|[
   throw "JSON Feed 1.0 IDs were dropped or rounded"
 }
 
+$legalAtom = Invoke-FeedLensCli @("--json", "samples/atom1_legal_empty_and_rights.xml")
+if ($legalAtom.ExitCode -ne 0 -or $legalAtom.StandardError) {
+  throw "Atom legal empty text CLI scenario failed"
+}
+$legalAtomModel = $legalAtom.StandardOutput | ConvertFrom-Json
+if ($legalAtomModel.title -ne '   ' -or $legalAtomModel.entries[0].title -ne '' -or $legalAtomModel.entries[0].rights -ne 'License shared' -or $legalAtomModel.entries[1].rights -ne '' -or $legalAtomModel.diagnostics.Count -ne 0) {
+  throw "Atom legal empty text or feed rights inheritance was lost"
+}
+
+$opaqueJson = Invoke-FeedLensCli @("--json", "samples/jsonfeed11_opaque_strings.json")
+if ($opaqueJson.ExitCode -ne 0 -or $opaqueJson.StandardError) {
+  throw "JSON Feed opaque strings CLI scenario failed"
+}
+$opaqueJsonModel = $opaqueJson.StandardOutput | ConvertFrom-Json
+if ($opaqueJsonModel.entries.Count -ne 2 -or $opaqueJsonModel.entries[0].identifier -ne '' -or $opaqueJsonModel.entries[1].identifier -ne '   ' -or $opaqueJsonModel.entries[0].categories[0].term -ne '' -or $opaqueJsonModel.diagnostics.Count -ne 0) {
+  throw "JSON Feed legal opaque strings were dropped"
+}
+
 $atomAttachments = Invoke-FeedLensCli @("--json", "samples/atom1_attachments.xml")
 if ($atomAttachments.ExitCode -ne 0 -or $atomAttachments.StandardError) {
   throw "Atom attachment JSON CLI scenario failed"

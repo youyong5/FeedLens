@@ -139,6 +139,12 @@ RSS fields and JSON Feed 1.0's required non-string item-ID coercion. The
 [standard behavior matrix](docs/STANDARD_SCOPE.md) states their validation
 boundaries and the remaining limits.
 
+The [legal-input audit](docs/LEGAL_INPUT_AUDIT.md) covers additional valid
+Atom and JSON Feed boundaries: empty text constructs remain distinct from
+missing fields, Atom entries inherit feed rights when they have no rights of
+their own, and JSON Feed preserves opaque string IDs and tag values. The
+saved fixtures and independent reader comparison are runnable offline.
+
 ## Local-file CLI
 
 The separate Native executable reads one local XML or JSON file and prints the

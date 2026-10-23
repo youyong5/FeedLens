@@ -45,7 +45,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Entry.comments_url`, `Entry.source_url`, `Entry.source_title` | item `comments`, `source/@url` and source channel title | none | none |
 | `Entry.guid_is_permalink` | `guid/@isPermaLink`, default true on a usable guid | none | none |
 | `Feed.managing_editor`, `Feed.webmaster` | channel editorial and technical contact text | none | none |
-| `Entry.rights` | none | entry `rights` text construct | none |
+| `Entry.rights` | none | own `rights`, otherwise inherited feed `rights`; explicit empty text blocks inheritance | none |
 | `Entry.published_at` | item `pubDate` | entry `published` | `date_published` |
 | `Entry.updated_at` | none | entry `updated` | `date_modified` |
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
