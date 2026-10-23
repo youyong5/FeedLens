@@ -1,0 +1,4 @@
+<rss version="2.0"><channel><title>Archive</title><link>https://example.test/</link><description>Legacy dates</description><pubDate>Sat, 01 Jan 00 00:00:00 GMT</pubDate>
+<item><guid>first</guid><title>First</title><pubDate>Thu, 01 Jan 04 09:30:00 +0100</pubDate></item>
+<item><guid>second</guid><title>Second</title><pubDate>Fri, 01 Jan 99 00:00:00 GMT</pubDate></item>
+</channel></rss>

@@ -148,7 +148,7 @@ match @feedlens.normalize_date(feed.format, feed.entries[0].published_at) {
 }
 ```
 
-RSS accepts the common RFC 822/1123 profile with a four-digit year, optional
+RSS accepts the common RFC 822/1123 profile with a two- or four-digit year, optional
 weekday, `HH:MM` or `HH:MM:SS`, and numeric `±HHMM`, `UT`/`UTC`/`GMT`, or
 US `EST`/`EDT`/`CST`/`CDT`/`MST`/`MDT`/`PST`/`PDT` zones. A stated weekday
 must agree with the calendar date. Atom and JSON Feed require RFC 3339 with an
@@ -156,8 +156,10 @@ explicit offset or `Z`, and support any positive number of fractional-second
 digits. `utc` preserves every digit; `nanosecond` retains the first nine digits
 (zero-padded when needed) and truncates finer precision, while
 `Fraction(digits)` reports the declared count. Calendar dates, times, and
-offsets are validated. Unknown-offset `-0000`/`-00:00`, two-digit RSS years,
-and leap-second `:60` are not normalized; the raw field is still available.
+offsets are validated. Two-digit RSS years `00–49` map to `2000–2049` and
+`50–99` to `1950–1999`, following RFC 2822's obsolete-year interpretation.
+Unknown-offset `-0000`/`-00:00` and leap-second `:60` are not normalized;
+the raw field is still available.
 No date is substituted from
 the file timestamp, fetch time, or local clock.
 

@@ -79,3 +79,32 @@ test "JSON Feed RFC 3339 retains trailing zeros beyond nanoseconds" {
   }
   assert_eq(digits, 15)
 }
+
+///|
+test "RSS two-digit-year archive normalizes channel and item dates" {
+  let input =
+    #|<rss version="2.0"><channel><title>Archive</title><link>https://example.test/</link><description>Legacy dates</description><pubDate>Sat, 01 Jan 00 00:00:00 GMT</pubDate>
+    #|<item><guid>first</guid><title>First</title><pubDate>Thu, 01 Jan 04 09:30:00 +0100</pubDate></item>
+    #|<item><guid>second</guid><title>Second</title><pubDate>Fri, 01 Jan 99 00:00:00 GMT</pubDate></item>
+    #|</channel></rss>
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected RSS") }
+  assert_eq(feed.diagnostics, [])
+  assert_eq(feed.published_at, Some("Sat, 01 Jan 00 00:00:00 GMT"))
+  assert_eq(feed.entries.length(), 2)
+  guard @feedlens.normalize_date(feed.format, feed.published_at)
+    is Ok(Some(channel_date)) else {
+    fail("expected normalized channel date")
+  }
+  assert_eq(channel_date.utc, "2000-01-01T00:00:00Z")
+  guard @feedlens.normalize_date(feed.format, feed.entries[0].published_at)
+    is Ok(Some(first)) else {
+    fail("expected normalized first date")
+  }
+  assert_eq(first.utc, "2004-01-01T08:30:00Z")
+  assert_eq(first.offset_minutes, 60)
+  guard @feedlens.normalize_date(feed.format, feed.entries[1].published_at)
+    is Ok(Some(second)) else {
+    fail("expected normalized second date")
+  }
+  assert_eq(second.utc, "1999-01-01T00:00:00Z")
+}

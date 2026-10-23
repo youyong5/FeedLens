@@ -109,6 +109,7 @@ def main() -> None:
         "rss2_high_precision_date.xml": ("date_test.mbt", "RSS date precision comparison sample retains whole-second source"),
         "atom1_high_precision_date.xml": ("date_test.mbt", "Atom RFC 3339 accepts sub-nanosecond precision with original digits"),
         "jsonfeed11_high_precision_date.json": ("date_test.mbt", "JSON Feed RFC 3339 retains trailing zeros beyond nanoseconds"),
+        "rss2_two_digit_years.xml": ("date_test.mbt", "RSS two-digit-year archive normalizes channel and item dates"),
     }
     for sample, (filename, test_name) in mirrors.items():
         assert mirrored_input(filename, test_name) == (SAMPLES / sample).read_text("utf-8"), sample
@@ -163,6 +164,28 @@ def main() -> None:
         assert actual["title"] == reference.get("title")
         assert actual["description"] == reference.get("summary")
     print("PASS independent RSS legal anonymous item intersection: title, description, and order")
+    archive_file = SAMPLES / "rss2_two_digit_years.xml"
+    archive_reference = feedparser.parse(archive_file.read_bytes())
+    assert not archive_reference.bozo and len(archive_reference.entries) == 2
+    archive_cli = json.loads(subprocess.run(
+        [MOON, "run", "--target", "native", "cmd/main", "--json", str(archive_file)],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    ).stdout)
+    assert archive_cli["diagnostics"] == []
+    assert archive_cli["published_at"] == archive_reference.feed.published
+    assert [entry["published_at"] for entry in archive_cli["entries"]] == [
+        entry.published for entry in archive_reference.entries
+    ]
+    expected_dates = [
+        dt.datetime(2000, 1, 1, tzinfo=dt.timezone.utc),
+        dt.datetime(2004, 1, 1, 8, 30, tzinfo=dt.timezone.utc),
+        dt.datetime(1999, 1, 1, tzinfo=dt.timezone.utc),
+    ]
+    for value, expected in zip(
+        [archive_reference.feed, *archive_reference.entries], expected_dates, strict=True
+    ):
+        assert dt.datetime(*value.published_parsed[:6], tzinfo=dt.timezone.utc) == expected
+    print("PASS independent RSS two-digit-year date intersection: channel and two entries")
     precise = {
         "rss": "rss2_high_precision_date.xml",
         "atom": "atom1_high_precision_date.xml",

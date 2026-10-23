@@ -348,16 +348,23 @@ fn normalize_rss_date(text : String) -> Result[NormalizedDate, DateError] {
   let year_chars = date_chars(tokens[start + 2])
   if day_chars.length() < 1 ||
     day_chars.length() > 2 ||
-    year_chars.length() != 4 {
+    (year_chars.length() != 2 && year_chars.length() != 4) {
     return Err(InvalidSyntax)
   }
   guard (
       date_digits(day_chars, 0, day_chars.length()),
       rss_month(tokens[start + 1]),
-      date_digits(year_chars, 0, 4),
+      date_digits(year_chars, 0, year_chars.length()),
     )
-    is (Some(day), Some(month), Some(year)) else {
+    is (Some(day), Some(month), Some(raw_year)) else {
     return Err(InvalidSyntax)
+  }
+  // RSS 2.0 permits two- and four-digit years. RFC 2822 supplies a stable
+  // interpretation for the former without reference to the current year.
+  let year = if year_chars.length() == 2 {
+    raw_year + (if raw_year < 50 { 2000 } else { 1900 })
+  } else {
+    raw_year
   }
   let time = date_chars(tokens[start + 3])
   if (time.length() != 5 && time.length() != 8) ||
