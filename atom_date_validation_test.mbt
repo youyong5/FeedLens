@@ -23,12 +23,12 @@ test "Atom feed, entry and source dates retain raw text and report malformed val
     }
   }
   assert_eq(invalid.length(), 5)
-  assert_eq(invalid[0].kind, @feedlens.InvalidAtomDate("feed updated"))
+  assert_true(invalid[0].kind is @feedlens.InvalidAtomDate("feed updated"))
   assert_eq((invalid[0].line, invalid[0].column), (2, 46))
-  assert_eq(invalid[1].kind, @feedlens.InvalidAtomDate("entry updated"))
-  assert_eq(invalid[2].kind, @feedlens.InvalidAtomDate("entry published"))
-  assert_eq(invalid[3].kind, @feedlens.InvalidAtomDate("source updated"))
-  assert_eq(invalid[4].kind, @feedlens.InvalidAtomDate("entry published"))
+  assert_true(invalid[1].kind is @feedlens.InvalidAtomDate("entry updated"))
+  assert_true(invalid[2].kind is @feedlens.InvalidAtomDate("entry published"))
+  assert_true(invalid[3].kind is @feedlens.InvalidAtomDate("source updated"))
+  assert_true(invalid[4].kind is @feedlens.InvalidAtomDate("entry published"))
   assert_eq((invalid[4].line, invalid[4].column), (4, 91))
 }
 
