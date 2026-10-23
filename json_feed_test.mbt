@@ -94,7 +94,7 @@ test "JSON Feed 1.0 accepts legacy author and numeric item id" {
 }
 
 ///|
-test "JSON Feed preserves opaque blank IDs and diagnoses malformed items" {
+test "JSON Feed discards blank IDs and diagnoses malformed items" {
   let result = @feedlens.parse(
     (
       #|{
@@ -111,18 +111,20 @@ test "JSON Feed preserves opaque blank IDs and diagnoses malformed items" {
     ),
   )
   guard result is Ok(feed) else { fail("expected recovered JSON Feed") }
-  assert_eq(feed.entries.length(), 2)
-  assert_eq(feed.entries[0].identifier, Some("   "))
-  assert_eq(feed.entries[1].identifier, Some("7"))
-  assert_eq(feed.diagnostics.length(), 3)
+  assert_eq(feed.entries.length(), 1)
+  assert_eq(feed.entries[0].identifier, Some("7"))
+  assert_eq(feed.diagnostics.length(), 4)
   assert_true(
-    feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedItem(2, "id"),
+    feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedItem(0, "id"),
   )
   assert_true(
-    feed.diagnostics[1].kind is @feedlens.InvalidJsonFeedItem(3, "content"),
+    feed.diagnostics[1].kind is @feedlens.InvalidJsonFeedItem(2, "id"),
   )
   assert_true(
-    feed.diagnostics[2].kind is @feedlens.InvalidJsonFeedItem(4, "item"),
+    feed.diagnostics[2].kind is @feedlens.InvalidJsonFeedItem(3, "content"),
+  )
+  assert_true(
+    feed.diagnostics[3].kind is @feedlens.InvalidJsonFeedItem(4, "item"),
   )
   assert_eq((feed.diagnostics[0].line, feed.diagnostics[0].column), (1, 1))
 }
@@ -257,18 +259,24 @@ test "JSON Feed 1.1 invalid composite IDs remain diagnosed" {
 }
 
 ///|
-test "JSON Feed 1.1 preserves legal opaque IDs, empty content, and text tags" {
+test "JSON Feed 1.1 retains nonblank opaque IDs and empty text but discards blank IDs" {
   let input =
-    #|{"version":"https://jsonfeed.org/version/1.1","title":"Opaque text","items":[{"id":"","content_text":"","tags":[""," ","topic"]},{"id":"   ","content_html":" ","tags":[]}]}
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Opaque text","items":[{"id":"  stable  ","content_text":"","tags":[""," ","topic"]},{"id":"id:two","content_html":" ","tags":[]},{"id":"","content_text":"ignored"},{"id":"   ","content_text":"ignored"}]}
   guard @feedlens.parse(input) is Ok(feed) else { fail("JSON Feed 1.1") }
   assert_eq(feed.entries.length(), 2)
-  assert_eq(feed.entries[0].identifier, Some(""))
+  assert_eq(feed.entries[0].identifier, Some("  stable  "))
   assert_eq(feed.entries[0].content_text, Some(""))
   assert_eq(feed.entries[0].content, Some(""))
   assert_eq(feed.entries[0].categories.map(fn(tag) { tag.term }), [
     "", " ", "topic",
   ])
-  assert_eq(feed.entries[1].identifier, Some("   "))
+  assert_eq(feed.entries[1].identifier, Some("id:two"))
   assert_eq(feed.entries[1].content_html, Some(" "))
-  assert_eq(feed.diagnostics, [])
+  assert_eq(feed.diagnostics.length(), 2)
+  assert_true(
+    feed.diagnostics[0].kind is @feedlens.InvalidJsonFeedItem(2, "id"),
+  )
+  assert_true(
+    feed.diagnostics[1].kind is @feedlens.InvalidJsonFeedItem(3, "id"),
+  )
 }

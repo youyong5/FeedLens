@@ -184,7 +184,10 @@ optional `duration_in_seconds`. Attachments retain source order and are metadata
 only: FeedLens never downloads or verifies the referenced resource. RSS
 `enclosure` requires non-blank `url`, `length`, and `type`; Atom enclosure links
 require `href` but permit absent `type` and `length`; JSON Feed attachments
-require non-blank `url` and `mime_type`. Atom's optional link `title` and JSON
+declare non-blank `url` and `mime_type`. When JSON Feed omits or misstates the
+required `mime_type`, the reader retains the attachment URL with `media_type =
+None` and an `InvalidAttachment` diagnostic; a missing/blank URL still drops
+that attachment. Atom's optional link `title` and JSON
 Feed's optional attachment `title` are preserved; only JSON Feed supplies a
 duration. `parse` keeps URL references as written; `parse_with_source` can
 resolve supported URL fields without downloading them.
@@ -228,8 +231,10 @@ Bracketed HTTP(S) hosts require an IPv6 or RFC 3986 IPvFuture literal; malformed
 brackets, invalid IPv6 and the old `%25ZoneID` URI form are rejected. IPvFuture
 is syntax-checked only; FeedLens never dereferences that address mechanism.
 
-Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged,
-including the RSS link-fallback identifier. JSON author URLs and avatars,
+Identifiers (`guid`, Atom `id`, JSON Feed `id`) stay opaque and unchanged when
+usable, including the RSS link-fallback identifier. JSON Feed items with blank
+IDs are discarded with a diagnostic; nonblank IDs retain surrounding spaces.
+JSON author URLs and avatars,
 RSS comments/source URLs and every direct Atom link are resolved; Atom author/contributor URIs use their own element-scoped `xml:base`;
 RSS category domains, Atom category schemes and URLs inside HTML are not resolved.
 Atom content `src` uses its own `xml:base` scope.

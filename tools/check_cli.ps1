@@ -87,8 +87,8 @@ if ($opaqueJson.ExitCode -ne 0 -or $opaqueJson.StandardError) {
   throw "JSON Feed opaque strings CLI scenario failed"
 }
 $opaqueJsonModel = $opaqueJson.StandardOutput | ConvertFrom-Json
-if ($opaqueJsonModel.entries.Count -ne 2 -or $opaqueJsonModel.entries[0].identifier -ne '' -or $opaqueJsonModel.entries[1].identifier -ne '   ' -or $opaqueJsonModel.entries[0].categories[0].term -ne '' -or $opaqueJsonModel.diagnostics.Count -ne 0) {
-  throw "JSON Feed legal opaque strings were dropped"
+if ($opaqueJsonModel.entries.Count -ne 2 -or $opaqueJsonModel.entries[0].identifier -ne '  stable  ' -or $opaqueJsonModel.entries[1].identifier -ne 'id:two' -or $opaqueJsonModel.entries[0].categories[0].term -ne '' -or $opaqueJsonModel.diagnostics.Count -ne 2 -or $opaqueJsonModel.diagnostics[0].kind.index -ne 2 -or $opaqueJsonModel.diagnostics[1].kind.index -ne 3) {
+  throw "JSON Feed opaque IDs or blank-ID recovery changed"
 }
 
 $atomAttachments = Invoke-FeedLensCli @("--json", "samples/atom1_attachments.xml")

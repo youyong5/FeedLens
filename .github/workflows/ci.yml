@@ -28,6 +28,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_diverse_real_reference.py
       - name: Compare legal Atom and JSON Feed text boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_legal_input_reference.py
+      - name: Compare JSON Feed attachment recovery
+        run: python3 tools/check_json_attachment_recovery.py
       - name: Compare Atom XHTML wrapper attributes
         run: uv run --with feedparser==6.0.11 python tools/check_xhtml_container_reference.py
       - name: Compare cross-format unknown local offsets
@@ -145,7 +147,7 @@ jobs:
         run: |
           moon run --target native cmd/main --json samples/atom1_legal_empty_and_rights.xml > legal-atom.json
           moon run --target native cmd/main --json samples/jsonfeed11_opaque_strings.json > legal-json.json
-          python3 -c "import json; a=json.load(open('legal-atom.json')); j=json.load(open('legal-json.json')); assert a['title']=='   ' and a['entries'][0]['title']=='' and a['entries'][0]['rights_xhtml']==a['rights_xhtml'] and a['entries'][1]['rights']=='' and a['diagnostics']==[]; assert [x['identifier'] for x in j['entries']]==['','   '] and [x['term'] for x in j['entries'][0]['categories']]==['',' ','topic'] and j['diagnostics']==[]"
+          python3 -c "import json; a=json.load(open('legal-atom.json')); j=json.load(open('legal-json.json')); assert a['title']=='   ' and a['entries'][0]['title']=='' and a['entries'][0]['rights_xhtml']==a['rights_xhtml'] and a['entries'][1]['rights']=='' and a['diagnostics']==[]; assert [x['identifier'] for x in j['entries']]==['  stable  ','id:two'] and [x['term'] for x in j['entries'][0]['categories']]==['',' ','topic'] and [x['kind'] for x in j['diagnostics']]==[{'type':'InvalidJsonFeedItem','index':i,'field':'id'} for i in (2,3)]"
       - name: Inspect Atom and JSON date and author boundaries
         run: |
           moon run --target native cmd/main --json samples/atom1_date_case.xml > date-atom.json

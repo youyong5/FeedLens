@@ -152,9 +152,7 @@ test "JSON Feed 1.0 accepts attachments and skips only invalid attachments" {
   )
   assert_true(
     feed.diagnostics[1].kind
-    is @feedlens.InvalidAttachment(
-      "json feed item 0 attachment 1: url or mime_type"
-    ),
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 1: url"),
   )
   assert_true(
     feed.diagnostics[2].kind
@@ -170,6 +168,74 @@ test "JSON Feed 1.0 accepts attachments and skips only invalid attachments" {
   )
   assert_eq(feed.diagnostics[0].line, 1)
   assert_eq(feed.diagnostics[0].column, 1)
+}
+
+///|
+test "JSON Feed 1.1 retains ordered attachments with missing MIME and resolves URLs" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1.1","title":"Attachment recovery","items":[{"id":"item-1","content_text":"episode","attachments":[{"url":"../audio/one.mp3","title":"No declared MIME","size_in_bytes":42,"duration_in_seconds":1.5},{"url":"/audio/two.mp3","mime_type":" ","title":"Blank MIME"},{"url":"https://example.test/audio/three.mp3","mime_type":7},{"url":"?download=4","mime_type":"audio/mpeg"},{"url":" ","mime_type":"audio/mpeg"}]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  let entry = feed.entries[0]
+  assert_eq(entry.attachments.length(), 4)
+  assert_eq(entry.attachments[0].url, "../audio/one.mp3")
+  assert_eq(entry.attachments[0].media_type, None)
+  assert_eq(entry.attachments[0].title, Some("No declared MIME"))
+  assert_eq(entry.attachments[0].size_in_bytes, Some(42L))
+  assert_eq(entry.attachments[0].duration_in_seconds, Some(1.5))
+  assert_eq(entry.attachments[1].url, "/audio/two.mp3")
+  assert_eq(entry.attachments[1].media_type, None)
+  assert_eq(entry.attachments[2].url, "https://example.test/audio/three.mp3")
+  assert_eq(entry.attachments[2].media_type, None)
+  assert_eq(entry.attachments[3].media_type, Some("audio/mpeg"))
+  assert_eq(feed.diagnostics.length(), 4)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 0: mime_type"),
+  )
+  assert_true(
+    feed.diagnostics[1].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 1: mime_type"),
+  )
+  assert_true(
+    feed.diagnostics[2].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 2: mime_type"),
+  )
+  assert_true(
+    feed.diagnostics[3].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 4: url"),
+  )
+  guard @feedlens.parse_with_source(
+      input, "https://example.test/feeds/current.json",
+    )
+    is Ok(resolved) else {
+    fail("expected resolved JSON Feed")
+  }
+  assert_eq(
+    resolved.entries[0].attachments[0].url,
+    "https://example.test/audio/one.mp3",
+  )
+  assert_eq(
+    resolved.entries[0].attachments[1].url,
+    "https://example.test/audio/two.mp3",
+  )
+  assert_eq(
+    resolved.entries[0].attachments[3].url,
+    "https://example.test/feeds/current.json?download=4",
+  )
+  assert_eq(resolved.diagnostics.length(), 4)
+}
+
+///|
+test "JSON Feed 1.0 retains attachment with missing MIME" {
+  let input =
+    #|{"version":"https://jsonfeed.org/version/1","title":"Older","items":[{"id":"one","content_text":"Body","attachments":[{"url":"https://example.test/audio.mp3"}]}]}
+  guard @feedlens.parse(input) is Ok(feed) else { fail("expected JSON Feed") }
+  assert_eq(feed.entries[0].attachments.length(), 1)
+  assert_eq(feed.entries[0].attachments[0].media_type, None)
+  assert_true(
+    feed.diagnostics[0].kind
+    is @feedlens.InvalidAttachment("json feed item 0 attachment 0: mime_type"),
+  )
 }
 
 ///|
