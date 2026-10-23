@@ -5,7 +5,7 @@ fn uri_source_valid(source_url : String) -> Bool {
       match (parts.scheme, parts.authority, parts.fragment) {
         (Some(scheme), Some(authority), None) =>
           (scheme.to_lower() == "http" || scheme.to_lower() == "https") &&
-          !authority.is_empty()
+          uri_http_authority_valid(authority)
         _ => false
       }
     None => false
