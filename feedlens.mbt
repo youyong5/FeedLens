@@ -31,6 +31,7 @@ pub enum DiagnosticKind {
   InvalidRssField(String)
   InvalidAtomLink(String)
   InvalidAtomDate(String)
+  InvalidAtomOrder(String)
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)

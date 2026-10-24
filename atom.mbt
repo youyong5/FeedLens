@@ -483,6 +483,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
     let mut entry_singletons : Array[String] = []
 
     let mut entry_open = false
+    let mut feed_entries_started = false
     let mut entry_depth = 0
     let mut entry_line = 1
     let mut entry_column = 1
@@ -564,6 +565,17 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
       let event = reader.read_event()
       match event.kind {
         @xml.Start(element) => {
+          if !standalone && root_seen && depth == 1 {
+            if is_atom_name(element.name, "entry") {
+              feed_entries_started = true
+            } else if feed_entries_started {
+              diagnostics.push({
+                kind: InvalidAtomOrder(element.name.qualified_name),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+          }
           if capture_field is Some(_) && depth >= capture_depth {
             match xhtml_capture {
               Some(state) => state.node(element, depth == capture_depth, false)
@@ -1254,6 +1266,17 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           depth = depth + 1
         }
         @xml.Empty(element) => {
+          if !standalone && root_seen && depth == 1 {
+            if is_atom_name(element.name, "entry") {
+              feed_entries_started = true
+            } else if feed_entries_started {
+              diagnostics.push({
+                kind: InvalidAtomOrder(element.name.qualified_name),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
+            }
+          }
           if author_owner is Some(_) && depth == author_depth {
             atom_person_singleton(
               element,
