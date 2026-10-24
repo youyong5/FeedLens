@@ -1,0 +1,6 @@
+<rss version="2.0"><channel><title>Case and zone</title><link>https://example.test/</link><description>Dates</description><pubDate>sAt, 24 oCt 2026 07:00:00 eSt</pubDate>
+<lastBuildDate>Sat, 24 Oct 2026 12:15:00 z</lastBuildDate>
+<item><guid>zulu</guid><title>Zulu</title><pubDate>Sat, 24 Oct 2026 12:00:00 Z</pubDate></item>
+<item><guid>mixed</guid><title>Mixed</title><pubDate>sAt, 24 oct 26 08:30:00 pSt</pubDate></item>
+<item><guid>military</guid><title>Unknown zone</title><pubDate>Sat, 24 Oct 2026 12:00:00 A</pubDate></item>
+</channel></rss>
