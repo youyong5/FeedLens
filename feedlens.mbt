@@ -793,6 +793,17 @@ fn xml_attachment(
     Some(value) => non_blank_text(value)
     None => None
   }
+  if source == Atom1 {
+    match attribute_value(element, "type") {
+      Some(raw) if atom_mime_essence(raw) is None =>
+        diagnostics.push({
+          kind: InvalidAttachment("invalid Atom enclosure type"),
+          line,
+          column,
+        })
+      _ => ()
+    }
+  }
   let length = attribute_value(element, "length")
   let size = match length {
     Some(raw) =>

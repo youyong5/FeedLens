@@ -38,6 +38,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_leap_second_reference.py
       - name: Compare Atom MIME parameter content forms
         run: uv run --with feedparser==6.0.11 python tools/check_atom_media_reference.py
+      - name: Compare Atom link MIME hints and diagnostics
+        run: python3 tools/check_atom_link_media_reference.py
       - name: Compare Atom and JSON date and author boundaries
         run: uv run --with feedparser==6.0.11 python tools/check_date_author_reference.py
       - name: Compare Atom source IRI scopes

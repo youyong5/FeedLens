@@ -1,0 +1,11 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed:link-type</id><title>Link types</title><updated>2026-10-24T00:00:00Z</updated><author><name>Editor</name></author>
+<link rel="self" href="index.atom" type="application/atom+xml; profile=&quot;all;items&quot;"/>
+<entry><id>urn:entry:link-type</id><title>Entry</title><updated>2026-10-24T00:00:00Z</updated><content>Body</content>
+<link href="article" type="text/html" hreflang="en"/>
+<link rel="related" href="bundle" type="multipart/alternative"/>
+<link rel="related" href="bad-token" type="text"/>
+<link rel="related" href="bad-parameter" type="image/png; name="/>
+<link rel="enclosure" href="bad-audio" type="audio"/>
+<link rel="enclosure" href="good-audio" type="audio/mpeg; codec=&quot;mp3&quot;" length="42"/>
+<source><link rel="related" href="source-bundle" type="message/rfc822"/></source>
+</entry></feed>

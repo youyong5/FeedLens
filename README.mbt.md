@@ -51,7 +51,7 @@ landing page; this document contains the full mapping and boundary specification
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
 | `Entry.authors` | direct item authors | effective entry authors | item `authors`/`author`, otherwise feed authors |
 | `Feed/Entry.contributors` | none | direct contributors, separate from author inheritance | none |
-| `Feed/Entry.links` | none | ordered Atom link relations and common attributes | none |
+| `Feed/Entry.links` | none | ordered Atom link relations and common attributes; malformed MIME hints produce positioned diagnostics while the raw link remains accessible | none |
 | `Author.avatar` | none | none | author `avatar` URL |
 | `Feed.categories` | direct channel categories | direct feed categories | none in supported subset |
 | `Feed.images` | direct channel image | direct feed icon/logo | feed icon/favicon |
