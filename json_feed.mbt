@@ -557,6 +557,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
   let images = json_feed_images(object, diagnostics)
   let hubs = json_hubs(object, diagnostics)
   let entries : Array[Entry] = []
+  let seen_identifiers : Array[String] = []
 
   for index = 0; index < items.length(); index = index + 1 {
     let item = match items[index] {
@@ -626,6 +627,14 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       }
     } else {
       None
+    }
+    // Compare usable IDs exactly as exposed to callers, after the specified
+    // number-to-string recovery. An item discarded for invalid content does
+    // not occupy an identity in the resulting feed.
+    if seen_identifiers.any(fn(previous) { previous == identifier }) {
+      add_json_diagnostic(diagnostics, Some(index), "duplicate id")
+    } else {
+      seen_identifiers.push(identifier)
     }
     entries.push({
       identifier: Some(identifier),
