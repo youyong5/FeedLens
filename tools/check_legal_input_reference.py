@@ -65,7 +65,7 @@ def mirror(test_file: str, test_name: str) -> str:
 def main() -> None:
     atom_name = "atom1_legal_empty_and_rights.xml"
     json_name = "jsonfeed11_opaque_strings.json"
-    assert mirror("atom_legal_text_test.mbt", "legal empty Atom text constructs and feed rights apply in document order") == (SAMPLES / atom_name).read_text("utf-8")
+    assert mirror("atom_legal_text_test.mbt", "legal empty Atom text constructs and feed rights inheritance") == (SAMPLES / atom_name).read_text("utf-8")
     assert mirror("json_feed_test.mbt", "JSON Feed 1.1 retains nonblank opaque IDs and empty text but discards blank IDs") == (SAMPLES / json_name).read_text("utf-8")
     print("PASS both cross-target test/sample mirrors")
 
