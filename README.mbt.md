@@ -165,6 +165,9 @@ Unknown-offset `-0000`/`-00:00` normalizes to a UTC instant with
 `is_leap_second=true`. Atom dates are diagnosed at parse time when invalid;
 malformed JSON Feed item dates keep their raw strings, produce
 `InvalidJsonFeedDate`, and do not discard otherwise usable items.
+RSS channel/item dates that cannot be normalized with this supported profile
+produce `UnnormalizedRssDate`, preserving source strings and items; this is
+not a claim that every other legal RFC 822 spelling is invalid.
 No date is substituted from
 the file timestamp, fetch time, or local clock.
 

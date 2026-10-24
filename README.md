@@ -29,6 +29,8 @@ cross-target API validates supported RSS or RFC 3339 dates and returns
 comparable UTC instants.
 Malformed JSON Feed item dates also retain their raw strings and produce
 `InvalidJsonFeedDate` diagnostics without discarding the item.
+RSS channel and item dates outside the supported RFC 822/1123 profile produce
+`UnnormalizedRssDate` diagnostics; their original strings and entries remain.
 `parse_with_source(input, source_url)` optionally resolves documented links,
 image URLs, attachment URLs, and external Atom content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.
