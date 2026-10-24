@@ -102,6 +102,20 @@ fn atom_link(
       }
     None => None
   }
+  match atom_attribute_value(element, "type") {
+    Some(raw) if atom_mime_essence(raw) is None => {
+      // Enclosures report this through xml_attachment, avoiding two
+      // diagnostics for the same declaration.
+      if !atom_relation_is(relation, "enclosure") {
+        diagnostics.push({
+          kind: InvalidAtomLink("invalid type"),
+          line,
+          column,
+        })
+      }
+    }
+    _ => ()
+  }
   Some({
     relation,
     href,
