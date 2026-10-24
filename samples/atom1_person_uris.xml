@@ -1,5 +1,5 @@
-<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/"><id>urn:people</id><title>People</title><updated>2026-10-22T00:00:00Z</updated>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/"><id>urn:people</id><title>People</title><updated>2026-10-22T00:00:00Z</updated><author><name>Feed editor</name><uri xml:base="staff/">editor</uri></author><contributor><name>Feed helper</name><uri>team</uri></contributor>
 <entry xml:base="posts/"><id>urn:one</id><title>Own author</title><updated>2026-10-22T00:00:00Z</updated><content>One</content><author><name>Writer</name><uri xml:base="../people/">writer</uri></author><contributor><name>Reviewer</name><uri>reviewer</uri></contributor><source xml:base="../origin/"><author><name>Original</name><uri>original</uri></author><contributor><name>Helper</name><uri xml:base="staff/">helper</uri></contributor></source></entry>
 <entry><id>urn:two</id><title>Source author</title><updated>2026-10-22T00:00:00Z</updated><content>Two</content><source xml:base="origin/"><author><name>Source editor</name><uri xml:base="people/">source-editor</uri></author></source></entry>
 <entry><id>urn:three</id><title>Feed author</title><updated>2026-10-22T00:00:00Z</updated><content>Three</content></entry>
-<author><name>Feed editor</name><uri xml:base="staff/">editor</uri></author><contributor><name>Feed helper</name><uri>team</uri></contributor></feed>
+</feed>

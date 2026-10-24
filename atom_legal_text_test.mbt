@@ -1,13 +1,13 @@
 ///|
-test "legal empty Atom text constructs and feed rights apply in document order" {
+test "legal empty Atom text constructs and feed rights inheritance" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:empty-feed</id><title>   </title><updated>2026-10-23T00:00:00Z</updated><author><name>Editor</name></author>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:empty-feed</id><title>   </title><updated>2026-10-23T00:00:00Z</updated><author><name>Editor</name></author><rights type="xhtml"><h:div>License <h:em>shared</h:em></h:div></rights>
     #|<entry><id>urn:one</id><title/><updated>2026-10-23T00:00:00Z</updated><link href="posts/one"/><summary/></entry>
     #|<entry><id>urn:two</id><title type="xhtml"><h:div/></title><updated>2026-10-23T00:00:00Z</updated><rights type="html"/><content/></entry>
     #|<entry><id>urn:three</id><title>Third</title><updated>2026-10-23T00:00:00Z</updated><content>Body</content><source><id>urn:original</id><title/><subtitle type="html"/><rights/></source></entry>
     #|<entry><id>urn:four</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary/><content src="media/story.xml" type="application/xml"/></entry>
     #|<entry><id>urn:five</id><title>Binary</title><updated>2026-10-23T00:00:00Z</updated><summary/><content type="image/png">AQID</content></entry>
-    #|<rights type="xhtml"><h:div>License <h:em>shared</h:em></h:div></rights></feed>
+    #|</feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("valid Atom") }
   assert_eq(feed.title, Some("   "))
   assert_eq(feed.rights, Some("License shared"))
