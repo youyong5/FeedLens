@@ -1,0 +1,7 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:example:extension">
+<id>urn:order:feed</id><title>Feed</title><updated>2026-10-24T00:00:00Z</updated><author><name>Editor</name></author><x:before/>
+<entry><content>First body</content><updated>2026-10-24T00:00:00Z</updated><title>First</title><id>urn:order:first</id></entry>
+<subtitle>Late subtitle</subtitle><link href="late-home"/>
+<entry><id>urn:order:second</id><content>Second body</content><title>Second</title><updated>2026-10-24T01:00:00Z</updated></entry>
+<x:after/>
+</feed>
