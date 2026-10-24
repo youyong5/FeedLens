@@ -65,6 +65,46 @@ fn atom_element_relation_is(
 }
 
 ///|
+// RFC 3066 ABNF: 1..8 ASCII letters in the primary subtag, followed by
+// zero or more 1..8 ASCII alphanumeric subtags. Registry membership is a
+// separate concern; keep the original spelling in AtomLink.
+fn atom_language_tag_syntax(value : String) -> Bool {
+  let chars = date_chars(value)
+  if chars.is_empty() {
+    return false
+  }
+  let mut primary = true
+  let mut segment_length = 0
+  for character in chars {
+    if character == '-' {
+      if segment_length == 0 {
+        return false
+      }
+      segment_length = 0
+      primary = false
+    } else {
+      let letter = (character >= 'a' && character <= 'z') ||
+        (character >= 'A' && character <= 'Z')
+      let digit = character >= '0' && character <= '9'
+      if (!letter && (primary || !digit)) || segment_length == 8 {
+        return false
+      }
+      segment_length = segment_length + 1
+    }
+  }
+  segment_length > 0
+}
+
+///|
+fn atom_same_hreflang(left : String?, right : String?) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(a), Some(b)) => a.to_lower() == b.to_lower()
+    _ => false
+  }
+}
+
+///|
 fn atom_link(
   element : @xml.NamespaceElement,
   line : Int32,
@@ -116,11 +156,20 @@ fn atom_link(
     }
     _ => ()
   }
+  match atom_attribute_value(element, "hreflang") {
+    Some(raw) if !atom_language_tag_syntax(raw) =>
+      diagnostics.push({
+        kind: InvalidAtomLink("invalid hreflang"),
+        line,
+        column,
+      })
+    _ => ()
+  }
   Some({
     relation,
     href,
-    media_type: atom_non_blank_attribute(element, "type"),
-    hreflang: atom_non_blank_attribute(element, "hreflang"),
+    media_type: atom_attribute_value(element, "type"),
+    hreflang: atom_attribute_value(element, "hreflang"),
     title: atom_attribute_value(element, "title"),
     length,
   })
@@ -141,7 +190,7 @@ fn atom_append_link(
         links.any(fn(previous) {
           atom_relation_is(previous.relation, "alternate") &&
           previous.media_type == link.media_type &&
-          previous.hreflang == link.hreflang
+          atom_same_hreflang(previous.hreflang, link.hreflang)
         }) {
         diagnostics.push({
           kind: DuplicateAtomField(owner + " alternate link"),
