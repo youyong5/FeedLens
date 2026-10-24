@@ -113,6 +113,8 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     InvalidJsonFeedField(field) => "invalid JSON Feed field: " + field
     InvalidJsonFeedItem(index, field) =>
       "invalid JSON Feed item " + index.to_string() + ": " + field
+    InvalidJsonFeedDate(index, field) =>
+      "invalid JSON Feed date in item " + index.to_string() + ": " + field
   }
 }
 
@@ -556,6 +558,8 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "InvalidJsonFeedField", "field": field }
     InvalidJsonFeedItem(index, field) =>
       { "type": "InvalidJsonFeedItem", "index": index, "field": field }
+    InvalidJsonFeedDate(index, field) =>
+      { "type": "InvalidJsonFeedDate", "index": index, "field": field }
   }
 }
 

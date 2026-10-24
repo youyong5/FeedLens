@@ -27,6 +27,8 @@ Raw publication/update dates remain available; invalid Atom feed, entry, and
 source dates produce located diagnostics during parsing. A separate,
 cross-target API validates supported RSS or RFC 3339 dates and returns
 comparable UTC instants.
+Malformed JSON Feed item dates also retain their raw strings and produce
+`InvalidJsonFeedDate` diagnostics without discarding the item.
 `parse_with_source(input, source_url)` optionally resolves documented links,
 image URLs, attachment URLs, and external Atom content references; Atom `xml:base` scopes are honored. Plain `parse(input)` keeps
 raw references, and neither entry point fetches URLs.

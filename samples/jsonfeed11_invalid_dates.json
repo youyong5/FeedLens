@@ -1,0 +1,6 @@
+{"version":"https://jsonfeed.org/version/1.1","title":"Date recovery","items":[
+{"id":"calendar","content_text":"First","date_published":"2026-02-30T12:00:00Z","date_modified":"2026-02-28T12:00:00Z"},
+{"id":"offset","content_html":"<p>Second</p>","date_modified":"2026-10-24T10:00:00+25:00"},
+{"id":"blank","content_text":"Third","date_published":"","date_modified":42},
+{"id":"valid","content_text":"Fourth","date_published":"2026-10-24t10:00:00.123456789123z","date_modified":"2026-10-24T11:00:00-00:00"}
+]}

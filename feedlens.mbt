@@ -35,6 +35,7 @@ pub enum DiagnosticKind {
   UnresolvedUri(String)
   InvalidJsonFeedField(String)
   InvalidJsonFeedItem(Int32, String)
+  InvalidJsonFeedDate(Int32, String)
 } derive(Debug, Eq)
 
 ///|
