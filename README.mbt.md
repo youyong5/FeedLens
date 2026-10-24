@@ -160,8 +160,11 @@ digits. `utc` preserves every digit; `nanosecond` retains the first nine digits
 `Fraction(digits)` reports the declared count. Calendar dates, times, and
 offsets are validated. Two-digit RSS years `00–49` map to `2000–2049` and
 `50–99` to `1950–1999`, following RFC 2822's obsolete-year interpretation.
-Unknown-offset `-0000`/`-00:00` and leap-second `:60` are not normalized;
-the raw field is still available.
+Unknown-offset `-0000`/`-00:00` normalizes to a UTC instant with
+`offset_known=false`; announced leap seconds normalize with
+`is_leap_second=true`. Atom dates are diagnosed at parse time when invalid;
+malformed JSON Feed item dates keep their raw strings, produce
+`InvalidJsonFeedDate`, and do not discard otherwise usable items.
 No date is substituted from
 the file timestamp, fetch time, or local clock.
 
@@ -327,7 +330,7 @@ network access, or HTML rendering.
 
 - Accepts only root objects whose `version` is exactly `https://jsonfeed.org/version/1` or `https://jsonfeed.org/version/1.1`. JSON is selected whenever the first non-whitespace input character is not `<`; XML dispatch remains unchanged.
 - `title` must be a string and `items` must be an array. Invalid JSON, a non-object root, absent/wrong-type `version`, absent/wrong-type `title`, absent/wrong-type `items`, and unsupported versions are fatal JSON-specific `ParseError` values, never `InvalidXml`.
-- Maps `title`, `description`, `home_page_url`, `feed_url`, `icon`, and `favicon`; maps item `id`, `url`, `external_url`, `image`, `banner_image`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Version 1.1 also maps feed/item `language`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. Raw date strings can be independently validated through `normalize_date`; no URI resolution occurs during `parse`.
+- Maps `title`, `description`, `home_page_url`, `feed_url`, `icon`, and `favicon`; maps item `id`, `url`, `external_url`, `image`, `banner_image`, `title`, `summary`, `date_published`, `date_modified`, `content_text`, and `content_html`. Version 1.1 also maps feed/item `language`. Text fields are `Text`; `content_html` is `Html` and is retained unchanged. Malformed string dates receive `InvalidJsonFeedDate` diagnostics and keep their raw text; `normalize_date` also exposes normalized instants. No URI resolution occurs during `parse`.
 - `url` stays the item permalink, while `external_url` points to an outside
   page; a missing permalink is not replaced by the external URL. Featured and
   banner images are presentation hints, never attachments. JSON Feed 1.0

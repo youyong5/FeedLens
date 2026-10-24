@@ -71,6 +71,31 @@ fn json_optional_string(
 }
 
 ///|
+// Invalid date text remains available to callers; a malformed optional date
+// does not discard an otherwise usable JSON Feed item.
+fn json_date_field(
+  item : Map[String, Json],
+  name : String,
+  diagnostics : Array[Diagnostic],
+  index : Int32,
+) -> String? {
+  let raw = json_optional_string(item, name, diagnostics, Some(index))
+  match raw {
+    Some(value) =>
+      match normalize_date(JsonFeed1, Some(value)) {
+        Ok(_) => ()
+        Err(_) => diagnostics.push({
+          kind: InvalidJsonFeedDate(index, name),
+          line: 1,
+          column: 1,
+        })
+      }
+    None => ()
+  }
+  raw
+}
+
+///|
 fn json_language(
   object : Map[String, Json],
   diagnostics : Array[Diagnostic],
@@ -640,18 +665,8 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
       categories: json_tags(item, diagnostics, index),
       attachments: json_attachments(item, diagnostics, index),
       images: json_entry_images(item, diagnostics, index),
-      published_at: json_optional_string(
-        item,
-        "date_published",
-        diagnostics,
-        Some(index),
-      ),
-      updated_at: json_optional_string(
-        item,
-        "date_modified",
-        diagnostics,
-        Some(index),
-      ),
+      published_at: json_date_field(item, "date_published", diagnostics, index),
+      updated_at: json_date_field(item, "date_modified", diagnostics, index),
     })
   }
   Ok({
