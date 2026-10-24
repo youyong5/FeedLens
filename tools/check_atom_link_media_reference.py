@@ -70,7 +70,7 @@ def main() -> None:
     assert [attachment["url"] for attachment in actual["entries"][0]["attachments"]] == [
         "bad-audio", "good-audio"
     ]
-    assert [(d["type"], d["message"], d["line"]) for d in actual["diagnostics"]] == [
+    assert [(d["kind"]["type"], d["kind"]["message"], d["line"]) for d in actual["diagnostics"]] == [
         ("InvalidAtomLink", "invalid type", 6),
         ("InvalidAtomLink", "invalid type", 7),
         ("InvalidAttachment", "invalid Atom enclosure type", 8),
