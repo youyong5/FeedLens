@@ -1,0 +1,6 @@
+<rss version="2.0"><channel><title>Dates</title><link>https://example.test/</link><description>Dates</description>
+<pubDate>Mon, 30 Feb 2026 09:00:00 GMT</pubDate><lastBuildDate>Sat, 24 Oct 2026 10:00:00 +2500</lastBuildDate>
+<item><guid>bad-weekday</guid><title>One</title><pubDate>Mon, 24 Oct 2026 11:00:00 GMT</pubDate></item>
+<item><guid>blank</guid><title>Two</title><pubDate/></item>
+<item><guid>good</guid><title>Three</title><pubDate>Sat, 24 Oct 26 12:00:00 GMT</pubDate></item>
+</channel></rss>

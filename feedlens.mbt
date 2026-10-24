@@ -29,6 +29,7 @@ pub enum DiagnosticKind {
   InvalidLanguage(String)
   InvalidFeedImage(String)
   InvalidRssField(String)
+  UnnormalizedRssDate(String)
   InvalidAtomLink(String)
   InvalidAtomDate(String)
   InvalidAtomOrder(String)
@@ -666,6 +667,27 @@ fn non_blank_text(text : String) -> String? {
   } else {
     Some(text)
   }
+}
+
+///|
+// A failed normalization is diagnostic, not a claim that every legal RFC 822
+// spelling is rejected by RSS. Preserve the source text for the caller.
+fn rss_date_value(
+  raw : String,
+  field : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> String? {
+  match normalize_date(Rss2, Some(raw)) {
+    Ok(_) => ()
+    Err(_) => diagnostics.push({
+      kind: UnnormalizedRssDate(field),
+      line,
+      column,
+    })
+  }
+  non_blank_text(raw)
 }
 
 ///|
@@ -1326,8 +1348,14 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               "generator" => channel_generator = None
               "managingEditor" => channel_managing_editor = None
               "webMaster" => channel_webmaster = None
-              "pubDate" => channel_published = None
-              "lastBuildDate" => channel_updated = None
+              "pubDate" => channel_published = rss_date_value(
+                "", "channel pubDate", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
+              "lastBuildDate" => channel_updated = rss_date_value(
+                "", "channel lastBuildDate", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
               _ => {
                 channel_ttl = None
                 diagnostics.push({
@@ -1415,7 +1443,11 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 "title" => item_title = None
                 "link" => item_link = None
                 "description" => item_description = None
-                _ => item_published_at = None
+                "pubDate" => item_published_at = rss_date_value(
+                  "", "item pubDate", event.span.start.line,
+                  event.span.start.column, diagnostics,
+                )
+                _ => ()
               }
             }
           }
@@ -1558,7 +1590,11 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                         column: capture_column,
                       })
                   }
-                _ => item_published_at = non_blank_text(captured_text)
+                "pubDate" => item_published_at = rss_date_value(
+                  captured_text, "item pubDate", capture_line,
+                  capture_column, diagnostics,
+                )
+                _ => ()
               }
             } else {
               match field {
@@ -1588,9 +1624,14 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
                 "managingEditor" =>
                   channel_managing_editor = non_blank_text(captured_text)
                 "webMaster" => channel_webmaster = non_blank_text(captured_text)
-                "pubDate" => channel_published = non_blank_text(captured_text)
-                "lastBuildDate" =>
-                  channel_updated = non_blank_text(captured_text)
+                "pubDate" => channel_published = rss_date_value(
+                  captured_text, "channel pubDate", capture_line,
+                  capture_column, diagnostics,
+                )
+                "lastBuildDate" => channel_updated = rss_date_value(
+                  captured_text, "channel lastBuildDate", capture_line,
+                  capture_column, diagnostics,
+                )
                 "ttl" => {
                   channel_ttl = rss_ttl_minutes(captured_text)
                   if channel_ttl is None {

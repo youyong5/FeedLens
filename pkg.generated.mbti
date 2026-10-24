@@ -172,6 +172,7 @@ pub enum DiagnosticKind {
   InvalidLanguage(String)
   InvalidFeedImage(String)
   InvalidRssField(String)
+  UnnormalizedRssDate(String)
   InvalidAtomLink(String)
   InvalidAtomDate(String)
   InvalidAtomOrder(String)
