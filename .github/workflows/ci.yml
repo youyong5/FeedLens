@@ -56,6 +56,8 @@ jobs:
         run: python3 tools/check_atom_feed_order.py
       - name: Compare JSON Feed date recovery with Python calendar parsing
         run: python3 tools/check_json_date_validation.py
+      - name: Compare JSON Feed item identity and duplicate diagnostics
+        run: python3 tools/check_json_identity_reference.py
       - name: Compare RSS date diagnostics with Python mail-date parsing
         run: python3 tools/check_rss_date_validation.py
       - name: Compare RSS mixed-case dates and Z timezone with Python email
