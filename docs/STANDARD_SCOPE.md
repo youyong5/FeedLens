@@ -58,7 +58,11 @@ RSS/RFC 3339 子集；RSS
 两位年份依 [RFC 2822 §4](https://www.rfc-editor.org/rfc/rfc2822#section-4)
 固定映射 00–49 为 2000–2049、50–99 为 1950–1999，
 带星期名时校验真实日历；`samples/rss2_two_digit_years.xml` 与 feedparser
-6.0.11 秒级独立对照。RFC 3339
+6.0.11 秒级独立对照。RSS RFC 822 星期、月份和命名时区不区分大小写，
+单字母 `Z` 为已知 UTC；其他军用单字母时区因 [RFC 1123 §5.2.14](https://www.rfc-editor.org/rfc/rfc1123#section-5.2.14)
+指出符号歧义，保留原文并给无法归一化诊断，不猜本地偏移。`samples/rss2_case_and_zone.xml`
+和 `tools/check_rss_case_zone_reference.py` 对照 Python 邮件日期解析器的 UTC 交集。
+RFC 3339
 小数秒任意正位数可输入，UTC 文本保留全部位数，`nanosecond` 截取前九位，
 `Fraction(digits)` 保留声明位数。跨格式合成样本的秒级独立交集与库内完整
 小数位回归见 `date_test.mbt` 和 `tools/check_real_cross_format.py`。

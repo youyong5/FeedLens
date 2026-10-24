@@ -151,8 +151,9 @@ match @feedlens.normalize_date(feed.format, feed.entries[0].published_at) {
 ```
 
 RSS accepts the common RFC 822/1123 profile with a two- or four-digit year, optional
-weekday, `HH:MM` or `HH:MM:SS`, and numeric `±HHMM`, `UT`/`UTC`/`GMT`, or
-US `EST`/`EDT`/`CST`/`CDT`/`MST`/`MDT`/`PST`/`PDT` zones. A stated weekday
+weekday, `HH:MM` or `HH:MM:SS`, and numeric `±HHMM`, `UT`/`UTC`/`GMT`/`Z`, or
+US `EST`/`EDT`/`CST`/`CDT`/`MST`/`MDT`/`PST`/`PDT` zones. Named weekday,
+month and zone tokens are case-insensitive; original strings remain intact. A stated weekday
 must agree with the calendar date. Atom and JSON Feed require RFC 3339 with an
 explicit offset or `Z`, and support any positive number of fractional-second
 digits. `utc` preserves every digit; `nanosecond` retains the first nine digits
@@ -168,6 +169,8 @@ malformed JSON Feed item dates keep their raw strings, produce
 RSS channel/item dates that cannot be normalized with this supported profile
 produce `UnnormalizedRssDate`, preserving source strings and items; this is
 not a claim that every other legal RFC 822 spelling is invalid.
+Non-`Z` military single-letter zones remain unnormalized because RFC 1123
+notes that their offset signs are ambiguous; no local timezone is guessed.
 No date is substituted from
 the file timestamp, fetch time, or local clock.
 

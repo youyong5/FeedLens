@@ -318,49 +318,49 @@ fn rss_date_tokens(text : String) -> Array[String] {
 
 ///|
 fn rss_month(month : String) -> Int32? {
-  match month {
-    "Jan" => Some(1)
-    "Feb" => Some(2)
-    "Mar" => Some(3)
-    "Apr" => Some(4)
-    "May" => Some(5)
-    "Jun" => Some(6)
-    "Jul" => Some(7)
-    "Aug" => Some(8)
-    "Sep" => Some(9)
-    "Oct" => Some(10)
-    "Nov" => Some(11)
-    "Dec" => Some(12)
+  match month.to_lower() {
+    "jan" => Some(1)
+    "feb" => Some(2)
+    "mar" => Some(3)
+    "apr" => Some(4)
+    "may" => Some(5)
+    "jun" => Some(6)
+    "jul" => Some(7)
+    "aug" => Some(8)
+    "sep" => Some(9)
+    "oct" => Some(10)
+    "nov" => Some(11)
+    "dec" => Some(12)
     _ => None
   }
 }
 
 ///|
 fn rss_weekday(day : String) -> @time.Weekday? {
-  match day {
-    "Mon," => Some(@time.Monday)
-    "Tue," => Some(@time.Tuesday)
-    "Wed," => Some(@time.Wednesday)
-    "Thu," => Some(@time.Thursday)
-    "Fri," => Some(@time.Friday)
-    "Sat," => Some(@time.Saturday)
-    "Sun," => Some(@time.Sunday)
+  match day.to_lower() {
+    "mon," => Some(@time.Monday)
+    "tue," => Some(@time.Tuesday)
+    "wed," => Some(@time.Wednesday)
+    "thu," => Some(@time.Thursday)
+    "fri," => Some(@time.Friday)
+    "sat," => Some(@time.Saturday)
+    "sun," => Some(@time.Sunday)
     _ => None
   }
 }
 
 ///|
 fn rss_offset(zone : String) -> Result[(Int32, Bool), DateError] {
-  match zone {
-    "UT" | "UTC" | "GMT" => return Ok((0, true))
-    "EST" => return Ok((-300, true))
-    "EDT" => return Ok((-240, true))
-    "CST" => return Ok((-360, true))
-    "CDT" => return Ok((-300, true))
-    "MST" => return Ok((-420, true))
-    "MDT" => return Ok((-360, true))
-    "PST" => return Ok((-480, true))
-    "PDT" => return Ok((-420, true))
+  match zone.to_lower() {
+    "ut" | "utc" | "gmt" | "z" => return Ok((0, true))
+    "est" => return Ok((-300, true))
+    "edt" => return Ok((-240, true))
+    "cst" => return Ok((-360, true))
+    "cdt" => return Ok((-300, true))
+    "mst" => return Ok((-420, true))
+    "mdt" => return Ok((-360, true))
+    "pst" => return Ok((-480, true))
+    "pdt" => return Ok((-420, true))
     _ => ()
   }
   let chars = date_chars(zone)
