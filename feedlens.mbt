@@ -790,6 +790,7 @@ fn xml_attachment(
     None => None
   }
   let media_type = match attribute_value(element, "type") {
+    Some(value) if source == Atom1 => Some(value)
     Some(value) => non_blank_text(value)
     None => None
   }

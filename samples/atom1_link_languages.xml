@@ -1,0 +1,11 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:feed:languages</id><title>Languages</title><updated>2026-10-24T00:00:00Z</updated><author><name>Editor</name></author>
+<link href="zh" type="text/html" hreflang="zh-Hant-TW"/>
+<link href="zh-copy" type="text/html" hreflang="ZH-hant-tw"/>
+<link rel="related" href="klingon" hreflang="i-klingon"/>
+<entry><id>urn:entry:languages</id><title>Entry</title><updated>2026-10-24T00:00:00Z</updated><content>Body</content>
+<link href="private" hreflang="x-private-12345678"/>
+<link rel="related" href="blank" hreflang=""/>
+<link rel="related" href="gap" hreflang="en--US"/>
+<link rel="enclosure" href="audio" type="" hreflang="en_US"/>
+<source><link rel="self" href="source" hreflang="fr-CA"/></source>
+</entry></feed>
