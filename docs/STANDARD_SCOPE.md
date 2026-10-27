@@ -29,6 +29,12 @@ FeedLens 增加格式层级、映射和诊断，并不取代 XML 解析器。
 | JSON Feed 内容、作者、tags、附件、显示图片 | `content_text`、`content_html` 同时保留，`content` 仍 HTML 优先，空字符串也算存在；authors 的显式空/空白 name 仍是原样字符串，可只声明 avatar；继承；tags 的字符串原样保留，包括空/空白；来源明确的附件/图片 | 可恢复可选字段类型问题诊断；坏附件跳过但不丢 item；不下载/清洗 | `standard_fields_test.mbt`, `attachments_test.mbt`, `entry_display_test.mbt`, `json_feed_test.mbt`, `date_author_boundary_test.mbt`, `samples/jsonfeed11_empty_author_date.json` | user_comment 依规范供人工查看而非读者展示；对扩展键不作任意映射 |
 
 共同边界：`parse(String)` 不知道文档 URL，保留原始相对引用；
+JSON Feed 的 `next_url` 与 `feed_url` 原文相同会立即诊断；已知文档来源时，
+`parse_with_source` 还会按 RFC 3986 解析两个引用，若 `next_url` 指回声明的
+`feed_url` 或当前文档 URL，清除该分页链接并给 `InvalidJsonFeedField`。
+`Feed.identifier` 仍保留原始 `feed_url`；其他跨响应循环需调用方追踪。
+`samples/jsonfeed11_self_pagination.json`、`json_pagination_test.mbt`
+和 `tools/check_json_pagination_reference.py` 分别固定输入、库输出及 Python URL 对照。
 所有解析入口均接受开头一个 UTF-8 BOM；只有首个 U+FEFF 会被去掉，
 正文里的同字符保留，前有空白或连续两个 BOM 不被宽松接受。JSON 的处理是
 [RFC 8259 §8.1](https://www.rfc-editor.org/rfc/rfc8259#section-8.1)

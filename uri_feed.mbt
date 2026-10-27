@@ -1271,10 +1271,36 @@ fn resolve_json_feed(feed : Feed, source_url : String) -> Feed {
     )
   }
   let next_url = match feed.next_url {
-    Some(raw) =>
-      Some(
-        uri_at(Some(source_url), raw, "json feed next_url", 1, 1, diagnostics),
+    Some(raw) => {
+      let url = uri_at(
+        Some(source_url),
+        raw,
+        "json feed next_url",
+        1,
+        1,
+        diagnostics,
       )
+      // Compare resolved addresses without changing the public, opaque
+      // feed_url identifier. A malformed next_url keeps its own URI diagnostic.
+      match uri_resolve(source_url, raw) {
+        Some(target) => {
+          let declared = match feed.identifier {
+            Some(feed_url) => uri_resolve(source_url, feed_url)
+            None => None
+          }
+          if Some(target) == declared {
+            add_json_diagnostic(diagnostics, None, "next_url equals feed_url")
+            None
+          } else if Some(target) == uri_absolute(source_url) {
+            add_json_diagnostic(diagnostics, None, "next_url equals source_url")
+            None
+          } else {
+            Some(url)
+          }
+        }
+        None => Some(url)
+      }
+    }
     None => None
   }
   let hubs : Array[Hub] = []
