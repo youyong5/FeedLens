@@ -30,7 +30,7 @@ fn uri_scheme_char(character : Char, first : Bool) -> Bool {
 }
 
 ///|
-/// RFC 3986 pchar, with the existing Unicode IRI acceptance policy.
+/// RFC 3986 pchar with RFC 3987's ucschar extension.
 /// Percent escapes are checked separately while scanning the full input.
 fn uri_path_character(c : Char) -> Bool {
   uri_reg_name_char(c) || c == ':' || c == '@' || c == '/'
@@ -38,6 +38,11 @@ fn uri_path_character(c : Char) -> Bool {
 
 ///|
 fn uri_query_character(c : Char) -> Bool {
+  uri_path_character(c) || c == '?' || uri_iprivate(c.to_int())
+}
+
+///|
+fn uri_fragment_character(c : Char) -> Bool {
   uri_path_character(c) || c == '?'
 }
 
@@ -136,7 +141,7 @@ fn uri_parts(text : String) -> UriParts? {
   match fragment {
     Some(value) =>
       for c in date_chars(value) {
-        if !uri_query_character(c) {
+        if !uri_fragment_character(c) {
           return None
         }
       }
@@ -450,12 +455,32 @@ fn uri_http_authority_valid(authority : String) -> Bool {
 }
 
 ///|
-/// RFC 3986 reg-name ASCII syntax plus unmodified non-ASCII IRI characters.
-/// Full RFC 3987 Unicode range checks and DNS lookup are not attempted here.
+/// RFC 3987 ucschar; noncharacters at the end of each plane are excluded.
+fn uri_ucschar(code : Int32) -> Bool {
+  if (code >= 0xA0 && code <= 0xD7FF) ||
+    (code >= 0xF900 && code <= 0xFDCF) ||
+    (code >= 0xFDF0 && code <= 0xFFEF) {
+    return true
+  }
+  let plane_tail = code % 0x10000
+  plane_tail <= 0xFFFD &&
+  ((code >= 0x10000 && code <= 0xDFFFD) || (code >= 0xE1000 && code <= 0xEFFFD))
+}
+
+///|
+/// RFC 3987 iprivate is allowed in the query alone.
+fn uri_iprivate(code : Int32) -> Bool {
+  (code >= 0xE000 && code <= 0xF8FF) ||
+  (code >= 0xF0000 && code <= 0xFFFFD) ||
+  (code >= 0x100000 && code <= 0x10FFFD)
+}
+
+///|
+/// RFC 3986 reg-name ASCII syntax plus RFC 3987 iunreserved characters.
 fn uri_reg_name_char(c : Char) -> Bool {
   let code = c.to_int()
   if code >= 128 {
-    return code > 159
+    return uri_ucschar(code)
   }
   match c {
     'a'..<='z'

@@ -62,7 +62,11 @@ URI 合并与去除路径点段以 [RFC 3986 §5.4](https://www.rfc-editor.org/r
 不删除仍可用的 feed 或 item；`uri_character_boundary_test.mbt` 覆盖三种格式。
 HTTP(S) 主机前可选的 userinfo 同样检查 RFC 3986 的 ASCII 字符范围；
 非法 userinfo 的文档来源 URL 返回 `InvalidSourceUrl`。
-Unicode IRI 码点范围的完整验证仍不在此项 ASCII 词法检查之内。
+非 ASCII 码点依 [RFC 3987 §2.2](https://www.rfc-editor.org/rfc/rfc3987#section-2.2)
+的 `ucschar` 检查；`iprivate` 只接受在 query，不把它当作主机、路径、
+fragment 或 userinfo。`uri_wbtest.mbt` 覆盖 BMP 与补充平面的端点，
+`uri_iri_range_test.mbt` 固定三种格式的公开入口结果。此处仍不联网校验
+域名，也不宣称 URI/IRI 所有 scheme 专属语义均通过验证。
 Atom 链接 `href=""`、附件 `href=""`、外链正文 `src=""` 均作为合法的空 IRI
 引用原样保留；已知来源时依自身 `xml:base` 解析为当前基准 URI。缺少该属性与空属性
 不同，纯空白属性不冒充空引用。固定样本 `samples/atom1_empty_iri_references.xml`
