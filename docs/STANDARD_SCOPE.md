@@ -56,6 +56,13 @@ URI 合并与去除路径点段以 [RFC 3986 §5.4](https://www.rfc-editor.org/r
 `uri_rfc3986_source_test.mbt` 再由三个公开格式入口验证链接与附件的实际输出。
 严格解析时 `http:g` 保留为带 scheme 的绝对引用；它不能充当
 `parse_with_source` 的 HTTP(S) 文档 URL，后者仍须有有效主机。
+相对引用的 ASCII 路径、查询和片段字符按 [RFC 3986 §3.3–3.5](https://www.rfc-editor.org/rfc/rfc3986#section-3.3)
+检查：`[`、`]`、`{`、`}`、`|`、`^` 等字符应先百分号转义，片段中的
+第二个 `#` 也不能原样出现。无效引用保留在对应字段，给 `UnresolvedUri`，
+不删除仍可用的 feed 或 item；`uri_character_boundary_test.mbt` 覆盖三种格式。
+HTTP(S) 主机前可选的 userinfo 同样检查 RFC 3986 的 ASCII 字符范围；
+非法 userinfo 的文档来源 URL 返回 `InvalidSourceUrl`。
+Unicode IRI 码点范围的完整验证仍不在此项 ASCII 词法检查之内。
 Atom 链接 `href=""`、附件 `href=""`、外链正文 `src=""` 均作为合法的空 IRI
 引用原样保留；已知来源时依自身 `xml:base` 解析为当前基准 URI。缺少该属性与空属性
 不同，纯空白属性不冒充空引用。固定样本 `samples/atom1_empty_iri_references.xml`

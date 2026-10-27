@@ -105,6 +105,40 @@ test "URI resolution rejects malformed references and bases" {
 }
 
 ///|
+test "RFC 3986 ASCII path query and fragment character boundaries" {
+  let base = "https://example.test/feeds/feed.xml"
+  for
+    bad in [
+      "post[1]", "post|one", "post^one", "post`one", "post{one}", "post?value=[one]",
+      "post?value=one|two", "post#part#two", "post#part[one]", "post#part^one", "https://example.test/feeds/{one}",
+    ] {
+    assert_eq(uri_resolve(base, bad), None)
+  }
+  for
+    (reference, expected) in [
+      ("post%5B1%5D", "https://example.test/feeds/post%5B1%5D"),
+      (
+        "post?value=%5Bone%5D", "https://example.test/feeds/post?value=%5Bone%5D",
+      ),
+      ("post#part%23two", "https://example.test/feeds/post#part%23two"),
+      (
+        "post?x=1/2?y=3#part/one?two", "https://example.test/feeds/post?x=1/2?y=3#part/one?two",
+      ),
+      ("https://[::1]/post", "https://[::1]/post"),
+    ] {
+    assert_eq(uri_resolve(base, reference), Some(expected))
+  }
+  assert_eq(uri_resolve("https://example.test/feeds/[raw]", "post"), None)
+  assert_eq(uri_resolve("https://example.test/feeds/?x={raw}", "post"), None)
+  assert_eq(uri_resolve("https://user|name@example.test/feed", "post"), None)
+  assert_eq(uri_resolve(base, "https://user[name]@example.test/post"), None)
+  assert_eq(
+    uri_resolve("https://user%7Cname:pass@example.test/feed", "post"),
+    Some("https://user%7Cname:pass@example.test/post"),
+  )
+}
+
+///|
 test "HTTP IP-literal hosts follow IPv6 and IPvFuture shapes" {
   for
     host in [
