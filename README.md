@@ -20,6 +20,9 @@ The normalized model keeps summary/description separate from article content,
 preserves author/category/attachment source semantics, retains document order,
 and reports recoverable data-quality diagnostics with locations. Fatal malformed
 or unsupported documents return `ParseError`.
+For RSS, an item without `link` can use its default/true permalink `guid` as
+`Entry.link` when that guid is a valid absolute HTTP(S) URL. Its opaque
+`Entry.identifier` remains the original guid; a separate item `link` wins.
 Attachment URLs and metadata are parsed only; FeedLens never downloads them.
 Feed and item images retain source-specific display roles; they are not
 attachments. JSON Feed `external_url` stays separate from the item permalink.
