@@ -30,6 +30,18 @@ fn uri_scheme_char(character : Char, first : Bool) -> Bool {
 }
 
 ///|
+/// RFC 3986 pchar, with the existing Unicode IRI acceptance policy.
+/// Percent escapes are checked separately while scanning the full input.
+fn uri_path_character(c : Char) -> Bool {
+  uri_reg_name_char(c) || c == ':' || c == '@' || c == '/'
+}
+
+///|
+fn uri_query_character(c : Char) -> Bool {
+  uri_path_character(c) || c == '?'
+}
+
+///|
 fn uri_parts(text : String) -> UriParts? {
   let chars = date_chars(text)
   for index = 0; index < chars.length(); index = index + 1 {
@@ -107,6 +119,29 @@ fn uri_parts(text : String) -> UriParts? {
     authority = Some(date_slice(chars, authority_start, start))
   }
   let path = date_slice(chars, start, end)
+  for c in date_chars(path) {
+    if !uri_path_character(c) {
+      return None
+    }
+  }
+  match query {
+    Some(value) =>
+      for c in date_chars(value) {
+        if !uri_query_character(c) {
+          return None
+        }
+      }
+    None => ()
+  }
+  match fragment {
+    Some(value) =>
+      for c in date_chars(value) {
+        if !uri_query_character(c) {
+          return None
+        }
+      }
+    None => ()
+  }
   Some({ scheme, authority, path, query, fragment, })
 }
 
@@ -359,6 +394,11 @@ fn uri_http_authority_valid(authority : String) -> Bool {
     if chars[index] == '@' {
       if host_start != 0 {
         return false
+      }
+      for position = 0; position < index; position = position + 1 {
+        if !uri_reg_name_char(chars[position]) && chars[position] != ':' {
+          return false
+        }
       }
       host_start = index + 1
     }
