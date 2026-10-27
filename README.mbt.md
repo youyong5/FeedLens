@@ -59,7 +59,7 @@ choice does not imply that producers should emit a BOM.
 | `Feed.authors` | none | direct feed authors | `authors`, otherwise legacy `author` |
 | `Entry.authors` | direct item authors | effective entry authors | item `authors`/`author`, otherwise feed authors |
 | `Feed/Entry.contributors` | none | direct contributors, separate from author inheritance | none |
-| `Feed/Entry.links` | none | ordered Atom link relations and common attributes; malformed MIME and `hreflang` hints produce positioned diagnostics while raw values remain accessible | none |
+| `Feed/Entry.links` | direct channel Atom-namespace `self` links in `Feed.links`; item links not mapped | ordered Atom link relations and common attributes; malformed MIME and `hreflang` hints produce positioned diagnostics while raw values remain accessible | none |
 | `Author.avatar` | none | none | author `avatar` URL |
 | `Feed.categories` | direct channel categories | direct feed categories | none in supported subset |
 | `Feed.images` | direct channel image | direct feed icon/logo | feed icon/favicon |
@@ -278,6 +278,15 @@ The original `parse` and `parse_with_source` feed return types remain unchanged.
 - Channel `title`, `link`, and `description`; item `guid`, `title`, `link`, `description`, and `pubDate`, retained in document order.
 - Channel `pubDate`, `lastBuildDate`, `copyright`, `generator` and nonnegative
   `ttl`; item `comments` and source `url`. Invalid TTL gets a located diagnostic.
+- A direct Atom-namespace `<atom:link rel="self">` on `channel` is retained in
+  `Feed.links` with its declared href and optional metadata. `Feed.link` still
+  means the RSS website link. Registered `self` relation IRI spelling is also
+  recognized; wrong namespace, nested links, item links and other relations
+  remain outside this mapping. With an explicit document URL, relative self
+  hrefs resolve against it; RSS `xml:base` is not applied. An invalid href has
+  a located diagnostic. The archived Hacker News RSS fixture actually supplies
+  this extension; [the smaller boundary sample](samples/rss2_atom_self.xml)
+  tests scope and source resolution.
 - Direct channel `skipHours` and `skipDays` are advisory GMT polling hints, kept in source order in `Feed.skip_hours` and `Feed.skip_days`. A blank/invalid child, more than 24 hours or seven days, or a repeated container gets a located diagnostic; valid earlier values remain usable. Foreign-namespace or nested lookalikes are ignored. The library does not schedule network requests.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
 - XML errors, unsupported roots, unsupported RSS versions, and a missing channel are fatal `ParseError` values.

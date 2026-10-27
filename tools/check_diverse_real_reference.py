@@ -61,6 +61,12 @@ def main() -> None:
         rss_ref.feed.title, rss_ref.feed.link, rss_ref.feed.docs, rss_ref.feed.generator,
         rss_ref.feed.updated,
     )
+    rss_channel = ET.parse(ROOT / "samples" / FILES["rss"]).getroot().find("channel")
+    assert rss_channel is not None
+    rss_self = [node for node in rss_channel.findall("{http://www.w3.org/2005/Atom}link") if node.get("rel") == "self"]
+    assert [(link["rel"], link["href"], link["type"]) for link in rss["links"]] == [
+        (node.get("rel"), node.get("href"), node.get("type")) for node in rss_self
+    ]
     for actual, reference in zip(rss["entries"], rss_ref.entries, strict=True):
         assert (actual["identifier"], actual["title"], actual["link"], actual["published_at"]) == (
             reference.id, reference.title, reference.link, reference.published,

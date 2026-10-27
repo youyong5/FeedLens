@@ -233,7 +233,8 @@ pub struct Hub {
 
 ///|
 /// An Atom link, including relations beyond the convenience alternate link
-/// and enclosure attachment fields. A missing rel is represented as alternate.
+/// and enclosure attachment fields. RSS channel Atom `self` extensions also
+/// use this type. A missing rel is represented as alternate.
 pub struct AtomLink {
   relation : String
   href : String
@@ -952,6 +953,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_link_location : (Int32, Int32)? = None
     let mut channel_description_location : (Int32, Int32)? = None
     let channel_categories : Array[Category] = []
+    let channel_links : Array[AtomLink] = []
     let entries : Array[Entry] = []
     let diagnostics : Array[Diagnostic] = []
 
@@ -1011,6 +1013,17 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             channel_depth = depth + 1
             channel_line = event.span.start.line
             channel_column = event.span.start.column
+          } else if channel_seen &&
+            depth == channel_depth &&
+            atom_element_relation_is(element, "self") &&
+            is_atom_name(element.name, "link") {
+            match atom_link(
+              element, event.span.start.line, event.span.start.column,
+              diagnostics,
+            ) {
+              Some(link) => channel_links.push(link)
+              None => ()
+            }
           } else if channel_seen &&
             depth == channel_depth &&
             is_rss_name(element.name, "item") {
@@ -1229,6 +1242,17 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             channel_depth = depth + 1
             channel_line = event.span.start.line
             channel_column = event.span.start.column
+          } else if channel_seen &&
+            depth == channel_depth &&
+            atom_element_relation_is(element, "self") &&
+            is_atom_name(element.name, "link") {
+            match atom_link(
+              element, event.span.start.line, event.span.start.column,
+              diagnostics,
+            ) {
+              Some(link) => channel_links.push(link)
+              None => ()
+            }
           } else if channel_seen &&
             depth == channel_depth &&
             is_rss_name(element.name, "item") {
@@ -1798,7 +1822,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             next_url: None,
             expired: None,
             hubs: [],
-            links: [],
+            links: channel_links,
             authors: [],
             contributors: [],
             categories: channel_categories,

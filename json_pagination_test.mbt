@@ -36,8 +36,8 @@ test "JSON Feed source-aware pagination rejects resolved self links" {
   assert_eq(document.next_url, None)
   assert_eq(document.diagnostics, no_id.diagnostics)
 
-  let alias = "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Stories\",\"feed_url\":\"feed.json\",\"next_url\":\"https://example.test/feeds/feed.json\",\"items\":[]}"
-  guard @feedlens.parse_with_source(alias, source) is Ok(alias_feed) else {
+  let equivalent_urls = "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"Stories\",\"feed_url\":\"feed.json\",\"next_url\":\"https://example.test/feeds/feed.json\",\"items\":[]}"
+  guard @feedlens.parse_with_source(equivalent_urls, source) is Ok(alias_feed) else {
     fail("expected JSON Feed with equivalent declared URLs")
   }
   assert_eq(alias_feed.identifier, Some("feed.json"))

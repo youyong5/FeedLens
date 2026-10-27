@@ -603,6 +603,14 @@ fn UriXmlState::on_element(
       self.channel_depth = depth + 1
     } else if self.channel_depth > 0 &&
       depth == self.channel_depth &&
+      is_atom_name(element.name, "link") &&
+      atom_element_relation_is(element, "self") {
+      match atom_iri_attribute(element, "href") {
+        Some(href) => self.resolve_atom_link(href, base, line, column, false)
+        None => ()
+      }
+    } else if self.channel_depth > 0 &&
+      depth == self.channel_depth &&
       is_rss_name(element.name, "item") {
       self.entry_index = self.entry_index + 1
       self.entry_depth = depth + 1
