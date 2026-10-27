@@ -139,6 +139,66 @@ test "RFC 3986 ASCII path query and fragment character boundaries" {
 }
 
 ///|
+test "RFC 3987 Unicode IRI ranges and query-only private characters" {
+  let base = "https://example.test/feeds/feed.xml"
+  let private = "\uE000"
+  for
+    bad in [
+      "post\uFDD0",
+      "post\uFFFE",
+      "post" + private,
+      "post#part" + private,
+      "post?x=\uFDD0",
+      "post?x=\uFFF0",
+      "https://host\uE000.test/post",
+    ] {
+    assert_eq(uri_resolve(base, bad), None)
+  }
+  assert_eq(
+    uri_resolve(base, "文章/一?版=全#段"),
+    Some("https://example.test/feeds/文章/一?版=全#段"),
+  )
+  assert_eq(
+    uri_resolve(base, "emoji-😀?x=" + private + "#part"),
+    Some("https://example.test/feeds/emoji-😀?x=" + private + "#part"),
+  )
+  assert_eq(
+    uri_resolve(base, "post?x=\uF8FF"),
+    Some("https://example.test/feeds/post?x=\uF8FF"),
+  )
+  assert_eq(
+    uri_resolve(base, "post\uF900"),
+    Some("https://example.test/feeds/post\uF900"),
+  )
+  assert_eq(
+    uri_resolve(base, "post\uFFEF"),
+    Some("https://example.test/feeds/post\uFFEF"),
+  )
+  assert_eq(uri_resolve("https://\uE000.test/feed", "post"), None)
+  let last_plane_one = (0x1FFFD).unsafe_to_char().to_string()
+  let noncharacter = (0x1FFFE).unsafe_to_char().to_string()
+  let plane_e_gap = (0xE0000).unsafe_to_char().to_string()
+  let plane_e_start = (0xE1000).unsafe_to_char().to_string()
+  let private_plane = (0xF0000).unsafe_to_char().to_string()
+  assert_eq(
+    uri_resolve(base, "post" + last_plane_one),
+    Some("https://example.test/feeds/post" + last_plane_one),
+  )
+  assert_eq(uri_resolve(base, "post" + noncharacter), None)
+  assert_eq(uri_resolve(base, "post" + plane_e_gap), None)
+  assert_eq(
+    uri_resolve(base, "post" + plane_e_start),
+    Some("https://example.test/feeds/post" + plane_e_start),
+  )
+  assert_eq(uri_resolve(base, "post" + private_plane), None)
+  assert_eq(
+    uri_resolve(base, "post?x=" + private_plane),
+    Some("https://example.test/feeds/post?x=" + private_plane),
+  )
+  assert_eq(uri_resolve(base, "post#" + private_plane), None)
+}
+
+///|
 test "HTTP IP-literal hosts follow IPv6 and IPvFuture shapes" {
   for
     host in [
