@@ -51,6 +51,11 @@ JSON Feed 的 `next_url` 与 `feed_url` 原文相同会立即诊断；已知文�
 外链 `content src`，以及 feed/entry/source 作者与贡献者 `uri` 的元素级 `xml:base`；Atom 结构化
 XHTML 内部 URI 仍由调用方依据 `base_references`/内部 `xml:base` 自行处理。
 `parse_document_with_source` 对独立 Atom Entry 应用相同的来源语义。
+URI 合并与去除路径点段以 [RFC 3986 §5.4](https://www.rfc-editor.org/rfc/rfc3986#section-5.4)
+的正常和异常参考例为固定预期；`uri_wbtest.mbt` 覆盖这些例子，
+`uri_rfc3986_source_test.mbt` 再由三个公开格式入口验证链接与附件的实际输出。
+严格解析时 `http:g` 保留为带 scheme 的绝对引用；它不能充当
+`parse_with_source` 的 HTTP(S) 文档 URL，后者仍须有有效主机。
 Atom 链接 `href=""`、附件 `href=""`、外链正文 `src=""` 均作为合法的空 IRI
 引用原样保留；已知来源时依自身 `xml:base` 解析为当前基准 URI。缺少该属性与空属性
 不同，纯空白属性不冒充空引用。固定样本 `samples/atom1_empty_iri_references.xml`
