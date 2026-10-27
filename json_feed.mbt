@@ -287,14 +287,21 @@ fn json_author(
 }
 
 ///|
-/// Returns whether either JSON Feed author spelling was declared. An empty
+/// Returns whether the version's author spelling was declared. JSON Feed 1.0
+/// uses `author`; 1.1 prefers `authors` over its deprecated `author`. An empty
 /// `authors` array is intentional and therefore suppresses legacy `author`.
 fn json_authors(
   object : Map[String, Json],
+  version : String,
   diagnostics : Array[Diagnostic],
   item_index : Int32?,
 ) -> (Bool, Array[Author]) {
-  match json_field(object, "authors") {
+  let plural = if version == JSON_FEED_1_1 {
+    json_field(object, "authors")
+  } else {
+    None
+  }
+  match plural {
     Some(Array(values)) => {
       let authors : Array[Author] = []
       for value in values {
@@ -553,7 +560,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
   } else {
     None
   }
-  let (_, feed_authors) = json_authors(object, diagnostics, None)
+  let (_, feed_authors) = json_authors(object, version, diagnostics, None)
   let images = json_feed_images(object, diagnostics)
   let hubs = json_hubs(object, diagnostics)
   let entries : Array[Entry] = []
@@ -606,6 +613,7 @@ fn parse_json_feed_value(root : Json) -> Result[Feed, ParseError] {
     }
     let (declared_authors, item_authors) = json_authors(
       item,
+      version,
       diagnostics,
       Some(index),
     )
