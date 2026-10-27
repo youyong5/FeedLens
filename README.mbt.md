@@ -239,8 +239,12 @@ fragment, and dot-segment rules. RSS and JSON Feed use the caller-supplied docum
 Atom additionally applies the inherited `xml:base` on the feed, entry, link,
 and any intervening XML elements, matching the XML namespace URI rather than
 an arbitrary `base` attribute. JSON Feed's declared `feed_url` and
-`home_page_url` are **not** substituted as a fetch-location base. Without a
-usable base, or for a malformed URI reference, the raw field is retained and
+`home_page_url` are **not** substituted as a fetch-location base. With a
+source URL, `next_url` is withheld and diagnosed if its resolved address equals
+the declared `feed_url` or the document URL. The public `Feed.identifier`
+remains the raw `feed_url`; other pagination cycles across responses remain
+the caller's responsibility. Without a usable base, or for a malformed URI
+reference, the raw field is retained and
 `UnresolvedUri` is recorded; XML diagnostics point to the relevant element,
 whereas JSON semantic diagnostics are `(1, 1)`. An invalid explicit source URL
 is a fatal `InvalidSourceUrl` error. No URI is fetched.
@@ -351,7 +355,7 @@ network access, or HTML rendering.
   does not define `language`, so 1.0 keys of that name are ignored.
 - Both content fields are legal and independently exposed as `Entry.content_html` and `Entry.content_text`; `Entry.content` remains the HTML-preferred convenience field. An item must have one valid content field. A malformed/missing item `id` or content discards that item with `InvalidJsonFeedItem`; a JSON number id is retained as its JSON spelling. Repeated usable item IDs receive `InvalidJsonFeedItem(_, "duplicate id")` without discarding entries; comparison is case-sensitive and uses the exact public identifier, including number-to-string recovery and any declared surrounding spaces. Optional malformed item fields are diagnosed and become `None`.
 - Supports `authors` arrays and deprecated `author` objects at feed/item level. If `authors` is present it wins, even over `author`; undeclared item authors inherit feed authors. A JSON Feed author needs a non-blank `name`, `url`, or `avatar`; URL and avatar remain separate public fields.
-- `next_url`, `expired`, and ordered `hubs` are parsed but never followed or subscribed to. An equal `feed_url`/`next_url` is diagnosed.
+- `next_url`, `expired`, and ordered `hubs` are parsed but never followed or subscribed to. Equal raw `feed_url`/`next_url` values are diagnosed; with an explicit source URL, resolved equality to `feed_url` or the current document also diagnoses and clears `next_url`.
 - Maps item `tags` to ordered categories. Empty tags and malformed optional fields are diagnosed and skipped. Unknown extension keys are ignored.
 - Maps each valid item `attachments` array element in order, preserving URL, MIME type, optional title, integer byte size, and floating-point duration. A malformed attachment is diagnosed without discarding its valid item. Invalid optional metadata is omitted; unknown attachment extension keys are ignored.
 - JSON syntax errors retain a parser position. The core JSON DOM does not retain semantic-field spans, so JSON Feed field/item diagnostics use document position `(1, 1)`; XML diagnostics continue to point to their source elements.
