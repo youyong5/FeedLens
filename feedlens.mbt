@@ -1818,13 +1818,29 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
 }
 
 ///|
+fn feed_input_without_bom(input : String) -> String {
+  if input.has_prefix("\uFEFF") {
+    let without = uri_drop(input, 1)
+    if without.has_prefix("\uFEFF") {
+      input
+    } else {
+      without
+    }
+  } else {
+    input
+  }
+}
+
+///|
 /// Parse one RSS 2.0, Atom 1.0, or JSON Feed 1.0/1.1 document.
 ///
 /// Inputs whose first non-whitespace character is `<` are treated as XML; all
 /// other inputs are treated as JSON. XML failures and JSON syntax/structural
 /// failures return `Err`. Recoverable field problems return `Ok` with
-/// diagnostics.
+/// diagnostics. An optional leading U+FEFF byte order mark is ignored for
+/// both formats; U+FEFF elsewhere remains part of the input.
 pub fn parse(input : String) -> Result[Feed, ParseError] {
+  let input = feed_input_without_bom(input)
   if !input.trim().has_prefix("<") {
     return parse_json_feed(input)
   }
@@ -1875,6 +1891,7 @@ pub fn parse(input : String) -> Result[Feed, ParseError] {
 /// signature. Stand-alone entries use the same Atom field, content, and
 /// diagnostic rules as entries inside feeds.
 pub fn parse_document(input : String) -> Result[ParsedDocument, ParseError] {
+  let input = feed_input_without_bom(input)
   match parse(input) {
     Ok(feed) => Ok(FeedDocument(feed))
     Err(UnsupportedRoot(_, Some("http://www.w3.org/2005/Atom"))) =>

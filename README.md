@@ -20,6 +20,8 @@ The normalized model keeps summary/description separate from article content,
 preserves author/category/attachment source semantics, retains document order,
 and reports recoverable data-quality diagnostics with locations. Fatal malformed
 or unsupported documents return `ParseError`.
+All parsing entry points accept a single UTF-8 BOM at the very beginning of
+an RSS, Atom, or JSON Feed string; a later U+FEFF is left in place.
 For RSS, an item without `link` can use its default/true permalink `guid` as
 `Entry.link` when that guid is a valid absolute HTTP(S) URL. Its opaque
 `Entry.identifier` remains the original guid; a separate item `link` wins.

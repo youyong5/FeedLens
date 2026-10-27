@@ -1347,6 +1347,7 @@ pub fn parse_with_source(
   if !uri_source_valid(source_url) {
     return Err(InvalidSourceUrl(source_url))
   }
+  let input = feed_input_without_bom(input)
   match parse(input) {
     Err(error) => Err(error)
     Ok(feed) =>
@@ -1386,6 +1387,7 @@ pub fn parse_document_with_source(
   if !uri_source_valid(source_url) {
     return Err(InvalidSourceUrl(source_url))
   }
+  let input = feed_input_without_bom(input)
   match parse_document(input) {
     Ok(FeedDocument(_)) =>
       match parse_with_source(input, source_url) {

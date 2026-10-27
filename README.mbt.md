@@ -20,6 +20,10 @@ landing page; this document contains the full mapping and boundary specification
 Install the published module with `moon add youyong5/feedlens@0.1.0` and
 import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
 
+All four parsing entry points accept one leading UTF-8 BOM for XML and JSON
+Feed. A U+FEFF elsewhere is preserved; for JSON this reader interoperability
+choice does not imply that producers should emit a BOM.
+
 ## Public model
 
 `Feed` and `Entry` use one vocabulary across the supported formats:
