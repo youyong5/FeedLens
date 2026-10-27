@@ -1,0 +1,5 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:other" xml:base="https://example.test/feeds/">
+<id>urn:schemes:feed</id><title>Categories</title><updated>2026-10-27T00:00:00Z</updated><author><name>Editor</name></author>
+<category term="news" scheme="https://taxonomy.test/topics" label="News"/><category term="code" scheme="urn:taxonomy:code"/><x:category term="ignored" scheme="relative"/>
+<entry xml:base="articles/"><id>urn:schemes:entry</id><title>Item</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content><category term="item" scheme="https://taxonomy.test/items"/><source xml:base="../origin/"><category term="archive" scheme="urn:taxonomy:archive"/></source></entry>
+</feed>

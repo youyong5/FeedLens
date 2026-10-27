@@ -181,10 +181,20 @@ Atom Entry and a genuinely missing link attribute.
 `tools/check_atom_declared_metadata_reference.py` checks a byte-mirrored Atom
 sample with ElementTree for exact declared Person names, category strings,
 link titles and enclosure title. It compares raw values with Native CLI JSON,
+including diagnostics for an empty and a relative category scheme, which are
+not absolute IRIs under RFC 4287 §4.2.2.2. It
 then checks feedparser 6.0.11's feed/entry IDs, feed author name, category
 terms and link titles in their common representation. feedparser normalizes
 one whitespace-only author and does not project the library's effective
 author inheritance here, so neither is claimed as a cross-library match.
+
+`tools/check_atom_category_schemes.py` mirrors a separate legal Atom sample
+with direct feed, entry and source categories. Python ElementTree distinguishes
+the exact Atom namespace from an unrelated extension; Python `urljoin` checks
+that the absolute HTTP and URN schemes are unaffected by nested `xml:base`.
+The script compares the four category schemes and absence of diagnostics with
+Native CLI JSON. A library regression separately checks malformed relative
+schemes on an independent Atom Entry and preserves their raw values.
 
 `tools/check_json_author_versions.py` mirrors two saved JSON Feed samples with
 the public library tests and uses Python's JSON decoder to derive versioned

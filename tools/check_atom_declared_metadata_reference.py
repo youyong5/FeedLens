@@ -55,7 +55,11 @@ def main() -> None:
         cwd=ROOT, capture_output=True, text=True, check=True,
     )
     actual = json.loads(result.stdout)
-    assert actual["diagnostics"] == [] and len(actual["entries"]) == 3
+    assert len(actual["entries"]) == 3
+    assert actual["diagnostics"] == [
+        {"kind": {"type": "InvalidCategory", "message": "atom category scheme must be an absolute IRI"}, "line": 2, "column": 25},
+        {"kind": {"type": "InvalidCategory", "message": "atom category scheme must be an absolute IRI"}, "line": 3, "column": 118},
+    ]
     assert actual["authors"][0]["name"] == ""
     assert actual["categories"][0]["term"] == feed_category.attrib["term"]
     assert actual["categories"][0]["label"] == feed_category.attrib["label"]
