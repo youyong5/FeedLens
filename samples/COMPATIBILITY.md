@@ -185,3 +185,11 @@ then checks feedparser 6.0.11's feed/entry IDs, feed author name, category
 terms and link titles in their common representation. feedparser normalizes
 one whitespace-only author and does not project the library's effective
 author inheritance here, so neither is claimed as a cross-library match.
+
+`tools/check_json_author_versions.py` mirrors two saved JSON Feed samples with
+the public library tests and uses Python's JSON decoder to derive versioned
+author selection and feed-to-item inheritance. It compares that intersection
+with Native CLI JSON, including the deprecated 1.1 singular field, an explicit
+empty 1.1 array, and a 1.0 document carrying future-version `authors` keys.
+This tests version semantics and reader recovery, not a claim that the mixed
+1.0 document is a conforming publisher example or that feedparser parses JSON.

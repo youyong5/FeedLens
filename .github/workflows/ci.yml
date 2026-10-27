@@ -60,6 +60,8 @@ jobs:
         run: python3 tools/check_json_date_validation.py
       - name: Compare JSON Feed item identity and duplicate diagnostics
         run: python3 tools/check_json_identity_reference.py
+      - name: Compare JSON Feed versioned author precedence and inheritance
+        run: python3 tools/check_json_author_versions.py
       - name: Compare JSON Feed pagination URL equivalence with Python
         run: python3 tools/check_json_pagination_reference.py
       - name: Compare RSS date diagnostics with Python mail-date parsing
