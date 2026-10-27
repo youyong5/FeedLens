@@ -449,7 +449,10 @@ fn uri_valid_absolute(parts : UriParts) -> Bool {
       if scheme.to_lower() == "http" || scheme.to_lower() == "https" {
         match parts.authority {
           Some(authority) => uri_http_authority_valid(authority)
-          None => false
+          // RFC 3986 allows a rootless absolute URI such as "http:g" as a
+          // reference. Document source URLs are checked separately and must
+          // still have a valid HTTP(S) authority.
+          None => !parts.path.is_empty() && !parts.path.has_prefix("/")
         }
       } else {
         true
