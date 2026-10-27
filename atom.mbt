@@ -75,6 +75,28 @@ fn atom_relation_is(relation : String, name : String) -> Bool {
 }
 
 ///|
+/// RFC 4287 section 4.2.7.2 permits one nonempty IRI path segment with no
+/// colon, or an absolute IRI. A longer relative reference is not a relation.
+fn atom_relation_syntax(value : String) -> Bool {
+  if value.is_empty() {
+    return false
+  }
+  match uri_parts(value) {
+    None => false
+    Some(parts) =>
+      if parts.scheme is Some(_) {
+        uri_valid_absolute(parts)
+      } else {
+        parts.authority is None &&
+        !parts.path.is_empty() &&
+        !parts.path.contains("/") &&
+        parts.query is None &&
+        parts.fragment is None
+      }
+  }
+}
+
+///|
 fn atom_element_relation_is(
   element : @xml.NamespaceElement,
   name : String,
@@ -162,6 +184,9 @@ fn atom_link(
   diagnostics : Array[Diagnostic],
 ) -> AtomLink? {
   let relation = atom_attribute_value(element, "rel").unwrap_or("alternate")
+  if !atom_relation_syntax(relation) {
+    diagnostics.push({ kind: InvalidAtomLink("invalid rel"), line, column, })
+  }
   let href = match atom_iri_attribute(element, "href") {
     Some(href) => href
     None => {

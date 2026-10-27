@@ -1,0 +1,4 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:f</id><title>F</title><updated>2026-10-27T00:00:00Z</updated><author><name>A</name></author>
+<link href="home"/><link rel="custom" href="custom"/><link rel="urn:example:relation" href="urn"/><link rel="https://例子.test/关系" href="iri"/>
+<link rel="" href="empty"/><link rel="bad/path" href="path"/><link rel="?query" href="query"/><link rel="bad#fragment" href="fragment"/><link rel="bad rel" href="space"/><link rel="https:///missing-host" href="host"/>
+<entry><id>urn:e</id><title>E</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content><link rel="related" href="relative"/><source><link rel="../relative" href="source"/></source></entry></feed>

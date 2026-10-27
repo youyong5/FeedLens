@@ -42,6 +42,8 @@ raw references, and neither entry point fetches URLs.
 Atom feed/entry/source `links` retain relations such as `self` and `related`; `link` remains the
 alternate convenience value. Aggregated entries expose original feed metadata through
 `Entry.atom_source`, including its subtitle, generator, links and images.
+An Atom `rel` must be one nonempty relation name or an absolute IRI; malformed
+declarations remain in `links` with a located `InvalidAtomLink` diagnostic.
 `parse_with_source` resolves source links, generator URI, images and author/contributor
 URIs under nested `xml:base`; `parse` retains the original references. RSS and Atom rights and generator values and JSON
 Feed pagination/hub declarations are visible without following any network links.
