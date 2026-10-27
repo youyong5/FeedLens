@@ -38,11 +38,11 @@ test "RSS blank and wrong-namespace language do not yield a value" {
 test "Atom xml:lang inherits, overrides, and explicitly resets" {
   let input =
     #|<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:fake="urn:fake" xml:lang="en-US">
-    #|<a:id>f</a:id><a:title>T</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:author><a:name>N</a:name></a:author>
-    #|<a:entry><a:id>1</a:id><a:title>One</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="one"/></a:entry>
-    #|<a:entry xml:lang="fr"><a:id>2</a:id><a:title>Deux</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="two"/></a:entry>
-    #|<a:entry xml:lang=""><a:id>3</a:id><a:title>Three</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="three"/></a:entry>
-    #|<a:entry fake:lang="de"><a:id>4</a:id><a:title>Four</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="four"/></a:entry>
+    #|<a:id>urn:fixture:f</a:id><a:title>T</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:author><a:name>N</a:name></a:author>
+    #|<a:entry><a:id>urn:fixture:1</a:id><a:title>One</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="one"/></a:entry>
+    #|<a:entry xml:lang="fr"><a:id>urn:fixture:2</a:id><a:title>Deux</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="two"/></a:entry>
+    #|<a:entry xml:lang=""><a:id>urn:fixture:3</a:id><a:title>Three</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="three"/></a:entry>
+    #|<a:entry fake:lang="de"><a:id>urn:fixture:4</a:id><a:title>Four</a:title><a:updated>2026-10-19T00:00:00Z</a:updated><a:link href="four"/></a:entry>
     #|</a:feed>
   guard @feedlens.parse_with_source(input, "https://example.test/feed.atom")
     is Ok(feed) else {

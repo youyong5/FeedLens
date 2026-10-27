@@ -196,6 +196,17 @@ The script compares the four category schemes and absence of diagnostics with
 Native CLI JSON. A library regression separately checks malformed relative
 schemes on an independent Atom Entry and preserves their raw values.
 
+`tools/check_atom_id_reference.py` mirrors a separate Atom ID boundary sample.
+Python ElementTree reads feed, entry and source IDs without normalization;
+`urllib.parse.urlsplit` checks their common absolute-vs-relative intersection.
+Native CLI keeps the raw ID text, gives positioned diagnostics for relative or
+whitespace-contaminated values, and distinguishes an empty required entry ID.
+MoonBit regression additionally checks that `parse_with_source` and standalone
+Entry parsing never resolve an ID against `xml:base`. The pre-existing MIME,
+XHTML and body tests now use absolute URNs in their synthetic entries; this
+does not change the behavior or URLs under test. Neither Python's URL parser
+nor FeedLens claims to validate the full RFC 3987 IRI grammar.
+
 `tools/check_json_author_versions.py` mirrors two saved JSON Feed samples with
 the public library tests and uses Python's JSON decoder to derive versioned
 author selection and feed-to-item inheritance. It compares that intersection

@@ -1,11 +1,11 @@
 ///|
 test "Atom MIME parameters classify bodies without losing original type" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>text</id><title>Text</title><updated>2026-10-23T00:00:00Z</updated><content type="TEXT/PLAIN; charset=&quot;UTF-8&quot;; note=&quot;a;b\&quot;c&quot;">A &amp; B</content></entry>
-    #|<entry><id>xml</id><title>XML</title><updated>2026-10-23T00:00:00Z</updated><content type="Application/Thing+XML; charset=utf-8"><root xmlns="urn:payload">ok</root></content></entry>
-    #|<entry><id>binary</id><title>Binary</title><updated>2026-10-23T00:00:00Z</updated><summary>Binary file</summary><content type="IMAGE/PNG; name=&quot;pic;a.png&quot;">AQID/w==</content></entry>
-    #|<entry><id>external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="media/pic.png" type="image/png; name=&quot;pic;a.png&quot;"/></entry>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:text</id><title>Text</title><updated>2026-10-23T00:00:00Z</updated><content type="TEXT/PLAIN; charset=&quot;UTF-8&quot;; note=&quot;a;b\&quot;c&quot;">A &amp; B</content></entry>
+    #|<entry><id>urn:fixture:xml</id><title>XML</title><updated>2026-10-23T00:00:00Z</updated><content type="Application/Thing+XML; charset=utf-8"><root xmlns="urn:payload">ok</root></content></entry>
+    #|<entry><id>urn:fixture:binary</id><title>Binary</title><updated>2026-10-23T00:00:00Z</updated><summary>Binary file</summary><content type="IMAGE/PNG; name=&quot;pic;a.png&quot;">AQID/w==</content></entry>
+    #|<entry><id>urn:fixture:external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="media/pic.png" type="image/png; name=&quot;pic;a.png&quot;"/></entry>
     #|</feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries.length(), 4)
@@ -31,12 +31,12 @@ test "Atom MIME parameters classify bodies without losing original type" {
 ///|
 test "invalid Atom MIME parameters diagnose without swallowing other entries" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>missing</id><title>Missing</title><updated>2026-10-23T00:00:00Z</updated><content type="text/plain; charset">bad</content></entry>
-    #|<entry><id>trailing</id><title>Trailing</title><updated>2026-10-23T00:00:00Z</updated><content type="image/png; name=x;">AQID</content></entry>
-    #|<entry><id>quote</id><title>Quote</title><updated>2026-10-23T00:00:00Z</updated><content type="application/xml; charset=&quot;UTF-8">bad</content></entry>
-    #|<entry><id>external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="asset" type="image/png; name="/></entry>
-    #|<entry><id>good</id><title>Good</title><updated>2026-10-23T00:00:00Z</updated><content type="text/plain; charset=UTF-8">good</content></entry>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:missing</id><title>Missing</title><updated>2026-10-23T00:00:00Z</updated><content type="text/plain; charset">bad</content></entry>
+    #|<entry><id>urn:fixture:trailing</id><title>Trailing</title><updated>2026-10-23T00:00:00Z</updated><content type="image/png; name=x;">AQID</content></entry>
+    #|<entry><id>urn:fixture:quote</id><title>Quote</title><updated>2026-10-23T00:00:00Z</updated><content type="application/xml; charset=&quot;UTF-8">bad</content></entry>
+    #|<entry><id>urn:fixture:external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="asset" type="image/png; name="/></entry>
+    #|<entry><id>urn:fixture:good</id><title>Good</title><updated>2026-10-23T00:00:00Z</updated><content type="text/plain; charset=UTF-8">good</content></entry>
     #|</feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries.length(), 5)

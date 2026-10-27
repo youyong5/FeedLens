@@ -30,6 +30,27 @@ fn atom_date_value(
 }
 
 ///|
+// Atom ids are stable absolute IRIs. Keep malformed declarations in the
+// public model, but never turn a relative id into a source-dependent URL.
+fn atom_id_value(
+  raw : String,
+  owner : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> String? {
+  match non_blank_text(raw) {
+    Some(id) => {
+      if uri_absolute(id) is None {
+        diagnostics.push({ kind: InvalidAtomId(owner), line, column, })
+      }
+      Some(id)
+    }
+    None => None
+  }
+}
+
+///|
 fn atom_alternate_link(element : @xml.NamespaceElement) -> String? {
   let rel = atom_attribute_value(element, "rel")
   let href = atom_iri_attribute(element, "href")
@@ -2289,7 +2310,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
             } else if capture_in_source {
               match field {
-                "id" => source_id = non_blank_text(captured_text)
+                "id" => source_id = atom_id_value(
+                  captured_text, "source id", capture_line, capture_column,
+                  diagnostics,
+                )
                 "title" => {
                   source_title = Some(captured_text)
                   source_title_kind = capture_text_kind
@@ -2337,7 +2361,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
             } else if capture_in_entry {
               match field {
-                "id" => entry_id = non_blank_text(captured_text)
+                "id" => entry_id = atom_id_value(
+                  captured_text, "entry id", capture_line, capture_column,
+                  diagnostics,
+                )
                 "title" => {
                   entry_title = Some(captured_text)
                   entry_title_kind = capture_text_kind
@@ -2370,7 +2397,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
             } else {
               match field {
-                "id" => feed_id = non_blank_text(captured_text)
+                "id" => feed_id = atom_id_value(
+                  captured_text, "feed id", capture_line, capture_column,
+                  diagnostics,
+                )
                 "title" => {
                   feed_title = Some(captured_text)
                   feed_title_kind = capture_text_kind

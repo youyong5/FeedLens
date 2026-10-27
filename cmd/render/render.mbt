@@ -108,6 +108,7 @@ fn diagnostic_text(kind : @feedlens.DiagnosticKind) -> String {
     InvalidRssField(field) => "invalid RSS field: " + field
     UnnormalizedRssDate(field) => "unnormalized RSS date: " + field
     InvalidAtomLink(message) => "invalid Atom link: " + message
+    InvalidAtomId(field) => "invalid Atom id: " + field
     InvalidAtomDate(field) => "invalid Atom date: " + field
     InvalidAtomOrder(field) => "invalid Atom order: " + field
     UnresolvedUri(field) => "unresolved URI: " + field
@@ -554,6 +555,7 @@ fn diagnostic_kind_json(kind : @feedlens.DiagnosticKind) -> Json {
       { "type": "UnnormalizedRssDate", "field": field }
     InvalidAtomLink(message) =>
       { "type": "InvalidAtomLink", "message": message }
+    InvalidAtomId(field) => { "type": "InvalidAtomId", "field": field }
     InvalidAtomDate(field) => { "type": "InvalidAtomDate", "field": field }
     InvalidAtomOrder(field) => { "type": "InvalidAtomOrder", "field": field }
     UnresolvedUri(field) => { "type": "UnresolvedUri", "field": field }

@@ -53,7 +53,7 @@ test "RSS invalid image dimensions are diagnostic, required fields decide retent
 test "Atom icon and logo retain distinct roles and inherited xml:base" {
   let input =
     #|<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:bad="urn:bad" xml:base="https://example.test/assets/">
-    #|<a:id>f</a:id><a:title>T</a:title><a:updated>2026-10-19T00:00:00Z</a:updated>
+    #|<a:id>urn:fixture:f</a:id><a:title>T</a:title><a:updated>2026-10-19T00:00:00Z</a:updated>
     #|<bad:icon>wrong.png</bad:icon><a:icon xml:base="icons/">small.png</a:icon>
     #|<a:logo xml:base="../brands/">wide.png</a:logo>
     #|</a:feed>
@@ -78,7 +78,7 @@ test "Atom icon and logo retain distinct roles and inherited xml:base" {
 test "Atom blank, duplicate, nested, and unresolvable visuals have located diagnostics" {
   let input =
     #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:bad">
-    #|<id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated>
+    #|<id>urn:fixture:f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated>
     #|<icon> </icon><icon>duplicate.png</icon><logo><x:span>hidden</x:span></logo>
     #|</feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
@@ -99,7 +99,7 @@ test "Atom blank, duplicate, nested, and unresolvable visuals have located diagn
     }),
   )
   let bad_uri =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated>
     #|<icon xml:base="http://[bad">relative.png</icon></feed>
   guard @feedlens.parse_with_source(bad_uri, "https://example.test/feed.atom")
     is Ok(unresolved) else {
@@ -139,7 +139,7 @@ test "JSON Feed icon and favicon retain separate roles and invalid types are dia
 
 ///|
 test "Absent feed visuals stay empty and RSS image URI errors point to their fields" {
-  let atom = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated></feed>"
+  let atom = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:fixture:f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated></feed>"
   guard @feedlens.parse(atom) is Ok(atom_feed) else { fail("expected Atom") }
   assert_eq(atom_feed.images, [])
   let json = "{\"version\":\"https://jsonfeed.org/version/1.1\",\"title\":\"T\",\"items\":[]}"

@@ -9,7 +9,7 @@ pub struct Diagnostic {
 } derive(Debug, Eq)
 
 ///|
-/// The kind of recoverable RSS data problem.
+/// The kind of recoverable feed data problem.
 pub enum DiagnosticKind {
   MissingChannelField(String)
   MissingItemIdentifier(Int32)
@@ -31,6 +31,7 @@ pub enum DiagnosticKind {
   InvalidRssField(String)
   UnnormalizedRssDate(String)
   InvalidAtomLink(String)
+  InvalidAtomId(String)
   InvalidAtomDate(String)
   InvalidAtomOrder(String)
   UnresolvedUri(String)

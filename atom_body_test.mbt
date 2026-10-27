@@ -1,8 +1,8 @@
 ///|
 test "Atom external content retains src and resolves nested xml:base only with source" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xml:base="feeds/"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry xml:base="posts/"><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>Preview</summary><content xml:base="../media/" src="body.xml?x=1#part" type="Application/Atom+XML"/></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xml:base="feeds/"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry xml:base="posts/"><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>Preview</summary><content xml:base="../media/" src="body.xml?x=1#part" type="Application/Atom+XML"/></entry></feed>
   guard @feedlens.parse(xml) is Ok(raw) else { fail("expected Atom") }
   let entry = raw.entries[0]
   assert_eq(entry.content, None)
@@ -30,10 +30,10 @@ test "Atom external content retains src and resolves nested xml:base only with s
 ///|
 test "Atom external content rejects nonempty body and special non-MIME type" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="a"> </content></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="b"><x/></content></entry>
-    #|<entry><id>c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="c" type="html"/></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="a"> </content></entry>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="b"><x/></content></entry>
+    #|<entry><id>urn:fixture:c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="c" type="html"/></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries.length(), 3)
   for entry in feed.entries {
@@ -60,11 +60,11 @@ test "Atom external content rejects nonempty body and special non-MIME type" {
 ///|
 test "Atom text MIME types preserve spelling and do not claim Atom html" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><content type="TEXT/HTML"> &lt;b&gt;A&amp;B&lt;/b&gt; </content></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="text/markdown"><![CDATA[**bold**]]></content></entry>
-    #|<entry><id>c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content type="html">&lt;b&gt;HTML&lt;/b&gt;</content></entry>
-    #|<entry><id>d</id><title>D</title><updated>2026-10-21T00:00:00Z</updated><content type="text/plain"/></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><content type="TEXT/HTML"> &lt;b&gt;A&amp;B&lt;/b&gt; </content></entry>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="text/markdown"><![CDATA[**bold**]]></content></entry>
+    #|<entry><id>urn:fixture:c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content type="html">&lt;b&gt;HTML&lt;/b&gt;</content></entry>
+    #|<entry><id>urn:fixture:d</id><title>D</title><updated>2026-10-21T00:00:00Z</updated><content type="text/plain"/></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries[0].content, Some(" <b>A&B</b> "))
   assert_true(feed.entries[0].content_kind is @feedlens.Text)
@@ -90,8 +90,8 @@ test "Atom text MIME types preserve spelling and do not claim Atom html" {
 ///|
 test "Atom XML MIME body preserves namespace, attributes, mixed order and no div stripping" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:q="urn:payload" xml:lang="en" xml:base="https://example.test/"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="Application/Thing+XML" xml:lang="fr" xml:base="parts/">before <q:div q:key="A&amp;B">one<q:b/>two</q:div> after</content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:q="urn:payload" xml:lang="en" xml:base="https://example.test/"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="Application/Thing+XML" xml:lang="fr" xml:base="parts/">before <q:div q:key="A&amp;B">one<q:b/>two</q:div> after</content></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   let entry = feed.entries[0]
   assert_eq(entry.content, None)
@@ -111,11 +111,11 @@ test "Atom XML MIME body preserves namespace, attributes, mixed order and no div
 ///|
 test "Atom Base64 provides exact bytes, requires summary and rejects malformed encoding" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="IMAGE/PNG"> AQID
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="IMAGE/PNG"> AQID
     #|/w== </content></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="application/octet-stream">%%%bad</content></entry>
-    #|<entry><id>c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content type="application/octet-stream"/></entry></feed>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="application/octet-stream">%%%bad</content></entry>
+    #|<entry><id>urn:fixture:c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content type="application/octet-stream"/></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries[0].content, None)
   guard feed.entries[0].atom_body
@@ -150,10 +150,10 @@ test "Atom Base64 provides exact bytes, requires summary and rejects malformed e
 ///|
 test "Atom Base64 rejects interior spaces, missing padding, and nested XML" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQ ID</content></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQI</content></entry>
-    #|<entry><id>c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream"><b>AQID</b></content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQ ID</content></entry>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream">AQI</content></entry>
+    #|<entry><id>urn:fixture:c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="application/octet-stream"><b>AQID</b></content></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   for entry in feed.entries {
     assert_eq(entry.atom_body, None)
@@ -176,10 +176,10 @@ test "Atom Base64 rejects interior spaces, missing padding, and nested XML" {
 ///|
 test "Atom content requires correct namespace and rejects composite MIME type" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:other="urn:other"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><link href="https://example.test/a"/><other:content>ignored</other:content></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="multipart/mixed">AA==</content></entry>
-    #|<entry><id>c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content other:src="not-an-external-reference">inline</content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:other="urn:other"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><link href="https://example.test/a"/><other:content>ignored</other:content></entry>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content type="multipart/mixed">AA==</content></entry>
+    #|<entry><id>urn:fixture:c</id><title>C</title><updated>2026-10-21T00:00:00Z</updated><content other:src="not-an-external-reference">inline</content></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries[0].atom_body, None)
   assert_eq(feed.entries[1].atom_body, None)
@@ -198,8 +198,8 @@ test "Atom content requires correct namespace and rejects composite MIME type" {
 ///|
 test "Atom external body keeps raw src and reports unresolved scoped base" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry xml:base="http:///bad"><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="body.xml" type="application/xml"/></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry xml:base="http:///bad"><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src="body.xml" type="application/xml"/></entry></feed>
   guard @feedlens.parse_with_source(xml, "https://example.test/feed.atom")
     is Ok(feed) else {
     fail("expected recoverable URI diagnostics")
@@ -226,8 +226,8 @@ test "Atom external body keeps raw src and reports unresolved scoped base" {
 ///|
 test "Atom XML media keeps comments, processing instructions and several roots" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:p="urn:p"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="text/xml"><p:a/>mid<!--note--><?step go?><p:b/></content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:p="urn:p"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="text/xml"><p:a/>mid<!--note--><?step go?><p:b/></content></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   guard feed.entries[0].atom_body
     is Some(@feedlens.InlineXml(fragment, "text/xml")) else {
@@ -241,9 +241,9 @@ test "Atom XML media keeps comments, processing instructions and several roots" 
 ///|
 test "Atom whitespace-only external src and nested MIME text get positioned diagnostics" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src=" " type="application/xml"/></entry>
-    #|<entry><id>b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="text/markdown">one<b>two</b></content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:a</id><title>A</title><updated>2026-10-21T00:00:00Z</updated><summary>S</summary><content src=" " type="application/xml"/></entry>
+    #|<entry><id>urn:fixture:b</id><title>B</title><updated>2026-10-21T00:00:00Z</updated><content type="text/markdown">one<b>two</b></content></entry></feed>
   guard @feedlens.parse(xml) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.entries[0].atom_body, None)
   assert_eq(feed.entries[1].atom_body, None)
@@ -264,7 +264,7 @@ test "Atom whitespace-only external src and nested MIME text get positioned diag
 ///|
 test "malformed inline XML is a fatal XML error" {
   let xml =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="application/xml"><a></content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="application/xml"><a></content></entry></feed>
   assert_true(@feedlens.parse(xml) is Err(@feedlens.InvalidXml(_, _, _)))
 }
