@@ -115,6 +115,8 @@ jobs:
         run: |
           moon run --target native cmd/main samples/rss2_compat.xml
           moon run --target native cmd/main samples/atom1_compat.xml
+      - name: Check native CLI error diagnostics
+        run: python3 tools/check_cli_errors.py
       - name: Emit JSON Feed normalized JSON
         run: |
           moon run --target native cmd/main --json samples/jsonfeed11_compat.json > feedlens.json

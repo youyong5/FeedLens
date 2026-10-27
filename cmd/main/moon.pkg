@@ -9,7 +9,6 @@ import {
 pkgtype(kind: "executable")
 
 options(
-  "native-stub": [ "stderr.c" ],
   targets: {
     "stderr_native.mbt": [ "native", "llvm" ],
     "stderr_js.mbt": [ "js" ],
