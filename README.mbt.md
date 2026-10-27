@@ -37,6 +37,7 @@ import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
 | `Feed.rights`, `Feed.generator` | channel `copyright`, `generator` | feed `rights`, `generator` | none |
 | `Feed.next_url`, `Feed.expired`, `Feed.hubs` | none | none | `next_url`, `expired`, `hubs` |
 | `Entry.identifier` | non-blank `guid`, otherwise non-blank `link` | entry `id` | item `id` |
+| `Entry.link` | item `link`; if absent, an HTTP(S) `guid` with default/true `isPermaLink` and a valid absolute URL | first alternate `link` | item `url` |
 | `Entry.description` | item `description` | entry `summary` | `summary` |
 | `Entry.content` | Content Module `content:encoded` | inline text/HTML/XHTML display string; not XML/binary/external bodies | `content_html`, otherwise `content_text` |
 | `Entry.content_source` | none | external `content src`, raw with `parse`, resolved with `parse_with_source` | none |
@@ -273,7 +274,7 @@ The original `parse` and `parse_with_source` feed return types remain unchanged.
 - Namespace-aware matching: elements in other namespaces, or at another hierarchy level, never fill RSS core fields.
 - XML errors, unsupported roots, unsupported RSS versions, and a missing channel are fatal `ParseError` values.
 - Missing or whitespace-only fields are recoverable and become `None`. `Feed.diagnostics` reports each missing required channel field and an item with neither a usable title nor a description. A blank channel field diagnostic points at that field; an absent one points at `<channel>`. An item-content diagnostic points at `<item>`. A valid title-only or description-only item may have no identifier.
-- An item's `identifier` is its non-blank `guid`, falling back to its non-blank `link`. The `guid` value remains opaque; `guid_is_permalink` preserves the declared `isPermaLink` role (default true for a usable guid), without fetching or resolving the identifier. Unknown attribute values receive `InvalidRssField`.
+- An item's `identifier` is its non-blank `guid`, falling back to its non-blank `link`. The identifier remains opaque and is never resolved. `guid_is_permalink` preserves the declared `isPermaLink` role (default true for a usable guid). When the item has no `link`, a default/true permalink guid fills `Entry.link` only if it is a valid absolute HTTP(S) URL. An explicit `link` always wins, and false/opaque guid values never become links. No URL is fetched. Unknown attribute values receive `InvalidRssField`.
 - RSS item source credit keeps the source channel title separately from its required `url`. The channel's `managingEditor` and `webMaster` contact texts remain separate from entry authors.
 - RSS core fields containing nested XML markup are not flattened: their value becomes `None` and `UnsupportedNestedMarkup` identifies the field location. Plain text, XML entities, and CDATA remain supported.
 - Supports a direct item child named `content:encoded` only when its resolved namespace URI is exactly `http://purl.org/rss/1.0/modules/content/`. Its XML-decoded text or CDATA is exposed as `Entry.content` with `content_kind = Unspecified`; it is independent from `description`. Nested XML is rejected with the same explicit nested-markup diagnostic policy.

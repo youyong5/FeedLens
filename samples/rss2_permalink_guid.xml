@@ -1,0 +1,7 @@
+<rss version="2.0"><channel><title>Stories</title><link>https://example.test/</link><description>News</description>
+<item><title>Default permalink</title><guid>https://example.test/posts/one#part</guid></item>
+<item><title>Explicit permalink</title><guid isPermaLink="true">https://example.test/posts/two</guid></item>
+<item><title>Opaque identifier</title><guid isPermaLink="false">https://example.test/posts/three</guid></item>
+<item><title>Unusable default</title><guid>story-four</guid></item>
+<item><title>Separate link</title><guid>https://example.test/posts/five</guid><link>articles/five</link></item>
+</channel></rss>

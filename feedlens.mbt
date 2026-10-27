@@ -281,6 +281,8 @@ pub struct Entry {
   title_kind : TextKind
   /// Present only for a successfully captured Atom XHTML title.
   title_xhtml : XhtmlFragment?
+  /// RSS item `link`, or a usable HTTP(S) permalink guid when link is absent.
+  /// Other formats retain their own link mapping.
   link : String?
   /// JSON Feed `external_url` names an outside page, not the item permalink.
   external_url : String?
@@ -614,6 +616,25 @@ pub extend ParseError with Eq::{not_equal, equal}
 ///|
 fn is_rss_name(name : @xml.XmlName, expected : String) -> Bool {
   name.local_name == expected && name.namespace_uri is None
+}
+
+///|
+// A guid may be an arbitrary identifier even when isPermaLink defaults to
+// true. Project it as a link only when it is a usable web URL.
+fn rss_item_link(link : String?, guid : String?, is_permalink : Bool?) -> String? {
+  if link is Some(_) {
+    return link
+  }
+  guard is_permalink is Some(true) else { return None }
+  guard guid is Some(value) else { return None }
+  guard uri_parts(value) is Some(parts) else { return None }
+  guard parts.scheme is Some(scheme) else { return None }
+  if (scheme.to_lower() == "http" || scheme.to_lower() == "https") &&
+    uri_valid_absolute(parts) {
+    Some(value)
+  } else {
+    None
+  }
 }
 
 ///|
@@ -1689,7 +1710,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               title: item_title,
               title_kind: Unspecified,
               title_xhtml: None,
-              link: item_link,
+              link: rss_item_link(item_link, item_guid, item_guid_is_permalink),
               external_url: None,
               language: None,
               description: item_description,
