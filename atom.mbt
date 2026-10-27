@@ -97,6 +97,21 @@ fn atom_relation_syntax(value : String) -> Bool {
 }
 
 ///|
+/// A link may use an empty or relative IRI reference without a document URL.
+/// Reject malformed component text before source-aware resolution is asked for.
+fn atom_href_syntax(value : String) -> Bool {
+  match uri_parts(value) {
+    None => false
+    Some(parts) =>
+      if parts.scheme is Some(_) {
+        uri_valid_absolute(parts)
+      } else {
+        true
+      }
+  }
+}
+
+///|
 fn atom_element_relation_is(
   element : @xml.NamespaceElement,
   name : String,
@@ -199,6 +214,17 @@ fn atom_link(
       }
       return None
     }
+  }
+  if !atom_href_syntax(href) {
+    diagnostics.push({
+      kind: if atom_relation_is(relation, "enclosure") {
+        InvalidAttachment("invalid Atom enclosure href")
+      } else {
+        InvalidAtomLink("invalid href")
+      },
+      line,
+      column,
+    })
   }
   let length = match atom_attribute_value(element, "length") {
     Some(raw) =>

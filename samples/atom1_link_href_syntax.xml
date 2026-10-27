@@ -1,0 +1,2 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:f</id><title>F</title><updated>2026-10-27T00:00:00Z</updated><author><name>A</name></author><link href="bad%2G"/><link rel="self" href=""/>
+<entry><id>urn:e</id><title>E</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content><link href="post[one]"/><link rel="enclosure" href="audio|bad" type="audio/mpeg"/><source><link rel="related" href="bad#first#second"/></source></entry></feed>
