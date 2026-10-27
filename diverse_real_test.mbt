@@ -98,6 +98,10 @@ test "Hacker News RSS projection retains direct metadata and ordered story links
   assert_eq(feed.title, Some("Hacker News: Front Page"))
   assert_eq(feed.docs_url, Some("https://hnrss.org/"))
   assert_eq(feed.generator, Some("hnrss v2.1.1"))
+  assert_eq(feed.links.length(), 1)
+  assert_eq(feed.links[0].relation, "self")
+  assert_eq(feed.links[0].href, "https://hnrss.org/frontpage")
+  assert_eq(feed.links[0].media_type, Some("application/rss+xml"))
   assert_eq(feed.entries.length(), 2)
   assert_eq(feed.entries[0].title, Some("The Plight of the Martian Farmer"))
   assert_eq(

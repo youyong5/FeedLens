@@ -16,7 +16,14 @@ We ran the **complete archived originals** through the current Native CLI before
 
 `diverse_real_test.mbt` embeds byte-matched versions of the saved files for Wasm, JS, and Native. `tools/check_diverse_real_reference.py` checks those mirrors and compares declared fields with independent feedparser 6.0.11 (RSS/Atom) and Python JSON/date parsing (JSON Feed). It checks IDs, titles, ordered links and dates; RSS channel metadata and the two preserved Dublin Core creator names (`zdw`, `amichail`); Atom HTML type and source-level absence of authors; JSON HTML and inherited author. A separate synthetic fixture tests namespace, scope, author ordering and malformed creator boundaries. The source archive's own Mojo parser is not a validator for FeedLens. Neither script compares full source documents against current publishers or proves all optional fields and extension modules.
 
+The archived Hacker News RSS channel declares one Atom-namespace `rel="self"`
+link to `https://hnrss.org/frontpage`. FeedLens now retains it in `Feed.links`
+without changing the RSS website `Feed.link`. ElementTree independently
+selects that direct channel extension; `samples/rss2_atom_self.xml` checks
+namespace and source-resolution boundaries.
+
 ## WP Tavern same-story comparison
+
 
 These three small files are field-preserving, editorially reduced projections
 of public WP Tavern subscriptions fetched on 2026-10-19. They are **not**

@@ -1,0 +1,6 @@
+<rss version="2.0" xmlns:a="http://www.w3.org/2005/Atom" xmlns:other="urn:other"><channel><title>Stories</title><link>https://example.test/</link><description>News</description>
+<a:link rel="self" href="../feeds/stories.xml" type="application/rss+xml"/>
+<a:link rel="http://www.iana.org/assignments/relation/self" href="https://mirror.test/stories.xml"/>
+<a:link rel="related" href="https://example.test/about"/><other:link rel="self" href="https://wrong.test/"/>
+<wrapper><a:link rel="self" href="https://nested.test/"/></wrapper>
+<item><title>One</title><a:link rel="self" href="https://item.test/"/></item></channel></rss>
