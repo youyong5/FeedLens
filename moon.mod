@@ -15,15 +15,15 @@ version = "0.1.0"
 
 readme = "README.mbt.md"
 
-repository = ""
+repository = "https://github.com/youyong5/FeedLens"
 
 license = "Apache-2.0"
 
-keywords = [ ]
+keywords = [ "feed", "rss", "atom", "json-feed", "parser" ]
 
 preferred_target = "wasm"
 
-description = ""
+description = "Multi-format RSS 2.0, Atom 1.0 and JSON Feed 1.0/1.1 parsing library with source-aware links and diagnostics"
 
 import {
   "Milky2018/xml@0.5.0",

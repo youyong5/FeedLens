@@ -59,6 +59,10 @@ GitHub landing page; both documents describe the same supported scope.
 
 ## Library
 
+Add the published module with `moon add youyong5/feedlens@0.1.0`, then
+import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
+The public parser API works across Wasm, JavaScript, and Native.
+
 ```moonbit nocheck
 match @feedlens.parse(input) {
   Ok(feed) => {
@@ -117,7 +121,7 @@ Callers must use context-appropriate safe handling before displaying it.
 
 Atom external `content src` is available as `Entry.content_source`, with its
 declared `type` in `content_media_type`; `content` remains `None` because
-the library never fetches external resources. These previously published
+the library never fetches external resources. These existing
 convenience fields remain available; the detailed representation below is
 authoritative for content shape. The earlier
 [source/text sample](samples/atom1_content_sources.xml) remains in the
