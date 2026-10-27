@@ -64,6 +64,8 @@ jobs:
         run: python3 tools/check_rss_date_validation.py
       - name: Compare RSS permalink guid roles with independent XML parsing
         run: python3 tools/check_rss_permalink_reference.py
+      - name: Compare BOM-prefixed RSS and JSON Feed files with Python readers
+        run: python3 tools/check_bom_input_reference.py
       - name: Compare RSS mixed-case dates and Z timezone with Python email
         run: python3 tools/check_rss_case_zone_reference.py
 

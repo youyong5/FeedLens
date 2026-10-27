@@ -102,6 +102,11 @@ performs no network request during the comparison.
 
 ## Intentional differences
 
+The in-memory UTF-8 BOM boundary has no checked-in fixture file. `bom_input_test.mbt`
+checks all four library entry points, while `tools/check_bom_input_reference.py`
+generates temporary BOM-prefixed RSS and JSON Feed files and compares Native
+CLI values with ElementTree and Python JSON. No network access is needed.
+
 - FeedLens assigns an RSS item's `identifier` from `link` when `guid` is
   absent. feedparser leaves its `id` absent in that case, so the field is
   outside the comparison intersection for such entries.
