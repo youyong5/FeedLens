@@ -17,6 +17,9 @@ local inspection library: it does not fetch feeds, sanitize/render HTML, or
 guess missing dates or a document's source URL. `README.md` is the GitHub
 landing page; this document contains the full mapping and boundary specification.
 
+Install the published module with `moon add youyong5/feedlens@0.1.0` and
+import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
+
 ## Public model
 
 `Feed` and `Entry` use one vocabulary across the supported formats:
