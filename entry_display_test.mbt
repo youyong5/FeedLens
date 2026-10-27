@@ -89,7 +89,7 @@ test "RSS and Atom core entries do not invent JSON-only display fields" {
   assert_eq(rss_feed.entries[0].external_url, None)
   assert_eq(rss_feed.entries[0].images, [])
   assert_eq(rss_feed.entries[0].attachments.length(), 1)
-  let atom = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated><author><name>N</name></author><entry><id>x</id><title>X</title><updated>2026-10-19T00:00:00Z</updated><link href=\"https://example.test/x\"/></entry></feed>"
+  let atom = "<feed xmlns=\"http://www.w3.org/2005/Atom\"><id>urn:fixture:f</id><title>T</title><updated>2026-10-19T00:00:00Z</updated><author><name>N</name></author><entry><id>urn:fixture:x</id><title>X</title><updated>2026-10-19T00:00:00Z</updated><link href=\"https://example.test/x\"/></entry></feed>"
   guard @feedlens.parse(atom) is Ok(atom_feed) else { fail("expected Atom") }
   assert_eq(atom_feed.entries[0].external_url, None)
   assert_eq(atom_feed.entries[0].images, [])

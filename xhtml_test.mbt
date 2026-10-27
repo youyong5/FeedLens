@@ -95,8 +95,8 @@ test "Atom XHTML acceptance fixture has display text and deterministic markup" {
 test "Atom XHTML supports prefixes, attributes, summary, whitespace and div context" {
   let input =
     #|<a:feed xmlns:a="http://www.w3.org/2005/Atom" xmlns:x="http://www.w3.org/1999/xhtml" xml:lang="en" xml:base="https://example.test/root/">
-    #|<a:id>f</a:id><a:title type="xhtml"><x:div>F</x:div></a:title><a:subtitle type="xhtml"><x:div xml:lang="fr" xml:base="sub/">Intro <x:em class="lead">ici</x:em> !</x:div></a:subtitle><a:updated>2026-10-21T00:00:00Z</a:updated><a:author><a:name>N</a:name></a:author>
-    #|<a:entry xml:base="entry/"><a:id>e</a:id><a:title type="xhtml"><x:div> E </x:div></a:title><a:updated>2026-10-21T00:00:00Z</a:updated><a:summary type="xhtml" xml:lang="de"><x:div xml:lang="it" xml:base="summary/"> A <x:b title="&amp;">B</x:b> C </x:div></a:summary><a:content type="xhtml"><x:div><x:p xml:base="image/">body</x:p></x:div></a:content></a:entry>
+    #|<a:id>urn:fixture:f</a:id><a:title type="xhtml"><x:div>F</x:div></a:title><a:subtitle type="xhtml"><x:div xml:lang="fr" xml:base="sub/">Intro <x:em class="lead">ici</x:em> !</x:div></a:subtitle><a:updated>2026-10-21T00:00:00Z</a:updated><a:author><a:name>N</a:name></a:author>
+    #|<a:entry xml:base="entry/"><a:id>urn:fixture:e</a:id><a:title type="xhtml"><x:div> E </x:div></a:title><a:updated>2026-10-21T00:00:00Z</a:updated><a:summary type="xhtml" xml:lang="de"><x:div xml:lang="it" xml:base="summary/"> A <x:b title="&amp;">B</x:b> C </x:div></a:summary><a:content type="xhtml"><x:div><x:p xml:base="image/">body</x:p></x:div></a:content></a:entry>
     #|</a:feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.description, Some("Intro ici !"))
@@ -136,8 +136,8 @@ test "Atom XHTML supports prefixes, attributes, summary, whitespace and div cont
 test "Atom XHTML rejects absent div, wrong namespace and multiple roots with positions" {
   let input =
     #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:fake="urn:fake">
-    #|<id>f</id><title type="xhtml">plain</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
-    #|<entry><id>e</id><title type="xhtml"><fake:div>wrong</fake:div></title><updated>2026-10-21T00:00:00Z</updated><summary type="xhtml"><h:div>A</h:div><h:div>B</h:div></summary><content type="xhtml"><h:div>okay</h:div></content></entry>
+    #|<id>urn:fixture:f</id><title type="xhtml">plain</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author>
+    #|<entry><id>urn:fixture:e</id><title type="xhtml"><fake:div>wrong</fake:div></title><updated>2026-10-21T00:00:00Z</updated><summary type="xhtml"><h:div>A</h:div><h:div>B</h:div></summary><content type="xhtml"><h:div>okay</h:div></content></entry>
     #|</feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.title, None)
@@ -158,7 +158,7 @@ test "Atom XHTML rejects absent div, wrong namespace and multiple roots with pos
 ///|
 test "Atom XHTML preserves unsafe attributes and XML comments without sanitizing" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/base/" xml:lang="en"><id>f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml" xml:base="parts/">Hi <span onclick="alert(1)" data-x="&amp;">X</span><!-- note --><?pi ok?>!</div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/base/" xml:lang="en"><id>urn:fixture:f</id><title type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml" xml:base="parts/">Hi <span onclick="alert(1)" data-x="&amp;">X</span><!-- note --><?pi ok?>!</div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
   guard @feedlens.parse_with_source(input, "https://example.test/feed.atom")
     is Ok(feed) else {
     fail("expected Atom")
@@ -179,7 +179,7 @@ test "Atom XHTML preserves unsafe attributes and XML comments without sanitizing
 ///|
 test "Atom empty XHTML construct is diagnosed, but an empty XHTML div is retained" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>f</id><title type="xhtml"/><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="xhtml"><h:div/></content></entry></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:fixture:f</id><title type="xhtml"/><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><entry><id>urn:fixture:e</id><title>E</title><updated>2026-10-21T00:00:00Z</updated><content type="xhtml"><h:div/></content></entry></feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.title, None)
   assert_true(feed.diagnostics[0].kind is @feedlens.UnsupportedTextConstruct(_))
@@ -195,7 +195,7 @@ test "Atom empty XHTML construct is diagnosed, but an empty XHTML div is retaine
 ///|
 test "Atom XHTML serializes foreign nested namespaces without conflating them" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:f="urn:foreign"><id>f</id><title type="xhtml"><h:div>A<f:em f:role="label">B</f:em>C</h:div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml" xmlns:f="urn:foreign"><id>urn:fixture:f</id><title type="xhtml"><h:div>A<f:em f:role="label">B</f:em>C</h:div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.title, Some("ABC"))
   guard feed.title_xhtml is Some(fragment) else {
@@ -210,7 +210,7 @@ test "Atom XHTML serializes foreign nested namespaces without conflating them" {
 ///|
 test "Atom XHTML decodes CDATA and entities while retaining mixed whitespace" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>f</id><title type="xhtml"><h:div> A <![CDATA[<&>]]> &amp; <h:em>B</h:em> </h:div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:h="http://www.w3.org/1999/xhtml"><id>urn:fixture:f</id><title type="xhtml"><h:div> A <![CDATA[<&>]]> &amp; <h:em>B</h:em> </h:div></title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author></feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }
   assert_eq(feed.title, Some(" A <&> & B "))
   guard feed.title_xhtml is Some(fragment) else {

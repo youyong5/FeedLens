@@ -305,9 +305,9 @@ test "Atom inline content retains text, HTML, CDATA, and whitespace" {
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom">
       #|<id>urn:feed</id><title>Feed</title><updated>2026-10-14T00:00:00Z</updated><author><name>Author</name></author>
-      #|<entry><id>one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><summary>Summary</summary><content>  plain &amp; text  </content></entry>
-      #|<entry><id>two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><content type="text"><![CDATA[CDATA <body>]]></content></entry>
-      #|<entry><id>three</id><title>Three</title><updated>2026-10-14T00:00:00Z</updated><content type="html">&lt;p&gt;HTML &amp;amp; body&lt;/p&gt;</content></entry>
+      #|<entry><id>urn:fixture:one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><summary>Summary</summary><content>  plain &amp; text  </content></entry>
+      #|<entry><id>urn:fixture:two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><content type="text"><![CDATA[CDATA <body>]]></content></entry>
+      #|<entry><id>urn:fixture:three</id><title>Three</title><updated>2026-10-14T00:00:00Z</updated><content type="html">&lt;p&gt;HTML &amp;amp; body&lt;/p&gt;</content></entry>
       #|</feed>
     ),
   )
@@ -328,9 +328,9 @@ test "Atom XHTML content is captured while invalid Base64 and nested text are di
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom" xmlns:xhtml="http://www.w3.org/1999/xhtml">
       #|<id>urn:feed</id><title>Feed</title><updated>2026-10-14T00:00:00Z</updated><author><name>Author</name></author>
-      #|<entry><id>one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><content type="xhtml"><xhtml:div>markup</xhtml:div></content></entry>
-      #|<entry><id>two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><content type="application/json">{}</content></entry>
-      #|<entry><id>three</id><title>Three</title><updated>2026-10-14T00:00:00Z</updated><content>before <em>markup</em></content></entry>
+      #|<entry><id>urn:fixture:one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><content type="xhtml"><xhtml:div>markup</xhtml:div></content></entry>
+      #|<entry><id>urn:fixture:two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><content type="application/json">{}</content></entry>
+      #|<entry><id>urn:fixture:three</id><title>Three</title><updated>2026-10-14T00:00:00Z</updated><content>before <em>markup</em></content></entry>
       #|</feed>
     ),
   )
@@ -589,8 +589,8 @@ test "Atom feed may omit authors when every entry has a valid own author" {
     (
       #|<feed xmlns="http://www.w3.org/2005/Atom">
       #|<id>urn:feed</id><title>Feed</title><updated>2026-10-14T00:00:00Z</updated>
-      #|<entry><id>one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><link href="/one"/><author><name>One author</name></author></entry>
-      #|<entry><id>two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><link href="/two"/><author><name>Two author</name></author></entry>
+      #|<entry><id>urn:fixture:one</id><title>One</title><updated>2026-10-14T00:00:00Z</updated><link href="/one"/><author><name>One author</name></author></entry>
+      #|<entry><id>urn:fixture:two</id><title>Two</title><updated>2026-10-14T00:00:00Z</updated><link href="/two"/><author><name>Two author</name></author></entry>
       #|</feed>
     ),
   )

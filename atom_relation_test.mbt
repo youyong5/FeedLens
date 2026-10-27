@@ -50,9 +50,9 @@ test "registered Atom relation IRIs keep raw spelling and map alternate and encl
 ///|
 test "Atom alternate duplicate and invalid enclosure use registered relation equivalence" {
   let input =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
     #|<link href="one" type="text/html" hreflang="en"/><link rel="http://www.iana.org/assignments/relation/alternate" href="two" type="text/html" hreflang="en"/>
-    #|<entry><id>e</id><title>E</title><updated>2026-10-23T00:00:00Z</updated><content>Body</content>
+    #|<entry><id>urn:fixture:e</id><title>E</title><updated>2026-10-23T00:00:00Z</updated><content>Body</content>
     #|<link rel="http://www.iana.org/assignments/relation/enclosure" href="audio" length="-1"/>
     #|<link rel="http://www.iana.org/assignments/relation/enclosure" length="42"/></entry></feed>
   guard @feedlens.parse(input) is Ok(feed) else { fail("expected Atom") }

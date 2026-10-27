@@ -1,0 +1,7 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/">
+<id>urn:feed:stable</id><title>Identifiers</title><updated>2026-10-27T00:00:00Z</updated><author><name>Editor</name></author>
+<entry><id>chapters/one</id><title>Relative</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content><source><id>origins/main</id><title>Original</title></source></entry>
+<entry><id>https://例子.test/作品</id><title>IRI</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content></entry>
+<entry><id> urn:bad:spaces </id><title>Spaces</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content></entry>
+<entry><id/><title>Empty</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content></entry>
+</feed>

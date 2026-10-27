@@ -145,7 +145,7 @@ test "Atom links retain every relation and scoped source resolution" {
     "https://example.test/root/feeds/posts/audio.mp3",
   )
   let repeated =
-    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><link href="one" type="text/html" hreflang="en"/><link href="two" type="text/html" hreflang="en"/></feed>
+    #|<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-21T00:00:00Z</updated><author><name>N</name></author><link href="one" type="text/html" hreflang="en"/><link href="two" type="text/html" hreflang="en"/></feed>
   guard @feedlens.parse(repeated) is Ok(bad) else {
     fail("expected recovered Atom")
   }

@@ -1,6 +1,6 @@
-<feed xmlns="http://www.w3.org/2005/Atom"><id>f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
-<entry><id>text</id><title>Text</title><updated>2026-10-23T00:00:00Z</updated><content type="TEXT/PLAIN; charset=&quot;UTF-8&quot;; note=&quot;a;b\&quot;c&quot;">A &amp; B</content></entry>
-<entry><id>xml</id><title>XML</title><updated>2026-10-23T00:00:00Z</updated><content type="Application/Thing+XML; charset=utf-8"><root xmlns="urn:payload">ok</root></content></entry>
-<entry><id>binary</id><title>Binary</title><updated>2026-10-23T00:00:00Z</updated><summary>Binary file</summary><content type="IMAGE/PNG; name=&quot;pic;a.png&quot;">AQID/w==</content></entry>
-<entry><id>external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="media/pic.png" type="image/png; name=&quot;pic;a.png&quot;"/></entry>
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:fixture:f</id><title>F</title><updated>2026-10-23T00:00:00Z</updated><author><name>N</name></author>
+<entry><id>urn:fixture:text</id><title>Text</title><updated>2026-10-23T00:00:00Z</updated><content type="TEXT/PLAIN; charset=&quot;UTF-8&quot;; note=&quot;a;b\&quot;c&quot;">A &amp; B</content></entry>
+<entry><id>urn:fixture:xml</id><title>XML</title><updated>2026-10-23T00:00:00Z</updated><content type="Application/Thing+XML; charset=utf-8"><root xmlns="urn:payload">ok</root></content></entry>
+<entry><id>urn:fixture:binary</id><title>Binary</title><updated>2026-10-23T00:00:00Z</updated><summary>Binary file</summary><content type="IMAGE/PNG; name=&quot;pic;a.png&quot;">AQID/w==</content></entry>
+<entry><id>urn:fixture:external</id><title>External</title><updated>2026-10-23T00:00:00Z</updated><summary>Remote</summary><content src="media/pic.png" type="image/png; name=&quot;pic;a.png&quot;"/></entry>
 </feed>
