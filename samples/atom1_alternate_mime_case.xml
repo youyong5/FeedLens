@@ -1,0 +1,9 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:mime:feed</id><title>MIME links</title><updated>2026-10-27T00:00:00Z</updated><author><name>Editor</name></author>
+<link href="first" type="text/html" hreflang="en-US"/>
+<link href="same-type" type="TEXT/HTML" hreflang="EN-us"/>
+<link href="profile-one" type="text/html; profile=One" hreflang="fr"/>
+<link href="profile-two" type="TEXT/HTML; profile=one" hreflang="fr"/>
+<entry><id>urn:mime:entry</id><title>Entry</title><updated>2026-10-27T00:00:00Z</updated><content>Body</content>
+<link href="entry-first" type="application/atom+xml"/>
+<link href="entry-same-type" type="APPLICATION/ATOM+XML"/>
+</entry></feed>

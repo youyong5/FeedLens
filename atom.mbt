@@ -105,6 +105,35 @@ fn atom_same_hreflang(left : String?, right : String?) -> Bool {
 }
 
 ///|
+// MIME type/subtype names are case-insensitive. Retain the declared spelling
+// publicly, and compare parameter tails exactly to avoid treating differently
+// cased, possibly case-sensitive parameter values as the same declaration.
+fn atom_same_link_type(left : String?, right : String?) -> Bool {
+  match (left, right) {
+    (None, None) => true
+    (Some(a), Some(b)) => {
+      let (a_head, a_parameters) = match a.split_once(";") {
+        Some((head, parameters)) =>
+          (head.to_owned(), Some(parameters.to_owned()))
+        None => (a, None)
+      }
+      let (b_head, b_parameters) = match b.split_once(";") {
+        Some((head, parameters)) =>
+          (head.to_owned(), Some(parameters.to_owned()))
+        None => (b, None)
+      }
+      match (atom_mime_essence(a), atom_mime_essence(b)) {
+        (Some(_), Some(_)) =>
+          a_head.trim().to_lower() == b_head.trim().to_lower() &&
+          a_parameters == b_parameters
+        _ => a == b
+      }
+    }
+    _ => false
+  }
+}
+
+///|
 fn atom_link(
   element : @xml.NamespaceElement,
   line : Int32,
@@ -189,7 +218,7 @@ fn atom_append_link(
       if atom_relation_is(link.relation, "alternate") &&
         links.any(fn(previous) {
           atom_relation_is(previous.relation, "alternate") &&
-          previous.media_type == link.media_type &&
+          atom_same_link_type(previous.media_type, link.media_type) &&
           atom_same_hreflang(previous.hreflang, link.hreflang)
         }) {
         diagnostics.push({
