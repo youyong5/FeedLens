@@ -26,7 +26,17 @@ test "Atom explicit empty and whitespace metadata survives without false inherit
   assert_eq(source.categories[0].term, "")
   assert_eq(source.categories[0].label, Some(""))
   assert_eq(raw.entries[2].authors[0].name, Some(""))
-  assert_eq(raw.diagnostics, [])
+  assert_eq(raw.diagnostics.length(), 2)
+  assert_true(
+    raw.diagnostics[0].kind
+    is @feedlens.InvalidCategory("atom category scheme must be an absolute IRI"),
+  )
+  assert_true(
+    raw.diagnostics[1].kind
+    is @feedlens.InvalidCategory("atom category scheme must be an absolute IRI"),
+  )
+  assert_eq((raw.diagnostics[0].line, raw.diagnostics[0].column), (2, 25))
+  assert_eq((raw.diagnostics[1].line, raw.diagnostics[1].column), (3, 118))
 
   guard @feedlens.parse_with_source(input, "https://example.test/feed.atom")
     is Ok(resolved) else {
@@ -39,7 +49,7 @@ test "Atom explicit empty and whitespace metadata survives without false inherit
   assert_eq(resolved.categories[0].scheme, Some(""))
   assert_eq(resolved.links[0].title, Some(""))
   assert_eq(resolved.entries[0].attachments[0].title, Some(""))
-  assert_eq(resolved.diagnostics, [])
+  assert_eq(resolved.diagnostics, raw.diagnostics)
 }
 
 ///|

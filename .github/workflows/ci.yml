@@ -52,6 +52,8 @@ jobs:
         run: uv run --with feedparser==6.0.11 python tools/check_atom_empty_iri_reference.py
       - name: Compare declared Atom metadata strings
         run: uv run --with feedparser==6.0.11 python tools/check_atom_declared_metadata_reference.py
+      - name: Compare absolute Atom category schemes
+        run: python3 tools/check_atom_category_schemes.py
       - name: Compare Atom date construct diagnostics with Python calendar parsing
         run: python3 tools/check_atom_date_validation.py
       - name: Compare Atom feed element order with independent XML tree walk

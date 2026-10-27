@@ -267,16 +267,34 @@ fn atom_iri_attribute(
 }
 
 ///|
-fn atom_category(element : @xml.NamespaceElement) -> Category? {
+fn atom_category(
+  element : @xml.NamespaceElement,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Category? {
   match atom_attribute_value(element, "term") {
-    Some(term) =>
+    Some(term) => {
+      let scheme = atom_attribute_value(element, "scheme")
+      match scheme {
+        Some(value) if uri_absolute(value) is None =>
+          diagnostics.push({
+            kind: InvalidCategory(
+              "atom category scheme must be an absolute IRI",
+            ),
+            line,
+            column,
+          })
+        _ => ()
+      }
       Some({
         source: Atom1,
         term,
         domain: None,
-        scheme: atom_iri_attribute(element, "scheme"),
+        scheme,
         label: atom_attribute_value(element, "label"),
       })
+    }
     None => None
   }
 }
@@ -943,7 +961,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if source_open &&
             depth == source_depth &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => source_categories.push(category)
               None =>
                 diagnostics.push({
@@ -955,7 +979,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => feed_categories.push(category)
               None =>
                 diagnostics.push({
@@ -967,7 +997,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if entry_open &&
             depth == entry_depth &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => entry_categories.push(category)
               None =>
                 diagnostics.push({
@@ -1587,7 +1623,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if source_open &&
             depth == source_depth &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => source_categories.push(category)
               None =>
                 diagnostics.push({
@@ -1599,7 +1641,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if !entry_open &&
             depth == 1 &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => feed_categories.push(category)
               None =>
                 diagnostics.push({
@@ -1611,7 +1659,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           } else if entry_open &&
             depth == entry_depth &&
             is_atom_name(element.name, "category") {
-            match atom_category(element) {
+            match
+              atom_category(
+                element,
+                event.span.start.line,
+                event.span.start.column,
+                diagnostics,
+              ) {
               Some(category) => entry_categories.push(category)
               None =>
                 diagnostics.push({
