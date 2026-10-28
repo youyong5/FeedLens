@@ -40,12 +40,16 @@ asserts RFC 4287's inheritance. Python's standard JSON parser independently
 checks the JSON fixture's exact IDs, content, and tags against Native CLI JSON.
 This comparison does not use live network feeds or claim broad conformance.
 
-## Still requiring audit before the application
+## Remaining checks against the approved common-behavior goal
 
 - Atom content's common MIME parameters now have legal and invalid regression
   cases plus an independent email/feedparser intersection. MIME comments and
-  extension parameter syntax, full Atom IRI, future leap-second announcements, permitted extension
-  points, and remaining cardinality rules still need a larger corpus.
+  extension parameter syntax, complete Atom IRI grammar, future leap-second announcements,
+  and extension points still need a larger corpus. Direct feed/entry/source/person
+  cardinality, valid repeatable category/contributor elements, namespace isolation,
+  and stand-alone Entry source-author handling now have a mirrored fixture and
+  independent XML/CLI comparison (`atom_cardinality_test.mbt`,
+  `samples/atom1_cardinality.xml`, `tools/check_atom_cardinality.py`).
 - RSS source-defined optional metadata is mapped; extension modules and HTML
   presentation remain outside the core reader model.
 - JSON Feed extension objects may be ignored by readers, but the remaining
