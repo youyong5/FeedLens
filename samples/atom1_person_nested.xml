@@ -1,0 +1,5 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:person-extension"><id>urn:people</id><title>People</title><updated>2026-10-28T00:00:00Z</updated>
+<author><name>Feed &lt;em&gt;</name><x:badge>allowed extension</x:badge></author>
+<contributor><name>A<x:b>nested</x:b><x:i/>Z</name><uri>people/<x:part/></uri><email>user@example.test<x:note/></email></contributor>
+<entry><id>urn:item</id><title>Item</title><updated>2026-10-28T00:00:00Z</updated><content>Body</content><author><name>Entry <x:b>mixed</x:b> text</name></author>
+<source><author><name>Source</name><email>source@example.test<x:note/></email><x:badge>allowed extension</x:badge></author></source></entry></feed>
