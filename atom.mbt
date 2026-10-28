@@ -765,11 +765,25 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
     let mut capture_media_type = ""
     let mut capture_line = 1
     let mut capture_column = 1
+    // Person fields are XML text-only. Extension elements directly under a
+    // Person are allowed, but elements inside name/uri/email are not.
+    let mut author_child_nested = false
 
     for ;; {
       let event = reader.read_event()
       match event.kind {
         @xml.Start(element) => {
+          if author_child is Some(_) && depth >= author_child_depth &&
+            !author_child_nested {
+            diagnostics.push({
+              kind: InvalidAuthor(
+                "nested markup in atom person " + author_child.unwrap(),
+              ),
+              line: event.span.start.line,
+              column: event.span.start.column,
+            })
+            author_child_nested = true
+          }
           if !standalone && root_seen && depth == 1 {
             if is_atom_name(element.name, "entry") {
               feed_entries_started = true
@@ -1132,6 +1146,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_child = Some(element.name.local_name)
             author_child_depth = depth + 1
             author_child_text = ""
+            author_child_nested = false
             author_child_line = event.span.start.line
             author_child_column = event.span.start.column
           } else if source_open &&
@@ -1497,6 +1512,17 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
           depth = depth + 1
         }
         @xml.Empty(element) => {
+          if author_child is Some(_) && depth >= author_child_depth &&
+            !author_child_nested {
+            diagnostics.push({
+              kind: InvalidAuthor(
+                "nested markup in atom person " + author_child.unwrap(),
+              ),
+              line: event.span.start.line,
+              column: event.span.start.column,
+            })
+            author_child_nested = true
+          }
           if !standalone && root_seen && depth == 1 {
             if is_atom_name(element.name, "entry") {
               feed_entries_started = true
@@ -2229,6 +2255,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             }
             author_child = None
             author_child_text = ""
+            author_child_nested = false
           }
           if author_owner is Some(_) &&
             author_depth == depth &&
