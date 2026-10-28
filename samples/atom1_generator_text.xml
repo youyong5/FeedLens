@@ -1,0 +1,2 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="https://example.test/feeds/"><id>urn:g</id><title>Generator</title><updated>2026-10-28T00:00:00Z</updated><author><name>Editor</name></author><generator uri="tools/" version=""/>
+<entry><id>urn:g:item</id><title>Item</title><updated>2026-10-28T00:00:00Z</updated><content>Body</content><source><generator uri="" version="2">  </generator></source></entry></feed>

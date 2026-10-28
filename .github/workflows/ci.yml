@@ -58,6 +58,8 @@ jobs:
         run: python3 tools/check_atom_email_reference.py
       - name: Compare Atom Person nested markup and extension boundaries
         run: python3 tools/check_atom_person_nested.py
+      - name: Compare present empty Atom generator text across scopes
+        run: python3 tools/check_atom_generator_text.py
       - name: Compare Atom generator and visual IRI references
         run: python3 tools/check_atom_visual_iri.py
       - name: Compare Atom and JSON date and author boundaries
