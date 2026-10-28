@@ -652,6 +652,14 @@ fn UriXmlState::on_element(
     self.person_name = Some("")
   } else if self.person_group >= 0 &&
     depth == self.person_depth &&
+    is_atom_name(element.name, "uri") &&
+    is_empty {
+    self.person_uri = Some("")
+    self.person_uri_base = base
+    self.person_uri_line = line
+    self.person_uri_column = column
+  } else if self.person_group >= 0 &&
+    depth == self.person_depth &&
     (is_atom_name(element.name, "name") || is_atom_name(element.name, "uri")) &&
     !is_empty {
     self.person_field = Some(element.name.local_name)
@@ -1103,7 +1111,7 @@ fn resolve_xml_feed(
             if field == "name" {
               state.person_name = Some(state.person_text)
             } else {
-              state.person_uri = non_blank_text(state.person_text)
+              state.person_uri = Some(state.person_text)
             }
             state.person_field = None
             state.person_text = ""
