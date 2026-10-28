@@ -509,9 +509,10 @@ fn uri_with_source_urls(
 
 ///|
 fn UriXmlState::finish_image(self : UriXmlState) -> Unit {
-  match (self.image_field, non_blank_text(self.image_text)) {
-    (Some(field), Some(raw)) if self.entry_index >= 0 &&
+  match self.image_field {
+    Some(field) if self.entry_index >= 0 &&
       self.entry_index < self.source_images.length() => {
+      let raw = self.image_text
       let images = self.source_images[self.entry_index]
       let index = self.source_image_index
       if index < images.length() &&
@@ -777,13 +778,15 @@ fn UriXmlState::on_element(
     }
   } else if self.source_open &&
     depth == self.source_depth &&
-    (is_atom_name(element.name, "icon") || is_atom_name(element.name, "logo")) &&
-    !is_empty {
+    (is_atom_name(element.name, "icon") || is_atom_name(element.name, "logo")) {
     self.image_field = Some(element.name.local_name)
     self.image_text = ""
     self.image_base = base
     self.image_line = line
     self.image_column = column
+    if is_empty {
+      self.finish_image()
+    }
   } else if !self.entry_open &&
     depth == 1 &&
     is_atom_name(element.name, "generator") {

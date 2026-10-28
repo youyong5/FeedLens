@@ -143,7 +143,9 @@ test "source optional metadata rejects invalid nesting and retains valid later f
   assert_eq(source.subtitle, Some("Latest"))
   assert_eq(source.links.length(), 1)
   assert_eq(source.links[0].href, "index.atom")
-  assert_eq(source.images, [])
+  assert_eq(source.images.length(), 1)
+  assert_true(source.images[0].role is @feedlens.AtomIcon)
+  assert_eq(source.images[0].url, "")
   assert_eq(source.generator, Some("Origin"))
   assert_eq(source.generator_version, Some("4"))
   assert_true(

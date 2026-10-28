@@ -1,0 +1,3 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xml:base="assets/"><id>urn:f</id><title>F</title><updated>2026-10-28T00:00:00Z</updated><author><name>A</name></author>
+<generator uri="bad[one]">Maker</generator><icon xml:base="icons/"/><logo>bad%GG</logo>
+<entry><id>urn:e</id><title>E</title><updated>2026-10-28T00:00:00Z</updated><content>Body</content><source xml:base="../origins/"><generator uri="">Origin</generator><icon>bad|url</icon><logo xml:base="brands/"></logo></source></entry></feed>
