@@ -1,0 +1,3 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:f</id><title>F</title><updated>2026-10-28T00:00:00Z</updated><author><name>A</name><email>"a@b"@example.test</email></author>
+<contributor><name>B</name><email>bad..dot@example.test</email></contributor><entry><id>urn:e</id><title>E</title><updated>2026-10-28T00:00:00Z</updated><content>Body</content><author><name>C</name><email/></author>
+<source><author><name>D</name><email>user@[192.0.2.1]</email></author></source></entry></feed>
