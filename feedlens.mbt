@@ -930,6 +930,37 @@ fn add_missing_channel_diagnostics(
 }
 
 ///|
+fn rss_core_singleton(
+  element : @xml.NamespaceElement,
+  owner : String,
+  seen : Array[String],
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> Unit {
+  let field = element.name.local_name
+  let unique = if owner == "channel" {
+    field is ("title" | "link" | "description" | "language" | "copyright" |
+      "generator" | "managingEditor" | "webMaster" | "pubDate" |
+      "lastBuildDate" | "ttl")
+  } else {
+    field is ("guid" | "title" | "link" | "description" | "pubDate" |
+      "author" | "comments" | "source")
+  }
+  if !unique || !is_rss_name(element.name, field) {
+    return
+  }
+  if seen.any(fn(previous) { previous == field }) {
+    diagnostics.push({
+      kind: InvalidRssField(owner + " " + field + " duplicate"),
+      line,
+      column,
+    })
+  }
+  seen.push(field)
+}
+
+///|
 /// Parse one RSS 2.0 XML document.
 ///
 /// XML failures and unsupported document shapes return `Err`. Missing channel
@@ -967,6 +998,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut channel_description_location : (Int32, Int32)? = None
     let channel_categories : Array[Category] = []
     let channel_links : Array[AtomLink] = []
+    let channel_core_seen : Array[String] = []
     let entries : Array[Entry] = []
     let diagnostics : Array[Diagnostic] = []
 
@@ -987,6 +1019,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
     let mut item_authors : Array[Author] = []
     let mut item_categories : Array[Category] = []
     let mut item_attachments : Array[Attachment] = []
+    let mut item_core_seen : Array[String] = []
 
     let mut capture_field : String? = None
     let mut capture_depth = 0
@@ -1001,6 +1034,17 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
       let event = reader.read_event()
       match event.kind {
         @xml.Start(element) => {
+          if item_open && depth == item_depth {
+            rss_core_singleton(
+              element, "item", item_core_seen, event.span.start.line,
+              event.span.start.column, diagnostics,
+            )
+          } else if channel_seen && depth == channel_depth {
+            rss_core_singleton(
+              element, "channel", channel_core_seen, event.span.start.line,
+              event.span.start.column, diagnostics,
+            )
+          }
           if capture_field is Some(_) && depth >= capture_depth {
             capture_has_nested_markup = true
           }
@@ -1057,6 +1101,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
             item_authors = []
             item_categories = []
             item_attachments = []
+            item_core_seen = []
           } else if item_open &&
             depth == item_depth &&
             is_rss_name(element.name, "enclosure") {
@@ -1230,7 +1275,18 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
           }
           depth = depth + 1
         }
-        @xml.Empty(element) =>
+        @xml.Empty(element) => {
+          if item_open && depth == item_depth {
+            rss_core_singleton(
+              element, "item", item_core_seen, event.span.start.line,
+              event.span.start.column, diagnostics,
+            )
+          } else if channel_seen && depth == channel_depth {
+            rss_core_singleton(
+              element, "channel", channel_core_seen, event.span.start.line,
+              event.span.start.column, diagnostics,
+            )
+          }
           if capture_field is Some(_) && depth >= capture_depth {
             capture_has_nested_markup = true
           } else if !root_seen {
@@ -1521,6 +1577,7 @@ fn parse_rss(input : String) -> Result[Feed, ParseError] {
               }
             }
           }
+        }
         @xml.Text(text) | @xml.CData(text) =>
           if capture_field is Some(_) {
             captured_text = captured_text + text
