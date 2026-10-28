@@ -339,6 +339,27 @@ fn atom_iri_attribute(
 }
 
 ///|
+fn atom_generator_uri(
+  element : @xml.NamespaceElement,
+  owner : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+) -> String? {
+  let raw = atom_attribute_value(element, "uri")
+  match raw {
+    Some(value) if !atom_href_syntax(value) =>
+      diagnostics.push({
+        kind: InvalidAtomGeneratorUri(owner),
+        line,
+        column,
+      })
+    _ => ()
+  }
+  raw
+}
+
+///|
 fn atom_category(
   element : @xml.NamespaceElement,
   line : Int32,
@@ -987,7 +1008,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               "updated" => source_updated = None
               "generator" => {
                 source_generator = None
-                source_generator_uri = atom_attribute_value(element, "uri")
+                source_generator_uri = atom_generator_uri(
+                  element, "source generator uri", event.span.start.line,
+                  event.span.start.column, diagnostics,
+                )
                 source_generator_version = atom_attribute_value(
                   element, "version",
                 )
@@ -1329,7 +1353,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
               "generator" => {
                 feed_generator = None
-                feed_generator_uri = atom_attribute_value(element, "uri")
+                feed_generator_uri = atom_generator_uri(
+                  element, "feed generator uri", event.span.start.line,
+                  event.span.start.column, diagnostics,
+                )
                 feed_generator_version = atom_attribute_value(
                   element, "version",
                 )
@@ -1687,15 +1714,23 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               )
             } else if field == "generator" {
               source_generator = None
-              source_generator_uri = atom_attribute_value(element, "uri")
+              source_generator_uri = atom_generator_uri(
+                element, "source generator uri", event.span.start.line,
+                event.span.start.column, diagnostics,
+              )
               source_generator_version = atom_attribute_value(
                 element, "version",
               )
             } else {
-              diagnostics.push({
-                kind: InvalidFeedImage("atom source " + field + " missing URL"),
-                line: event.span.start.line,
-                column: event.span.start.column,
+              source_images.push({
+                source: Atom1,
+                role: if field == "icon" { AtomIcon } else { AtomLogo },
+                url: "",
+                title: None,
+                link: None,
+                description: None,
+                width: None,
+                height: None,
               })
             }
           } else if source_open &&
@@ -1988,7 +2023,10 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               }
               "generator" => {
                 feed_generator = None
-                feed_generator_uri = atom_attribute_value(element, "uri")
+                feed_generator_uri = atom_generator_uri(
+                  element, "feed generator uri", event.span.start.line,
+                  event.span.start.column, diagnostics,
+                )
                 feed_generator_version = atom_attribute_value(
                   element, "version",
                 )
@@ -2398,30 +2436,20 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 )
                 "generator" => source_generator = non_blank_text(captured_text)
                 "icon" | "logo" =>
-                  match non_blank_text(captured_text) {
-                    Some(url) =>
-                      source_images.push({
-                        source: Atom1,
-                        role: if field == "icon" {
-                          AtomIcon
-                        } else {
-                          AtomLogo
-                        },
-                        url,
-                        title: None,
-                        link: None,
-                        description: None,
-                        width: None,
-                        height: None,
-                      })
-                    None =>
-                      diagnostics.push({
-                        kind: InvalidFeedImage(
-                          "atom source " + field + " missing URL",
-                        ),
-                        line: capture_line,
-                        column: capture_column,
-                      })
+                  if atom_image_iri(
+                    captured_text, "source " + field, capture_line,
+                    capture_column, diagnostics, true,
+                  ) {
+                    source_images.push({
+                      source: Atom1,
+                      role: if field == "icon" { AtomIcon } else { AtomLogo },
+                      url: captured_text,
+                      title: None,
+                      link: None,
+                      description: None,
+                      width: None,
+                      height: None,
+                    })
                   }
                 _ => ()
               }

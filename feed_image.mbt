@@ -36,6 +36,37 @@ fn feed_image_problem(
 }
 
 ///|
+fn atom_image_iri(
+  raw : String,
+  field : String,
+  line : Int32,
+  column : Int32,
+  diagnostics : Array[Diagnostic],
+  record_errors : Bool,
+) -> Bool {
+  if !raw.is_empty() && raw.trim().is_empty() {
+    feed_image_problem(
+      diagnostics,
+      record_errors,
+      "atom " + field + " missing URL",
+      line,
+      column,
+    )
+    return false
+  }
+  if !atom_href_syntax(raw) {
+    feed_image_problem(
+      diagnostics,
+      record_errors,
+      "atom " + field + " invalid IRI",
+      line,
+      column,
+    )
+  }
+  true
+}
+
+///|
 fn with_feed_images(feed : Feed, images : Array[FeedImage]) -> Feed {
   {
     format: feed.format,
@@ -286,13 +317,49 @@ fn add_xml_feed_images(
               } else {
                 atom_logo_seen = true
               }
-              feed_image_problem(
-                diagnostics,
-                record_errors,
-                "atom " + element.name.local_name + " missing URL",
-                event.span.start.line,
-                event.span.start.column,
-              )
+              let parent_base = if bases.is_empty() {
+                source_url
+              } else {
+                bases[bases.length() - 1]
+              }
+              let base = if source_url is Some(_) {
+                xml_effective_base(
+                  element,
+                  parent_base,
+                  Atom1,
+                  event.span.start.line,
+                  event.span.start.column,
+                  base_scratch,
+                )
+              } else {
+                parent_base
+              }
+              let raw = ""
+              images.push({
+                source: Atom1,
+                role: if is_icon {
+                  AtomIcon
+                } else {
+                  AtomLogo
+                },
+                url: if source_url is Some(_) {
+                  uri_at(
+                    base,
+                    raw,
+                    "atom " + element.name.local_name,
+                    event.span.start.line,
+                    event.span.start.column,
+                    diagnostics,
+                  )
+                } else {
+                  raw
+                },
+                title: None,
+                link: None,
+                description: None,
+                width: None,
+                height: None,
+              })
             }
           }
         @xml.Text(text) | @xml.CData(text) =>
@@ -341,45 +408,35 @@ fn add_xml_feed_images(
                 }
                 _ => ()
               }
-            } else {
-              match non_blank_text(capture_text) {
-                Some(url) => {
-                  let url = match source_url {
-                    Some(_) =>
-                      uri_at(
-                        capture_base,
-                        url,
-                        "atom " + field,
-                        capture_line,
-                        capture_column,
-                        diagnostics,
-                      )
-                    None => url
-                  }
-                  images.push({
-                    source: Atom1,
-                    role: if field == "icon" {
-                      AtomIcon
-                    } else {
-                      AtomLogo
-                    },
-                    url,
-                    title: None,
-                    link: None,
-                    description: None,
-                    width: None,
-                    height: None,
-                  })
-                }
-                None =>
-                  feed_image_problem(
-                    diagnostics,
-                    record_errors,
-                    "atom " + field + " missing URL",
+            } else if atom_image_iri(
+                capture_text, field, capture_line, capture_column, diagnostics, record_errors,
+              ) {
+              let url = match source_url {
+                Some(_) =>
+                  uri_at(
+                    capture_base,
+                    capture_text,
+                    "atom " + field,
                     capture_line,
                     capture_column,
+                    diagnostics,
                   )
+                None => capture_text
               }
+              images.push({
+                source: Atom1,
+                role: if field == "icon" {
+                  AtomIcon
+                } else {
+                  AtomLogo
+                },
+                url,
+                title: None,
+                link: None,
+                description: None,
+                width: None,
+                height: None,
+              })
             }
             capture = None
             capture_text = ""
