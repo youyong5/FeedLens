@@ -647,6 +647,8 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
     let mut author_child : String? = None
     let mut author_child_depth = 0
     let mut author_child_text = ""
+    let mut author_child_line = 1
+    let mut author_child_column = 1
     let mut author_children_seen : Array[String] = []
     let mut feed_title_kind = Text
     let mut feed_subtitle_kind = Text
@@ -1106,6 +1108,8 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             author_child = Some(element.name.local_name)
             author_child_depth = depth + 1
             author_child_text = ""
+            author_child_line = event.span.start.line
+            author_child_column = event.span.start.column
           } else if source_open &&
             depth == source_depth &&
             is_atom_name(element.name, "link") {
@@ -1492,6 +1496,8 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             )
             if is_atom_name(element.name, "name") {
               author_name = Some("")
+            } else if is_atom_name(element.name, "uri") {
+              author_uri = Some("")
             }
           }
           if entry_open && depth == entry_depth {
@@ -2155,7 +2161,16 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
             is_atom_name(name, field) {
             match field {
               "name" => author_name = Some(author_child_text)
-              "uri" => author_uri = non_blank_text(author_child_text)
+              "uri" => {
+                author_uri = Some(author_child_text)
+                if !atom_href_syntax(author_child_text) {
+                  diagnostics.push({
+                    kind: InvalidAuthor("invalid atom person uri"),
+                    line: author_child_line,
+                    column: author_child_column,
+                  })
+                }
+              }
               _ => author_email = non_blank_text(author_child_text)
             }
             author_child = None

@@ -92,7 +92,16 @@ test "invalid person URI stays raw and duplicate children are located" {
   }
   assert_eq(entry.authors[0].uri, Some("bad path"))
   assert_eq(entry.authors[0].email, Some("b@example.test"))
-  assert_eq(entry.contributors[0].uri, Some("https://example.test/posts/good"))
+  assert_eq(
+    entry.contributors[0].uri,
+    Some("https://example.test/posts/one.atom"),
+  )
+  assert_true(
+    problems.any(fn(d) {
+      d.kind is @feedlens.InvalidAuthor("invalid atom person uri") &&
+      d.line == 2
+    }),
+  )
   assert_true(
     problems.any(fn(d) {
       d.kind is @feedlens.DuplicateAtomField("atom author uri") && d.line == 2
