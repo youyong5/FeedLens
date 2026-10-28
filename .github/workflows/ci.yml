@@ -107,6 +107,8 @@ jobs:
         run: python3 tools/check_atom_date_validation.py
       - name: Compare Atom feed element order with independent XML tree walk
         run: python3 tools/check_atom_feed_order.py
+      - name: Compare scoped Atom cardinality and recovered fields
+        run: python3 tools/check_atom_cardinality.py
       - name: Compare JSON Feed date recovery with Python calendar parsing
         run: python3 tools/check_json_date_validation.py
       - name: Compare JSON Feed item identity and duplicate diagnostics

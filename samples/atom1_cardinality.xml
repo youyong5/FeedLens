@@ -1,0 +1,7 @@
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:x="urn:other">
+<id>urn:card:feed</id><title>First feed</title><title>Last feed</title><updated>2026-10-28T00:00:00Z</updated>
+<author><name>First editor</name><name>Last editor</name></author><category term="a"/><category term="b"/><x:title>Extension title</x:title>
+<entry><id>urn:card:entry</id><title>Entry</title><updated>2026-10-28T00:00:00Z</updated><updated>2026-10-28T01:00:00Z</updated><content>First body</content><content>Last body</content>
+<source><id>urn:card:origin</id><id>urn:card:last</id><title>Origin</title><author><name>Origin editor</name></author><category term="c"/><category term="d"/></source>
+<contributor><name>Contributor one</name></contributor><contributor><name>Contributor two</name></contributor><x:content>Extension body</x:content></entry>
+</feed>
