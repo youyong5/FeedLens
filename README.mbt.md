@@ -17,8 +17,10 @@ local inspection library: it does not fetch feeds, sanitize/render HTML, or
 guess missing dates or a document's source URL. `README.md` is the GitHub
 landing page; this document contains the full mapping and boundary specification.
 
-Install the published module with `moon add youyong5/feedlens@0.1.0` and
+Install the latest published module with `moon add youyong5/feedlens` and
 import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
+Check the registry version before using the newer document and structured-body
+APIs from source version `0.2.0`.
 
 All four parsing entry points accept one leading UTF-8 BOM for XML and JSON
 Feed. A U+FEFF elsewhere is preserved; for JSON this reader interoperability

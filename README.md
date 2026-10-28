@@ -71,11 +71,13 @@ GitHub landing page; both documents describe the same supported scope.
 
 ## Library
 
-Add the published module with `moon add youyong5/feedlens@0.1.0`, then
+Add the latest published module with `moon add youyong5/feedlens`, then
 import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
 The public parser API works across Wasm, JavaScript, and Native.
-The [0.1.0 Mooncakes page](https://mooncakes.io/docs/youyong5/feedlens@0.1.0)
-lists the archived public API and pinned dependencies.
+Pin the version in applications after checking the
+[Mooncakes version list](https://mooncakes.io/docs/youyong5/feedlens).
+The source module's version is `0.2.0`; verify that this version is listed
+before relying on its newer document and structured-body APIs.
 
 ```moonbit nocheck
 match @feedlens.parse(input) {
