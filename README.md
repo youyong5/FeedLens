@@ -117,6 +117,12 @@ A separate [consumer example](examples/consumer/main.mbt) imports only the
 public parser package. Run `moon run --target native examples/consumer` or
 `powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1`; neither
 command requires a published Mooncakes package or a network request.
+CI also runs `python3 tools/check_external_consumer.py` on Linux. It creates a
+temporary MoonBit module outside this repository, imports only the public
+FeedLens package through a local `moon.work`, checks Wasm/JS/Native, and runs
+RSS, Atom Entry and JSON Feed calls on Native. This checks the current source;
+the separately published Mooncakes version needs its own install check after
+the next release.
 
 Atom XHTML titles have a directly readable plain-text `title`, `title_kind = Xhtml`,
 and a `title_xhtml` fragment. For the fixed
@@ -279,6 +285,7 @@ moon check --target js; moon test --target js
 moon check --target native; moon test --target native
 powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1
+python3 tools/check_external_consumer.py
 uv run --with feedparser==6.0.11 python tools/check_compatibility.py
 uv run --with feedparser==6.0.11 python tools/check_xhtml_reference.py
 uv run --with feedparser==6.0.11 python tools/check_leap_second_reference.py
