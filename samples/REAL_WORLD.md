@@ -16,6 +16,26 @@ We ran the **complete archived originals** through the current Native CLI before
 
 `diverse_real_test.mbt` embeds byte-matched versions of the saved files for Wasm, JS, and Native. `tools/check_diverse_real_reference.py` checks those mirrors and compares declared fields with independent feedparser 6.0.11 (RSS/Atom) and Python JSON/date parsing (JSON Feed). It checks IDs, titles, ordered links and dates; RSS channel metadata and the two preserved Dublin Core creator names (`zdw`, `amichail`); Atom HTML type and source-level absence of authors; JSON HTML and inherited author. A separate synthetic fixture tests namespace, scope, author ordering and malformed creator boundaries. The source archive's own Mojo parser is not a validator for FeedLens. Neither script compares full source documents against current publishers or proves all optional fields and extension modules.
 
+`tools/check_full_archived_feeds.py` now runs the **complete, unedited**
+archived responses from that exact source commit end-to-end. A separate CI
+job checks out upstream commit `be9e1dbc17faea2723fa3224512f184738adb43d`,
+verifies each full response against the three SHA-256 values above, parses all
+20 RSS items, four Atom entries, and six JSON items through the Native CLI,
+and compares ordered declared fields against feedparser 6.0.11, Python XML,
+and Python JSON/date parsing. JSON `content_html` is compared in full, with no
+body reduction. The archived xkcd document still lacks required Atom authors;
+its five author diagnostics are expected. To run after an adjacent checkout:
+
+```sh
+uv run --with feedparser==6.0.11 python tools/check_full_archived_feeds.py ../mojo-feed/test/data
+```
+
+The complete responses remain in the pinned **upstream archive**, while this
+repository stores the shorter cross-target projections. The CI checkout has a
+network dependency; the comparison itself uses only local pinned bytes after
+checkout. This is not a repeat fetch of today's live publisher endpoints and
+does not recover the uncommitted complete WP Tavern responses captured earlier.
+
 The archived Hacker News RSS channel declares one Atom-namespace `rel="self"`
 link to `https://hnrss.org/frontpage`. FeedLens now retains it in `Feed.links`
 without changing the RSS website `Feed.link`. ElementTree independently

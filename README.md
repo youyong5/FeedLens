@@ -225,6 +225,13 @@ The three additional [archived publisher projections](samples/REAL_WORLD.md)
 exercise RSS metadata and creator names, Atom HTML summaries, and JSON author inheritance.
 The xkcd snapshot lacks required Atom authors, so its five author diagnostics
 are expected even though its four entries remain available.
+CI also checks out the pinned upstream archive and parses its **complete**
+RSS (20 items), Atom (four entries), and JSON Feed (six items) responses after
+verifying their SHA-256 values. The [end-to-end script](tools/check_full_archived_feeds.py)
+compares a defined field intersection with independent XML/JSON readers and
+feedparser; the archived bytes are not reduced for this job. The source archive
+is fetched by CI, so this job is distinct from the repository's offline
+projection tests.
 
 The first RSS episode reports `Entries: 2` and an `audio/mpeg` enclosure of
 `37878054` bytes. The Atom and JSON Feed projections expose the same media URL

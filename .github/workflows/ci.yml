@@ -10,6 +10,27 @@ permissions:
   contents: read
 
 jobs:
+  full-archived-feeds:
+    name: Pinned complete-response end-to-end
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/checkout@v5
+        with:
+          repository: conorbronsdon/mojo-feed
+          ref: be9e1dbc17faea2723fa3224512f184738adb43d
+          path: full-feed-source
+          persist-credentials: false
+      - name: Install MoonBit from official script
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh -o "$RUNNER_TEMP/moonbit-install.sh"
+          bash "$RUNNER_TEMP/moonbit-install.sh"
+          echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
+      - uses: astral-sh/setup-uv@v6
+      - run: moon update
+      - name: Parse and compare complete pinned publisher responses
+        run: uv run --with feedparser==6.0.11 python tools/check_full_archived_feeds.py full-feed-source/test/data
+
   independent-reference:
     name: Offline cross-format reference
     runs-on: ubuntu-latest
