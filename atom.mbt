@@ -1746,7 +1746,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 event.span.start.column, diagnostics,
               )
             } else if field == "generator" {
-              source_generator = None
+              source_generator = Some("")
               source_generator_uri = atom_generator_uri(
                 element, "source generator uri", event.span.start.line,
                 event.span.start.column, diagnostics,
@@ -2055,7 +2055,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                 feed_rights_xhtml = None
               }
               "generator" => {
-                feed_generator = None
+                feed_generator = Some("")
                 feed_generator_uri = atom_generator_uri(
                   element, "feed generator uri", event.span.start.line,
                   event.span.start.column, diagnostics,
@@ -2477,7 +2477,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   captured_text, "source updated", capture_line,
                   capture_column, diagnostics,
                 )
-                "generator" => source_generator = non_blank_text(captured_text)
+                "generator" => source_generator = Some(captured_text)
                 "icon" | "logo" =>
                   if atom_image_iri(
                     captured_text, "source " + field, capture_line,
@@ -2550,7 +2550,7 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   feed_rights = Some(captured_text)
                   feed_rights_kind = capture_text_kind
                 }
-                "generator" => feed_generator = non_blank_text(captured_text)
+                "generator" => feed_generator = Some(captured_text)
                 _ => {
                   feed_subtitle = Some(captured_text)
                   feed_subtitle_kind = capture_text_kind
