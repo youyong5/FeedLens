@@ -157,6 +157,11 @@ jobs:
           git diff --exit-code -- pkg.generated.mbti
       - name: Test
         run: moon test --target ${{ matrix.target }}
+      - name: Validate packaged archive with fresh dependency install
+        if: matrix.target == 'native'
+        run: |
+          moon package --frozen
+          python3 tools/check_release_archive.py
 
   native-cli:
     name: native CLI smoke test
