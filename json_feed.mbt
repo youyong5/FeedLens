@@ -415,6 +415,10 @@ fn json_attachment(
     json_attachment_problem(
       diagnostics, item_index, attachment_index, "mime_type",
     )
+  } else if atom_mime_essence(media_type.unwrap()) is None {
+    json_attachment_problem(
+      diagnostics, item_index, attachment_index, "invalid mime_type",
+    )
   }
   let title = match json_field(object, "title") {
     None => None
