@@ -54,6 +54,8 @@ This comparison does not use live network feeds or claim broad conformance.
   Three additional publisher snapshots cover RSS channel metadata, Atom HTML
   and missing-author diagnostics, and JSON HTML with author inheritance. A
   separate CI job now runs the three complete pinned originals (20/4/6 items)
-  and checks their SHA-256 values and independent field intersections. This
-  does not prove every optional field or fully valid Atom behavior across a
-  broad set of publishers; xkcd's archived Atom input lacks required authors.
+  and checks their SHA-256 values and independent field intersections. Another
+  complete pinned Atom archive has 20 direct entry authors, zero diagnostics,
+  and unshortened HTML bodies compared with XML. This does not prove every
+  optional field or full Atom conformance across publishers; xkcd's archived
+  Atom input still lacks required authors.
