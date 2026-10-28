@@ -1,5 +1,34 @@
 # Real-feed offline projections
 
+## Complete author-valid Atom archive
+
+The public [sample-feeds archive](https://github.com/rowanmanning/sample-feeds/blob/a2dd1a6d1430294e154c2729f0c0615e431dbbe5/content/real-world/d1b6d321bb845c85d51711e414bf56c9/feed.xml)
+stores a full Hugo repository [commits Atom feed](https://github.com/gohugoio/hugo/commits/master.atom).
+Its archive [metadata](https://github.com/rowanmanning/sample-feeds/blob/a2dd1a6d1430294e154c2729f0c0615e431dbbe5/content/real-world/d1b6d321bb845c85d51711e414bf56c9/index.md)
+records `2022-06-01` and the original publisher URL; the archive's creation
+time is not independently known. At pinned commit
+`a2dd1a6d1430294e154c2729f0c0615e431dbbe5`, `feed.xml` is 19,452 bytes,
+SHA-256 `46341f86af184fd68f2815795cf412299a831e13e7ba87f7e3f5b8f843724230`.
+The archive rewrites the feed's `self` link to its own URL, so this is **not** a
+byte-identical publisher response. It is complete as archived: none of its
+20 entries or HTML bodies was cut for our test. No feed-level author is needed
+because every entry directly declares an author.
+
+`tools/check_full_valid_atom.py` verifies the archived bytes, checks those
+author declarations with Python ElementTree, parses the complete file through
+Native CLI with **zero diagnostics**, and compares ordered IDs, display titles,
+links, dates, and authors with feedparser 6.0.11. It also verifies each
+unshortened decoded HTML body against the XML tree. The pinned archive is
+checked out in the complete-response CI job; the check is local after checkout:
+
+```sh
+uv run --with feedparser==6.0.11 python tools/check_full_valid_atom.py ../sample-feeds/content/real-world/d1b6d321bb845c85d51711e414bf56c9/feed.xml
+```
+
+The older xkcd archive below remains a separate real-world **invalid-author**
+case. Neither archive proves complete Atom 1.0 conformance or replaces the
+WP Tavern same-story cross-format projections.
+
 ## Additional publisher corpus (pinned public archive)
 
 The public [mojo-feed fixture archive](https://github.com/conorbronsdon/mojo-feed/tree/be9e1dbc17faea2723fa3224512f184738adb43d/test/data) contains snapshots from three other publishers. We copied them from archived commit `be9e1dbc17faea2723fa3224512f184738adb43d`; we did **not** request the publishers' current feeds in October 2026. The archive's `test_real_feed.mojo` identifies each publisher, and the snapshot contents contain the publication dates below. The archive capture timestamps are not known.

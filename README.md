@@ -232,6 +232,10 @@ compares a defined field intersection with independent XML/JSON readers and
 feedparser; the archived bytes are not reduced for this job. The source archive
 is fetched by CI, so this job is distinct from the repository's offline
 projection tests.
+The same job also replays a [complete archived Hugo commits Atom feed](samples/REAL_WORLD.md)
+with 20 directly authored entries and full HTML bodies: it has zero diagnostics
+and a defined feedparser/XML comparison. Its archive curator rewrote the `self`
+link, so it is not described as a byte-identical publisher response.
 
 The first RSS episode reports `Entries: 2` and an `audio/mpeg` enclosure of
 `37878054` bytes. The Atom and JSON Feed projections expose the same media URL
