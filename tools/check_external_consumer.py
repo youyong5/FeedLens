@@ -39,7 +39,7 @@ def main() -> None:
             'members = ["feedlens", "consumer"]\n', encoding="utf-8"
         )
         (consumer / "moon.mod").write_text(
-            'name = "verification/consumer"\nimport { "youyong5/feedlens@0.1.0" }\n',
+            'name = "verification/consumer"\nimport { "youyong5/feedlens@0.2.0" }\n',
             encoding="utf-8",
         )
         (consumer / "moon.pkg").write_text(
