@@ -818,6 +818,17 @@ fn xml_attachment(
     Some(value) => non_blank_text(value)
     None => None
   }
+  if source == Rss2 {
+    match media_type {
+      Some(raw) if atom_mime_essence(raw) is None =>
+        diagnostics.push({
+          kind: InvalidAttachment("invalid RSS enclosure type"),
+          line,
+          column,
+        })
+      _ => ()
+    }
+  }
   if source == Atom1 {
     match attribute_value(element, "type") {
       Some(raw) if atom_mime_essence(raw) is None =>

@@ -1,0 +1,2 @@
+<rss version="2.0"><channel><title>F</title><link>https://example.test/</link><description>Episodes</description>
+<item><title>E</title><enclosure url="media/one.mp3" length="7" type="audio"/><enclosure url="media/two.txt" length="8" type="text/plain; charset=&quot;utf-8&quot;"/><enclosure url="media/three.mp3" length="9" type="AUDIO/MPEG"/></item></channel></rss>
