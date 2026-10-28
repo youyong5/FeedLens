@@ -61,6 +61,8 @@ jobs:
         run: python3 tools/check_json_attachment_recovery.py
       - name: Compare RSS and JSON Feed attachment media types
         run: python3 tools/check_attachment_media_types.py
+      - name: Compare JSON Feed numeric attachment byte counts
+        run: python3 tools/check_json_attachment_numbers.py
       - name: Compare Atom XHTML wrapper attributes
         run: uv run --with feedparser==6.0.11 python tools/check_xhtml_container_reference.py
       - name: Compare cross-format unknown local offsets

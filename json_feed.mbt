@@ -382,6 +382,87 @@ fn json_attachment_problem(
 }
 
 ///|
+/// JSON numbers may use a fractional part and an exponent even when their
+/// mathematical value is an integer. Use the source digits, not the parsed
+/// Double, so values beyond 2^53-1 cannot round into the accepted range.
+fn json_attachment_size(raw : String) -> Int64? {
+  if raw.has_prefix("-") {
+    return None
+  }
+  let digits : Array[Int32] = []
+  let mut fractional = false
+  let mut fraction_digits = 0
+  let mut exponent_part = false
+  let mut negative_exponent = false
+  let exponent_digits : Array[Int32] = []
+  for c in raw {
+    if c == 'e' || c == 'E' {
+      exponent_part = true
+    } else if exponent_part {
+      if c == '-' {
+        negative_exponent = true
+      } else if c != '+' {
+        exponent_digits.push(c.to_int() - 48)
+      }
+    } else if c == '.' {
+      fractional = true
+    } else {
+      digits.push(c.to_int() - 48)
+      if fractional {
+        fraction_digits += 1
+      }
+    }
+  }
+  // An exponent larger than the mantissa length plus the safe integer digit
+  // count can only yield zero (zero mantissa) or an unusable byte count.
+  let limit = digits.length() + 16
+  let mut exponent = 0
+  for digit in exponent_digits {
+    if exponent > (limit - digit) / 10 {
+      exponent = limit + 1
+      break
+    }
+    exponent = exponent * 10 + digit
+  }
+  if negative_exponent {
+    exponent = -exponent
+  }
+  let shift = exponent - fraction_digits
+  let mut last = digits.length()
+  if shift < 0 {
+    last += shift
+    if last < 0 {
+      last = 0
+    }
+    for i = last; i < digits.length(); i = i + 1 {
+      if digits[i] != 0 {
+        return None
+      }
+    }
+  }
+  let mut value = 0L
+  for i = 0; i < last; i = i + 1 {
+    let digit = digits[i].to_int64()
+    if value > (9007199254740991L - digit) / 10L {
+      return None
+    }
+    value = value * 10L + digit
+  }
+  if shift > 0 {
+    if value == 0L {
+      return Some(0L)
+    }
+    for zero = 0; zero < shift; zero = zero + 1 {
+      if value > 900719925474099L {
+        return None
+      }
+      value = value * 10L
+    }
+  }
+  Some(value)
+}
+
+///|
 fn json_attachment(
   value : Json,
   diagnostics : Array[Diagnostic],
@@ -435,7 +516,7 @@ fn json_attachment(
     Some(number) =>
       match number {
         Number(_, ..) =>
-          match attachment_size(number.stringify()) {
+          match json_attachment_size(number.stringify()) {
             Some(value) => Some(value)
             None => {
               json_attachment_problem(
