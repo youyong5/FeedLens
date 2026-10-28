@@ -5,10 +5,11 @@ application form. It contains no private contact information.
 
 | Capability to report | Implementation and evidence | Boundary to state |
 | --- | --- | --- |
-| Multi-format parsing | `feedlens.mbt`, `atom.mbt`, `jsonfeed.mbt`; RSS 2.0, Atom 1.0, JSON Feed 1.0/1.1 samples in `samples/` | Not every extension or feed format is supported. |
+| Multi-format parsing | `feedlens.mbt`, `atom.mbt`, `json_feed.mbt`; RSS 2.0, Atom 1.0, JSON Feed 1.0/1.1 samples in `samples/` | Not every extension or feed format is supported. |
 | Unified entry model | `pkg.generated.mbti`; source-preserving authors, categories, content kinds, and ordered attachments | HTML is retained, not rendered or sanitized. |
 | Reader display metadata | `language_test.mbt`, `feed_image_test.mbt`, `entry_display_test.mbt`, `samples/DISPLAY_FIELD_INVENTORY.md` | Source-specific image roles and JSON outside links are kept distinct; no image is fetched. |
 | Offline real-feed exercise | `samples/REAL_WORLD.md`, three `real_wptavern_*` plus three publisher-diverse projections, `real_samples_test.mbt`, `diverse_real_test.mbt` | Reduced archived projections, not complete current live feeds. xkcd is missing required Atom authors and is expected to diagnose. No runtime network dependency. |
+| Complete archived originals | `tools/check_full_archived_feeds.py`, pinned upstream archive commit and full-response SHA-256 values in `samples/REAL_WORLD.md`, dedicated CI end-to-end job | Full 20/4/6 RSS/Atom/JSON records are checked after upstream checkout; not the uncommitted 2026-10-19 WP Tavern originals or fresh live feeds. CI needs archive checkout; parsing itself does not fetch. |
 | Date validation | `date.mbt`, `date_test.mbt`, `date_unknown_offset_test.mbt`, `date_leap_second_test.mbt`; `normalize_date` returns a UTC instant or an explicit error | Raw dates remain unchanged; unknown local offset is explicit; `:60` is checked against a dated NIST table and flagged separately from POSIX seconds; future announcements need table refresh. |
 | Relative URL resolution | `uri.mbt`, `uri_feed.mbt`, `uri_test.mbt`; opt-in `parse_with_source` | Requires a caller-provided document URL; only documented common URL fields are resolved. |
 | Local inspection | `cmd/main`, `cmd/render`, `tools/check_cli.ps1` | Native CLI reads local files only; it is not a crawler or JSON Feed converter. |
