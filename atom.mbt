@@ -1525,6 +1525,13 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
               author_name = Some("")
             } else if is_atom_name(element.name, "uri") {
               author_uri = Some("")
+            } else if is_atom_name(element.name, "email") {
+              author_email = Some("")
+              diagnostics.push({
+                kind: InvalidAuthor("invalid atom person email"),
+                line: event.span.start.line,
+                column: event.span.start.column,
+              })
             }
           }
           if entry_open && depth == entry_depth {
@@ -2209,7 +2216,16 @@ fn parse_atom(input : String, standalone : Bool) -> Result[Feed, ParseError] {
                   })
                 }
               }
-              _ => author_email = non_blank_text(author_child_text)
+              _ => {
+                author_email = Some(author_child_text)
+                if !atom_email_syntax(author_child_text) {
+                  diagnostics.push({
+                    kind: InvalidAuthor("invalid atom person email"),
+                    line: author_child_line,
+                    column: author_child_column,
+                  })
+                }
+              }
             }
             author_child = None
             author_child_text = ""
