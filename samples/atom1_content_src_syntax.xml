@@ -1,0 +1,4 @@
+<feed xmlns="http://www.w3.org/2005/Atom"><id>urn:f</id><title>F</title><updated>2026-10-28T00:00:00Z</updated><author><name>A</name></author>
+<entry><id>urn:a</id><title>A</title><updated>2026-10-28T00:00:00Z</updated><summary>S</summary><content src="bad%2G" type="application/xml"/></entry>
+<entry><id>urn:b</id><title>B</title><updated>2026-10-28T00:00:00Z</updated><summary>S</summary><content src="../媒体.xml?x=%5B1%5D" type="application/xml"/></entry>
+<entry><id>urn:c</id><title>C</title><updated>2026-10-28T00:00:00Z</updated><summary>S</summary><content src="" type="application/xml"/></entry></feed>
