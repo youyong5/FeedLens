@@ -148,8 +148,12 @@ jobs:
           echo "$HOME/.moon/bin" >> "$GITHUB_PATH"
       - name: Refresh MoonBit registry
         run: moon update
+      - name: Verify compiler minimum
+        run: python3 tools/check_compiler_version.py
       - name: Check
         run: moon check --target ${{ matrix.target }}
+      - name: Build
+        run: moon build --target ${{ matrix.target }}
       - name: Verify public interface snapshot
         if: matrix.target == 'native'
         run: |
