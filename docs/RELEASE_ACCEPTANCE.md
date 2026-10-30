@@ -4,7 +4,13 @@ The approved project's implementation evidence is recorded in
 [`STANDARD_SCOPE.md`](STANDARD_SCOPE.md), [`LEGAL_INPUT_AUDIT.md`](LEGAL_INPUT_AUDIT.md)
 and [`REVIEW_DATA.md`](REVIEW_DATA.md). Version 0.2.0 is the first release
 candidate containing the later independent Atom Entry and common-standard
-behavior. Mooncakes 0.1.0 is an older published snapshot.
+behavior. Mooncakes 0.1.0 is an older published snapshot; 0.2.0 was released
+on 2026-10-28 UTC after the expanded behavior was merged into GitHub `main`.
+The release passed `moon add youyong5/feedlens@0.2.0` in a separate module,
+Wasm/JS/Native checks, and Native RSS, JSON Feed and independent Atom Entry
+public calls. The published GitHub source commit was
+[`6628ddb`](https://github.com/youyong5/FeedLens/commit/6628ddba9779864bcaa3b41ac35782fe0009da76),
+with [six successful CI jobs](https://github.com/youyong5/FeedLens/actions/runs/40671619618).
 
 ## Before publication
 

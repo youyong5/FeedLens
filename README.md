@@ -71,13 +71,11 @@ GitHub landing page; both documents describe the same supported scope.
 
 ## Library
 
-Add the latest published module with `moon add youyong5/feedlens`, then
+Add the published `0.2.0` module with `moon add youyong5/feedlens@0.2.0`, then
 import `"youyong5/feedlens"` in the consuming package's `moon.pkg`.
 The public parser API works across Wasm, JavaScript, and Native.
-Pin the version in applications after checking the
-[Mooncakes version list](https://mooncakes.io/docs/youyong5/feedlens).
-The source module's version is `0.2.0`; verify that this version is listed
-before relying on its newer document and structured-body APIs.
+The [Mooncakes 0.2.0 release](https://mooncakes.io/docs/youyong5/feedlens@0.2.0)
+includes the independent Atom Entry and structured-body APIs.
 
 ```moonbit nocheck
 match @feedlens.parse(input) {
@@ -122,9 +120,10 @@ command requires a published Mooncakes package or a network request.
 CI also runs `python3 tools/check_external_consumer.py` on Linux. It creates a
 temporary MoonBit module outside this repository, imports only the public
 FeedLens package through a local `moon.work`, checks Wasm/JS/Native, and runs
-RSS, Atom Entry and JSON Feed calls on Native. This checks the current source;
-the separately published Mooncakes version needs its own install check after
-the next release.
+RSS, Atom Entry and JSON Feed calls on Native. This checks the current source.
+The published 0.2.0 was separately installed in a fresh module with
+`moon add youyong5/feedlens@0.2.0` and passed the same three target checks
+and Native public API calls via `tools/check_published_consumer.py 0.2.0`.
 
 Atom XHTML titles have a directly readable plain-text `title`, `title_kind = Xhtml`,
 and a `title_xhtml` fragment. For the fixed
@@ -282,9 +281,9 @@ CLI's normalized JSON (other fields omitted here):
 ```powershell
 moon fmt
 moon info
-moon check --target wasm; moon test --target wasm
-moon check --target js; moon test --target js
-moon check --target native; moon test --target native
+moon check --target wasm; moon build --target wasm; moon test --target wasm
+moon check --target js; moon build --target js; moon test --target js
+moon check --target native; moon build --target native; moon test --target native
 powershell -ExecutionPolicy Bypass -File tools/check_cli.ps1
 powershell -ExecutionPolicy Bypass -File tools/check_consumer.ps1
 python3 tools/check_external_consumer.py
